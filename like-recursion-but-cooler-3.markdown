@@ -10,8 +10,13 @@ nice examples of recursion-schemes as possible. Therefore, it's
 probably best to read this post one piece at a time, playing with each
 example as you go.
 
-Not all of this code is mine, I've tried to link to original
-sources/posts where I got the code from.
+Not all of this code is mine; in the interest of being a good one-page
+list of examples I've attempted to make this page the transitive
+closure of most code examples.
+
+I've linked to original sources/posts where I got the code from in all
+these cases. If somethings ever unclear, please yell at me in a
+comment and check out what explanation the original author provided.
 
 ### Manipulating ASTs
 
@@ -110,3 +115,5 @@ Of course, in a real Lisp, we'd have to do more checks to make sure
 `e` didn't have any side effects, that we didn't mutate `v`, so on and
 so on. This pure-ish Lisp still nicely illustrates how we'd scale up
 to a more real language.
+
+## Merge sorting
