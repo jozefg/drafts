@@ -23,7 +23,7 @@ First let's start by defining a simple Lispish language
 ``` haskell
     data Var = Var String -- In original code this was more structured
     data Lit = SLit String | ILit Int
-    data Primop = Plus | Minus | Mult | Div | Print
+    data Primop = Plus | Minus | Mult | Div 
 
     data Exp = Var Var
              | Lam [Var] [Exp]
@@ -81,4 +81,32 @@ value with
     App (snd f) (map snd args)
 ```
 
-Now 
+Now we can actually talk about the real work. First, we handle
+shadowing in `LamF` by checking to see whether we have a variable
+identical to `var` being bound in the formal parameters, if we do,
+then we use the original version of all our subexpressions. If `var`
+isn't shadowed we go ahead and use the substituted version.
+
+Finally, the actual substitution just boils down to 
+
+``` haskell
+    if v == var then exp else Var v
+```
+
+So there's a real life example of paramorphisms.
+
+Now with these two ideas, we can implement beta conversion. In a lisp
+compiler, we'd desugar `let` bindings to function applications so
+doing this faux-inlining is vital.
+
+``` haskell
+    inlineExp :: SExp CPSPrim -> SExp CPSPrim
+    inlineExp = cata folder -- Simple inlining, inline only small pure arguments
+      where folder (AppF (Lam [v] [e]) [a]) | size e < 30 = subst v a e 
+            folder e = embed e
+```
+
+Of course, in a real Lisp, we'd have to do more checks to make sure
+`e` didn't have any side effects, that we didn't mutate `v`, so on and
+so on. This pure-ish Lisp still nicely illustrates how we'd scale up
+to a more real language.
