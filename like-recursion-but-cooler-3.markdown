@@ -19,6 +19,8 @@ these cases. If somethings ever unclear, please yell at me in a
 comment and check out what explanation the original author provided.
 
 ### Manipulating ASTs
+*This code is mine (and simplified). It's originally from
+[`c_of_scheme`](https://bitbucket.org/jozefg/c_of_scheme/src/2dc35ef9b4444c8adb06578f2a41f0570e251269/src/OptimizeCPS.hs?at=default)*
 
 I'll start with an example near and dear to my heart, fiddling with
 ASTs using recursion-schemes.
@@ -116,4 +118,6 @@ Of course, in a real Lisp, we'd have to do more checks to make sure
 so on. This pure-ish Lisp still nicely illustrates how we'd scale up
 to a more real language.
 
-## Merge sorting
+## Merge sort
+
+*This code is from [Don't Fear the cat-amorphism](http://fho.f12n.de/posts/2014-05-07-dont-fear-the-cat.html)*

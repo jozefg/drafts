@@ -99,8 +99,10 @@ Now, as promised here's how to actually implement it so it returns `[a]`'s.
 ```
 
 recursion-schemes defines the type instance for `[a]` with two constructor
-`Cons` and `Nil` that behave precisely like `BCons` and `BNil`.
-
+`Cons` and `Nil` that behave precisely like `BCons` and `BNil`. However,
+`Cons` and `Nil` are defined using some type families magic that makes them
+invisible in the documentation (I found them by reading the source). They
+exist I promise :)
 
 ### Building Stuff Up to Tear It Down
 One of the most common patterns in Haskell is to create some
@@ -163,10 +165,14 @@ into one cool transformation
 There you are! As a challenge to the reader, figure out what
 index a number `p/q` will appear in this list (it will only occur once).
 
+If you found this math intersting, check out
+[this paper](http://www.cs.ox.ac.uk/jeremy.gibbons/publications/rationals.pdf).
+
 A few other people have shown off this pattern, one of my favorites
 being [merge sort as a hylomorphism](http://fho.f12n.de/posts/2014-05-07-dont-fear-the-cat.html).
 
 ## A Recap
+
 We've now covered the core elements of the `recursion-schemes` library, but I'm not
 quite done with this blog series. I'm planning on one more post detailing my attempt
 to actually use recursion-schemes in a real project: a scheme compiler.
