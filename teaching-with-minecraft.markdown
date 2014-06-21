@@ -197,5 +197,59 @@ didn't have access to any sort of projector so a lot of my
 explanations consisted of scribbling on a giant (2' by 3') post it
 note.
 
-This had distinctly mixed results. As I'd expected
- 
+This had distinctly mixed results. As I'd expected most kids couldn't
+pick up the fundamentals of programming in an hour! This was OK though
+since the rest of the day was spent messing around with a simple
+program
+
+``` python
+    # chat.py
+    import minecraft
+
+    mc = minecraft.Minecraft.create()
+
+    message = "Hello Chat"
+
+    mc.putToChat(message)
+```
+
+And we used this to introduce the fundamentals of Python. For kids
+that were progressing faster, we challenged them to write more
+complicated programs like
+
+``` python
+    import minecraft
+
+    mc = minecraft.Minecraft.create()
+
+    message = ""
+
+    if 1 + 1 < 2:
+        message = "Hello"
+    else:
+        message = "Goodbye"
+
+    mc.putToChat(message)
+```
+
+Not surprisingly, this was really hard to grasp for our kids.
+This was when the class started to fragment a bit, some kids were
+getting this and really doing awesome while some were having a harder
+time with all the new information.
+
+If I had a chance to do this again, I'd definitely split the class
+into two groups, one for people who were up and running with basic
+concepts to build some programs together with one instructor. The
+other two could then stay and give one to one help slowly but
+surely. This would prevent us from leaving anyone behind.
+
+In reality I'd say we had about 5 kids who were understanding what was
+going on and 8 who were lost. No one had yet given up on programming
+luckily, so we were still more or less OK.
+
+## Day 3
+
+Going into this day I knew it wasn't going to be easy
+
+ 1. We were starting to lose a bit of interest since it's getting
+    later in the week
