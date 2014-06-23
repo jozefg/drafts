@@ -410,4 +410,45 @@ questions when they were setting up their Pis.
 
 ## Recap
 
+So dear reader, where are we left?
 
+Well the place that ran this camp
+is running more. I'm not sure if they're full, but if you're a parent
+or interested kid, please email me at [jozefg AT cmu.edu].
+
+If you're thinking that you want to run one of these camps yourself,
+do it! I only have 4 pieces of advice
+
+ 1. Error on being concise and simple rather than comprehensive
+
+     You're not going to teach someone to program in 4 days. You can
+     however, make someone hate programming forever in 4 days! If they
+     kids want more information, they'll ask.
+
+     I guarantee that you'll end up flooding the kids
+     with too much information if you try to be comprehensive.
+
+ 2. Always run this with more than one adult present
+
+    Otherwise you'll end up spending the whole camp chasing after kids
+    to fix issues and everyone else will be bored.
+
+    It's always good to have more than one adult who knows Python too!
+    You can do it with just one I've discovered. It is less than ideal
+    however.
+
+ 3. Have a good space, with a projector!
+
+    Projectors are great. So great that I'm very seriously considering
+    buying one for the next 2 iterations of this camp.
+
+ 4. Inspire kids to want to learn more!
+
+    That's the whole point! You'll never teach anything if you're
+    fighting the kids. Make this fun and don't sweat it if you feel
+    like you're not covering as much material as you'd like. This
+    isn't a class, there's no exam at the end, it's supposed to be
+    fun!
+
+If anyone has any more specific questions on this camp, please comment
+below and I'll respond as soon as I can.
