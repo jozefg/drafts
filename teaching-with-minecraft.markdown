@@ -146,8 +146,8 @@ code for `grid.py` was roughly
         pos = mc.player.getPos()
         pos.x += 3
 
-        for x in range(0, size):
-            for y in range(0, size):
+        for x in range(size):
+            for y in range(size):
                 mc.setBlock(pos.x + x, pos.y + y, pos.z, type) # Set block at these coordinates to type
 
     if __name__ = "__main__":
@@ -253,3 +253,161 @@ Going into this day I knew it wasn't going to be easy
 
  1. We were starting to lose a bit of interest since it's getting
     later in the week
+ 2. Some kids were falling behind others
+
+with this in mind, we went about introducing a few new prewritten
+programs that built cubes! I'll leave it to your imagination how this
+worked, it's pretty similar to `grid.py`.
+
+For the kids who were really clicking, I challenged some of them to
+explain parts of the code to me. In this context I taught a few kids
+about `for` loops. It's a bit tricky to explain how they work since I
+didn't want to explain what an iterable was. Remember, we hadn't
+talked about any OO aspects of Python.
+
+I introduced them to loops as something to the effect of
+
+``` python
+    for VAR in range(NUMBER):
+        STMT
+        STMT
+        ...
+```
+
+With the explanation that
+
+> A loop means we run that list of statements once for each
+> number between 0 and `NUMBER` - 1 with `VAR` first being 0,
+> then 1, then 2 and so on.
+
+This seemed to click with most of them so quite a few got the hang of
+how loops worked.
+
+I'd actually prefer I'd built some sort of abstraction like
+
+``` python
+    def allPairs(*dims):
+        ...
+```
+
+which returned an iterable (generator?) that had a list of all pairs
+possible within the given set of numbers. This would eliminate the
+need to talk about nested loops, which were a confusing subject for
+most people.
+
+The tricky bit is that while I was hopping from person to person, the
+slower moving campers where playing with `cube.py` all on their own
+and not trying to understand the whole thing but still use it.
+
+This worked surprisingly well actually, we were challenging kids to
+think about how to combine `grid.py` and `cube.py` to build things
+without ever laying a block by hand. Sadly a few kids just abandoned
+the effort and started playing Minecraft. This was not unexpected but
+still a little sad.
+
+To keep things going, I wrote a little program which built a cube
+where the inside was filled with one thing and the outside was
+another. This meant that kids could build an upside down volcano or a
+waterfall.
+
+Unfortunately, to get this to all the kids we had to hand write it on
+giant post-it notes and they had to manually type it. This is another
+case where we desperately needed a projector.
+
+So the third day wasn't nearly as structured as day 2, it was really a
+day when kids experimented and we tried to push kids
+individually. This actually seemed to be a great help since a few more
+kids had some breakthroughs on day 2 materials.
+
+## Day 4
+
+Now, on the final day we opted to try something a little different.
+
+We first tried networking the Raspberry Pis since kids had been asking to
+do this since day 1. Despite being able to get this working in
+prep time, we had some technical issues that prevented us from getting
+it working during the actual camp, very frustrating.
+
+After the kids snack break, we went into a different room with no
+computers and put up a post it with the title "Steps for Writing Code"
+
+ 1. Define Our Problem
+ 2. Brainstorm Solutions
+ 3. Compare Solutions and Choose One
+ 5. Implement Solution
+ 6. Test Implementation
+
+Now experts will notice the missing step 5.5, "swear profusely while
+implementation doesn't work". We will of course include this in a
+second level camp for teaching programming :)
+
+Now I told them that their goal was to create a program which built a
+"sphere". I put the quotes there since minecraft is built from blocks
+and doesn't have a smooth sphere but you can get pretty close with
+bigger and bigger spheres.
+
+So we went on to step 1. and everyone struggled to define what exactly
+a sphere was and how one ought to decide what "build it" meant.
+
+We eventually settled on our problem being to build a sphere where
+
+ 1. A sphere is a collection of all blocks within a certain distance,
+    D, from the center
+ 2. To "build" a sphere meant we'd place the center 3 + D blocks in
+    front of us and we'd color all blocks in our sphere to stone.
+
+Next came the lively discussion on how to actually go about doing
+this.
+
+After about 5 minutes, we had a lot of handwavy solutions but not
+actual concrete procedure for doing this so I tossed out a hint.
+
+I stated that if someone needed a procedure for finding the space
+between two blocks, I will implement a functon `dist` so that
+
+    dist(x, y)
+
+would return the distance between the `x` block and `y` block in three
+dimensions.
+
+Now the solutions got a lot closer, people started listing steps of
+what to do. I encouraged them to treat me like the computer and give
+me directions. I would then walk around and "color" carpet
+squares. This seemed to demonstrate which solutions weren't quite
+precise enough.
+
+Eventually, we ended on a simple solution
+
+> Figure out the center by adding D + 3 to the current position.
+> For each square in the grid S, if dist(S, Center) < D, color S
+
+Very simple, very inefficient but correct. I then started talking
+about pseudo-code and turning this into a more executable form.
+
+The kids who understood loops jumped in and we ended with something
+like
+
+``` python
+    pos = mc.player.getPos()
+    pos.x += 3
+    for square in fullWorld():
+        if dist(square, pos) <= D:
+            mc.setBlock(square.x, square.y, square.z, block.STONE)
+```
+
+I let them off the hook here and wrote the rest of the code for them
+while they took a brief break.
+
+We then adjourned into the computer room and got started testing!
+We had just enough time to have everyone gather round while we built a
+Death Star on the teachers machine (I was the fastest typist).
+
+Quite a few of the kids where interested in buying their own Pis and
+continuing on their own so we gave everyone their SD cards and
+directions on how to acquire a Raspberry Pi. I also gave out my emails
+to a few of the kids who wanted to make sure they had someone answer
+questions when they were setting up their Pis.
+
+## Recap
+
+
