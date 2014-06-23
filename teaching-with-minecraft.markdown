@@ -359,11 +359,11 @@ We eventually settled on our problem being to build a sphere where
 Next came the lively discussion on how to actually go about doing
 this.
 
-After about 5 minutes, we had a lot of handwavy solutions but not
+After about 5 minutes, we had a lot of hand-wavy solutions but not
 actual concrete procedure for doing this so I tossed out a hint.
 
 I stated that if someone needed a procedure for finding the space
-between two blocks, I will implement a functon `dist` so that
+between two blocks, I will implement a function `dist` so that
 
     dist(x, y)
 
