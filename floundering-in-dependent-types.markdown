@@ -52,7 +52,7 @@ most material aimed at beginners, but boasts the most baggage. Agda is
 probably the simplest language but has almost no tooling.
 
 So I'd suggest starting with either Coq or Idris. Coq simply because
-it has a lot of excellent literature around it and Idris because it's
+it has a lot of excellent literature around it. Idris because it's
 a relatively new tool that has a lot of promise of marrying practical
 programming with dependent types.
 
@@ -74,4 +74,23 @@ types in general. CPDT is a much more fast based introduction to
 actually writing real world proofs.
 
 I'd suggest getting both. I bounced back in forth between the two and
-I think 
+I think that really helped it click for me.
+
+The really tricky bit about learning Coq is that there are really 3
+languages running around.
+
+There's the actual term language, which 
+
+## Idris
+
+Idris is a better playground for learning about *programming* with
+dependent types. Coq is a workhorse for theorems but pretty lousy for
+writing fizz-buzz with.
+
+With decidedly mixed feelings, I can say that it's pretty obvious
+where to start with Idris! The fact that it's a new language means
+that it doesn't have that much written about it.
+
+The
+[documentation](http://eb.host.cs.st-andrews.ac.uk/writings/idris-tutorial.pdf)
+has a nice official tutorial.
