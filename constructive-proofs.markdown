@@ -182,4 +182,22 @@ Still not that much unfortunately.
 
 With two simple additions though, we can prove a lot. The first
 is adding GADTs, the second getting an actual interesting kind
-system.
+system with `-XDataKinds`, `-XPolyKinds`, and `-XKindSignatures`.
+
+With these two, we can do something like
+
+``` haskell
+    {-# LANGUAGE GADTs, DataKinds #-}
+    data Nat = Zero | Plus1 Nat -- This forms a kind Nat as well
+    
+    data Eq : k -> k -> *  where
+      Refl :: Eq a a
+```
+
+Now we have some interesting proofs! `Eq` is something called Leibniz
+equality, but as far as we have to care `Eq a b` simply means that `a`
+is equal to `b`.
+
+So now let's write some proofs!
+
+``` 
