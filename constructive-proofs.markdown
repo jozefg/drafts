@@ -165,6 +165,7 @@ witness for its result and we *need* a witness to write a program as our
 proof.
 
 ## Useful Proofs
+
 Now, while what I have might be fun from an intellectual point of
 view, it's pretty boring frankly. There's not a whole lot of
 "real world theorems" you can create using just `\/` and `/\`.
@@ -173,9 +174,8 @@ What we really want is a method of introducing new logical constructions that
 describe properties we're interested in. The way to do this is actually
 trivial, algebraic data types!
 
-Put simply, the type of our ADT is our proposition, the constructors
-are proofs, and pattern matching our are elimination rules or ways
-to actually use our proof.
+Put simply, the type of our ADT is our proposition. The constructors
+are introduction rules and pattern matching is a way of using results.
 
 So, what interesting propositions can we state with vanilla ADTs?
 Still not that much unfortunately.
