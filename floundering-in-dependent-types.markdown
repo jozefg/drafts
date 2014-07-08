@@ -1,5 +1,5 @@
 ---
-title: Not Another Dependent Types Sales Pitch
+title: Starting with Dependent Types
 ---
 
 For the past 20 months I've been floundering in depedently typed
