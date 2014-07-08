@@ -38,7 +38,6 @@ you should know a bit about one or more of the following
  - SML
  - OCaml
  - Haskell
- - Scala
 
 If you've got some chops with fancier static types and functional
 programming without teaching one of these 4, props to you and read on.
