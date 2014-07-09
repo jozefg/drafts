@@ -201,5 +201,194 @@ Perhaps some benchmarking is in order.
 Now that we've finished with Control.Monad.Logic.Class, let's move on
 to the main file.
 
+Now we finally see the definition of `LogicT`
+
+``` haskell
+    newtype LogicT m a =
+        LogicT { unLogicT :: forall r. (a -> m r -> m r) -> m r -> m r }
+```
+
+I have no idea how this works, but I'm guessing that this is a church
+version of `[a]` specialized to some `m`. Remember that the church
+version of `[a]` is
+
+``` haskell
+    type CList a = forall r. (a -> r -> r) -> r -> r
+```
+
+Now what's interesting here is that the church version is strongly
+connected to how CPSed code works. We could than imagine that `mplus`
+works like `cons` for church lists and yields more and more
+results. But again, this is just speculation.
+
+This suspicion is confirmed by the functions to extract values out of
+a `LogicT` computation
+
+``` haskell
+    observeT :: Monad m => LogicT m a -> m a
+    observeT lt = unLogicT lt (const . return) (fail "No answer.")
+    
+    observeAllT :: Monad m => LogicT m a -> m [a]
+    observeAllT m = unLogicT m (liftM . (:)) (return [])
+
+    observeManyT :: Monad m => Int -> LogicT m a -> m [a]
+    observeManyT n m
+        | n <= 0 = return []
+        | n == 1 = unLogicT m (\a _ -> return [a]) (return [])
+        | otherwise = unLogicT (msplit m) sk (return [])
+     where
+     sk Nothing _ = return []
+     sk (Just (a, m')) _ = (a:) `liftM` observeManyT (n-1) m'
+```
+
+`observeT` grabs the `a` from the success continuation and if no
+result is returned than it will evaluate `fail "No Answer` which looks
+like the failure continuation! Looks like out suspicion is confirmed,
+we're dealing with monadic church lists or some other permutation of
+those buzzwords.
+
+Somehow in a package partially designed by Oleg I'm not surprised to
+find continuations :)
+
+`observeAllT` is quite similar, notice that we take advantage of the
+fact that `r` is universally quantified to instantiate it to `a`. This
+quantification is also used in `observeManyT`. This quantification
+also prevents any `LogicT` from taking advantage of the return type to
+do evil things with returning random values that happen to match the
+return type. This is what's possible with `ContT` for example.
+
+Now we have the standard specialization and smart constructor for the
+non-transformer version.
+
+``` haskell
+    type Logic = LogicT Identity
+    
+    logic :: (forall r. (a -> r -> r) -> r -> r) -> Logic a
+    logic f = LogicT $ \k -> Identity .
+                             f (\a -> runIdentity . k a . Identity) .
+                             runIdentity
+```
+
+Look familiar? Now we can inject real church lists into a `Logic`
+computation. I suppose this shouldn't be surprising since `[a]`
+functions like a slightly broken `Logic a`, without any sharing or
+soft cut.
+
+Now we repeat all the `observe*` functions for `Logic`, I'll omit
+these since they're implementations are exactly as you'd expect and
+not interesting.
+
+Next we have a few type class instances
+
+``` haskell
+    instance Functor (LogicT f) where
+        fmap f lt = LogicT $ \sk fk -> unLogicT lt (sk . f) fk
+    
+    instance Applicative (LogicT f) where
+        pure a = LogicT $ \sk fk -> sk a fk
+        f <*> a = LogicT $ \sk fk -> unLogicT f (\g fk' -> unLogicT a (sk . g) fk') fk
+    
+    instance Alternative (LogicT f) where
+        empty = LogicT $ \_ fk -> fk
+        f1 <|> f2 = LogicT $ \sk fk -> unLogicT f1 sk (unLogicT f2 sk fk)
+    
+    instance Monad (LogicT m) where
+        return a = LogicT $ \sk fk -> sk a fk
+        m >>= f = LogicT $ \sk fk -> unLogicT m (\a fk' -> unLogicT (f a) sk fk') fk
+        fail _ = LogicT $ \_ fk -> fk
+```
+
+It helps for reading this if you expand `sk` to "success continuation"
+and `fk` to "fail computation". Since we're dealing with church lists
+I suppose you could also use `cons` and `nil`.
+
+What's particularly interesting to me here is that there are *no*
+constraints on `m` for these type class declarations! Let's go through
+them one at a time.
+
+`Functor` is usually pretty mechanical, and this is no exception. Here
+we just have to change `a -> m r -> m r` to `b -> m r -> m r`. This is
+trivial just by composing the success computation with `f`.
+
+`Applicative` is similar. `pure` just lifts a value into the church
+equivalent of a singleton list, `[a]`. `<*>` is a little bit more
+meaty, we first unwrap `f` to it's underlying function `g`, and
+composes it with out successes computation for `a`. Notice that this
+is very similar to how `Cont` works, continuation passing style is
+necessary with church representations.
+
+Now `return` and `fail` are pretty straightforward. Though this is
+interesting because since pattern matching calls `fail`, we can just
+do something like
+
+    do
+      Just a <- m
+      Just b <  n
+      return $ a + b
+
+And we'll run `n` and `m` until we get a `Just` value.
+
+As for `>>=`, it's implementation is very similar to `<*>`. We unwrap
+`m` and then feed the unwrapped `a` into `f` and run that with our
+success computations.
+
+We're only going to talk about one more instance for `LogicT`,
+`MonadLogic`, there are a few others but they're mostly for MTL use
+and not too interesting.
+
+    instance (Monad m) => MonadLogic (LogicT m) where
+        msplit m = lift $ unLogicT m ssk (return Nothing)
+         where ssk a fk = return $ Just (a, (lift fk >>= reflect))
+
+We're only implementing `msplit` here, which strikes me as a bit odd
+since we implemented everything before. We also actually need `Monad m`
+here so that we can use `LogicT`'s `MonadTrans` instance.
+
+To split a `LogicT`, we run a special success computation and return
+`Nothing` if failure is ever called. Now there's one more clever trick
+here, since we can choose what the `r` is in `m r`, we choose it to be
+`Maybe (a, LogicT m a)`! That way we can take the failure case, which
+essentially is just the tail of the list, and push it into `reflect`.
+
+This confused me a bit so I wrote the equivalent version for church
+lists, where `msplit` is just `uncons`.
+
+``` haskell
+    {-# LANGUAGE RankNTypes #-}
+    
+    newtype CList a = CList {runCList :: forall r. (a -> r -> r) -> r -> r}
+    
+    cons :: a -> CList a -> CList a
+    cons a (CList list) = CList $ \cs nil -> cs a (list cs nil)
+    
+    nil :: CList a
+    nil = CList $ \cons nil -> nil
+    
+    head :: CList a -> Maybe a
+    head list = runCList list (const . Just) Nothing
+    
+    uncons :: CList a -> Maybe (a, CList a)
+    uncons (CList list) = list skk Nothing
+      where skk a rest = Just (a, maybe nil (uncurry cons) rest)
+```
+
+Now it's a bit clearer what's going on, `skk` just pairs up the head
+of the list with the rest. However, since the tail of the list has the
+type `m (Maybe (a, LogicT m a))`, we lift it back into the `LogicT`
+monad and use `reflect` to smush it back into a good church list.
+
+That about covers Control.Monad.Logic
+
+## Wrap Up
+
+I've never tried sharing these readings before so I hope you enjoyed
+it. If this receives some positive feedback I'll do something similar
+with another package, I'm leaning towards extensible-effects.
+
+If you're interested in doing this yourself, I highly recommend it!
+I've learned a *lot* about practical engineering with Haskell, as well
+as really clever and elegant Haskell code. Like using a church list to
+represent a logic computation!
+
 
 [logict]: http://hackage.haskell.org/package/logict
