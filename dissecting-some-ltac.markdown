@@ -33,57 +33,15 @@ And found in `src/CpdtTactics`, line 205
 
     Ltac crush := crush' false fail.
 
-This comes with a comment explaining that `crush` is really just the
-simplest application of `crush'`. So apparently `crush'` is where all
-the magic happens.
-
-Another round of grepping reveals
-
-    (** A more parameterized version of the famous [crush].  Extra arguments are:
-       * - A tuple-list of lemmas we try [inster]-ing 
-       * - A tuple-list of predicates we try inversion for *)
-    Ltac crush' lemmas invOne :=
-      (** A useful combination of standard automation *)
-      let sintuition := simpl in *; intuition; try subst;
-        repeat (simplHyp invOne; intuition; try subst); try congruence in
-    
-      (** A fancier version of [rewriter] from above, which uses [crush'] to discharge side conditions *)
-      let rewriter := autorewrite with core in *;
-        repeat (match goal with
-                  | [ H : ?P |- _ ] =>
-                    match P with
-                      | context[JMeq] => fail 1 (** JMeq is too fancy to deal with here. *)
-                      | _ => rewrite H by crush' lemmas invOne
-                    end
-                end; autorewrite with core in *) in
-    
-      (** Now the main sequence of heuristics: *)
-        (sintuition; rewriter;
-          match lemmas with
-            | false => idtac (** No lemmas?  Nothing to do here *)
-            | _ =>
-              (** Try a loop of instantiating lemmas... *)
-              repeat ((app ltac:(fun L => inster L L) lemmas
-              (** ...or instantiating hypotheses... *)
-                || appHyps ltac:(fun L => inster L L));
-              (** ...and then simplifying hypotheses. *)
-              repeat (simplHyp invOne; intuition)); un_done
-          end;
-          sintuition; rewriter; sintuition;
-         (** End with a last attempt to prove an arithmetic fact with [omega],  *)
-         (** or prove any sort of fact in a context that is contradictory by reasoning that [omega] can do. *)
-          try omega; try (elimtype False; omega)).
-
-
-That's more like it! Looking at this code, one notices that it pulls in a bunch
-other tactics defined in this file. Because of this, we'll just start at the top
-of the file and work our way down to `crush'`.
+Glancing at `crush'`, I've noticed that it pulls in almost every
+tactic in `CpdtTactics`. Therefore, we'll start at the top of this
+file and work our way done, dissecting each tactic as we go.
 
 Incidentally, since CpdtTactics is an independent file, if you're confused about
 something firing up your coq dev environment of choice and trying things out with
 `Goal` inline works nicely.
 
-Starting from the top of `CpdtTactics.v`, our first tactic is `inject`.
+Starting from the top, our first tactic is `inject`.
 
     Ltac inject H := injection H; clear H; intros; try subst.
 
@@ -162,18 +120,14 @@ Now we get to our first *big* tactic
     Ltac simplHyp invOne :=
       let invert H F :=
         inList F invOne;
-        (** This case covers an inversion that succeeds immediately, meaning no constructors of [F] applied. *)
           (inversion H; fail)
-        (** Otherwise, we only proceed if inversion eliminates all but one constructor case. *)
           || (inversion H; [idtac]; clear H; try subst) in
     
       match goal with
         (** Eliminate all existential hypotheses. *)
         | [ H : ex _ |- _ ] => destruct H
     
-        (** Find opportunities to take advantage of injectivity of data constructors, for several different arities. *)
         | [ H : ?F ?X = ?F ?Y |- ?G ] =>
-          (** This first branch of the [||] fails the whole attempt iff the arguments of the constructor applications are already easy to prove equal. *)
           (assert (X = Y); [ assumption | fail 1 ])
           || (injection H;
             match goal with
@@ -189,20 +143,14 @@ Now we get to our first *big* tactic
                 try clear H; intros; try subst
             end)
     
-        (** Consider some different arities of a predicate [F] in a hypothesis that we might want to invert. *)
         | [ H : ?F _ |- _ ] => invert H F
         | [ H : ?F _ _ |- _ ] => invert H F
         | [ H : ?F _ _ _ |- _ ] => invert H F
         | [ H : ?F _ _ _ _ |- _ ] => invert H F
         | [ H : ?F _ _ _ _ _ |- _ ] => invert H F
     
-        (** Use an (axiom-dependent!) inversion principle for dependent pairs, from the standard library. *)
         | [ H : existT _ ?T _ = existT _ ?T _ |- _ ] => generalize (inj_pair2 _ _ _ _ _ H); clear H
-    
-        (** If we're not ready to use that principle yet, try the standard inversion, which often enables the previous rule. *)
         | [ H : existT _ _ _ = existT _ _ _ |- _ ] => inversion H; clear H
-    
-        (** Similar logic to the cases for constructor injectivity above, but specialized to [Some], since the above cases won't deal with polymorphic constructors. *)
         | [ H : Some _ = Some _ |- _ ] => injection H; clear H
       end.
 
@@ -361,24 +309,20 @@ and viola! Global state without hurting anything.
 We use these in the next tactic, `instr`.
 
     Ltac inster e trace :=
-      (** Does [e] have any quantifiers left? *)
       match type of e with
         | forall x : _, _ =>
-          (** Yes, so let's pick the first context variable of the right type. *)
           match goal with
             | [ H : _ |- _ ] =>
               inster (e H) (trace, H)
             | _ => fail 2
           end
         | _ =>
-          (** No more quantifiers, so now we check if the trace we computed was already used. *)
           match trace with
             | (_, _) =>
               match goal with
                 | [ H : done (trace, _) |- _ ] =>
                   fail 1
                 | _ =>
-                  (** What is the type of the proof [e] now? *)
                   let T := type of e in
                     match type of T with
                       | Prop =>
@@ -390,7 +334,6 @@ We use these in the next tactic, `instr`.
                             | [ H : done (_, X) |- _ ] => fail 1
                             | _ => idtac
                           end) trace;
-                        (** Pick a new name for our new instantiation. *)
                         let i := fresh "i" in (pose (i := e);
                           assert (done (trace, i)) by constructor)
                     end
@@ -423,14 +366,12 @@ tactic.
 Now the next branch is where the real work happens
 
       | _ =>
-        (** No more quantifiers, so now we check if the trace we computed was already used. *)
         match trace with
           | (_, _) =>
             match goal with
               | [ H : done (trace, _) |- _ ] =>
                 fail 1
               | _ =>
-               (** What is the type of the proof [e] now? *)
                 let T := type of e in
                   match type of T with
                     | Prop =>
@@ -442,7 +383,6 @@ Now the next branch is where the real work happens
                           | [ H : done (_, X) |- _ ] => fail 1
                           | _ => idtac
                         end) trace;
-                      (** Pick a new name for our new instantiation. *)
                       let i := fresh "i" in (pose (i := e);
                         assert (done (trace, i)) by constructor)
                   end
@@ -473,7 +413,35 @@ to clear them is helpful.
 Hopefully by this point this isn't too confusing. All this tactic does is
 loop through the environment and clear all `done`s.
 
-Now, finally, we've reached `crush'`. `crush'` is really broken into 3 main
+Now, finally, we've reached `crush'`.
+
+    Ltac crush' lemmas invOne :=
+      let sintuition := simpl in *; intuition; try subst;
+        repeat (simplHyp invOne; intuition; try subst); try congruence in
+    
+      let rewriter := autorewrite with core in *;
+        repeat (match goal with
+                  | [ H : ?P |- _ ] =>
+                    match P with
+                      | context[JMeq] => fail 1
+                      | _ => rewrite H by crush' lemmas invOne
+                    end
+                end; autorewrite with core in *) in
+    
+        (sintuition; rewriter;
+          match lemmas with
+            | false => idtac            | _ =>
+              (** Try a loop of instantiating lemmas... *)
+              repeat ((app ltac:(fun L => inster L L) lemmas
+              (** ...or instantiating hypotheses... *)
+                || appHyps ltac:(fun L => inster L L));
+              (** ...and then simplifying hypotheses. *)
+              repeat (simplHyp invOne; intuition)); un_done
+          end;
+          sintuition; rewriter; sintuition;
+          try omega; try (elimtype False; omega)).
+
+`crush'` is really broken into 3 main
 components.
 
 First is a simple tactic `sintuition`
@@ -536,5 +504,9 @@ to attempt to solve a Presburger arithmetic. On the off chance that we have
 something `omega` can be contradictory, we also try `elimType false; omega` to
 try to exploit such a contradiction.
 
+
+<i>Note, all the code I've shown in this post is from CPDT and is licensed under
+ANCND license. I've removed some comments from the code where they wouldn't
+render nicely with them.</i>
 
 [cpdt-website]: http://adam.chlipala.net/cpdt/
