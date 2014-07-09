@@ -20,7 +20,7 @@ blinking uncomprehendingly at CPDT, I've never read its source.
 In this post, we'll dissect how CPDT's main tactic for automation,
 `crush`, actually works.
 
-## Finding the Source
+## The Code
 
 The first step to figuring out of `crush` works is actually finding
 where it's defined.
@@ -153,7 +153,7 @@ Next we have `all`, which runs `f` on *every* member in `f ls`.
 
 Careful readers will notice that instead of `f X || ...` we use `;`. Additionally,
 if the first clause fails and the second clause matches, that means that either `f X`
-or `all f LS` failed. In this case we backtrack all the way back out of our clause. This
+or `all f LS` failed. In this case we backtrack all the way back out of this clause. This
 should mean that this is a "all or nothing" tactic. It will either not fail on all
 members of `ls` or nothing at all will happen.
 
@@ -279,7 +279,7 @@ facts we have floating around in our environment
         | [ H : ?F _ _ _ _ |- _ ] => invert H F
         | [ H : ?F _ _ _ _ _ |- _ ] => invert H F
 
-Notice that we can now use our match to grab the leading symbol for `H` so we only invert
+Notice that we can now use the match to grab the leading symbol for `H` so we only invert
 upon hypothesis that we think will be useful.
 
 Next comes a bit of axiom-fu
@@ -296,7 +296,7 @@ This relies on `eq_rect_eq` so it's just a little bit dodgy for something like H
 we give more rope to `=` than just `refl`.
 
 This particular branch
-of our match is quite straightforward though. Once we see an equality between two witnesses
+of the match is quite straightforward though. Once we see an equality between two witnesses
 for the same existential type, we just `generalize` the equality between their proofs into
 our goal.
 
@@ -308,7 +308,7 @@ If this fails however, we'll fall back to standard inversion with
 
 
 Finally, we have one last special case branch for `Some`. This is because
-our branches above will fail when phased with a polymorphic constructor
+the branches above will fail when phased with a polymorphic constructor
 
         | [ H : Some _ = Some _ |- _ ] => injection H; clear H
 
@@ -376,7 +376,6 @@ We use these in the next tactic, `instr`.
             | (_, _) =>
               match goal with
                 | [ H : done (trace, _) |- _ ] =>
-                  (** Uh oh, found a record of this trace in the context!  Abort to backtrack to try another trace. *)
                   fail 1
                 | _ =>
                   (** What is the type of the proof [e] now? *)
@@ -399,7 +398,89 @@ We use these in the next tactic, `instr`.
           end
       end.
 
-Another big one! 
+Another big one!
+
+This match is a little different than the previous ones. It's not a match goal
+but a `match type of ... with`. This is used to examine one particular hypothesis'
+type and match over that.
+
+This particular `match` has two branches. The first deals with the case
+where we have uninstantiated universally quantified variables.
+
+     | forall x : _, _ =>
+        match goal with
+          | [ H : _ |- _ ] =>
+            inster (e H) (trace, H)
+          | _ => fail 2
+        end
+
+If our hypothesis does, we randomly grab a hypothesis, instantiate `e` with it,
+add `H` to the trace list, and then recurse.
+
+If there isn't a hypothesis, then we fail out of the toplevel match and exit the
+tactic.
+
+Now the next branch is where the real work happens
+
+      | _ =>
+        (** No more quantifiers, so now we check if the trace we computed was already used. *)
+        match trace with
+          | (_, _) =>
+            match goal with
+              | [ H : done (trace, _) |- _ ] =>
+                fail 1
+              | _ =>
+               (** What is the type of the proof [e] now? *)
+                let T := type of e in
+                  match type of T with
+                    | Prop =>
+                      generalize e; intro;
+                        assert (done (trace, tt)) by constructor
+                    | _ =>
+                      all ltac:(fun X =>
+                        match goal with
+                          | [ H : done (_, X) |- _ ] => fail 1
+                          | _ => idtac
+                        end) trace;
+                      (** Pick a new name for our new instantiation. *)
+                      let i := fresh "i" in (pose (i := e);
+                        assert (done (trace, i)) by constructor)
+                  end
+             end
+          end
+
+We first chekc to make sure that `trace` isn't empty. If this is the case, then
+we know that we instantiated `e` with at least *something*. If we have, we snoop
+around to see if there's a `done` in our environment with the same trace. If this
+is the case, we know that we've done an identical instantiation of `e` before hand
+so we backtrack to try another one.
+
+Otherwise, we look to see what `e` was instantiated too. If it was a simple `Prop`,
+we just stick a `done` record of this instantiation into our environment and
+add our new instantiated `e` back in with `generalize`. If `e` isn't a proof,
+we do the same thing. In this case, however, we must also double check that
+the things we used to instantiate `e` with aren't results of `inster` as well otherwise
+our combination of backtracking/instantiating can lead to an infinite loop.
+
+Since this tactic generates a bunch of `done`'s that are otherwise useless, a tactic
+to clear them is helpful.
+
+    Ltac un_done :=
+      repeat match goal with
+               | [ H : done _ |- _ ] => clear H
+             end.
+
+Hopefully by this point this isn't too confusing. All this tactic does is
+loop through the environment and clear all `done`s.
+
+Now, finally, we've reached `crush'`. `crush'` is really broken into 3 main
+components.
+
+First is a simple tactic `sintuition`
+
+    sintuition := simpl in *; intuition; try subst;
+        repeat (simplHyp invOne; intuition; try subst); try congruence
+
+
 
 [cpdt-website]: http://adam.chlipala.net/cpdt/
-
