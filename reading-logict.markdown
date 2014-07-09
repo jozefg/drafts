@@ -164,9 +164,42 @@ computation. Nothing stunning.
 `once` is my favorite function. To prevent backtracking all we do is
 grab the first result and `return` it.
 
-So that takes care of `MonadTrans`.
+So that takes care of `MonadTrans`. The next thing to worry about are
+these two functions `reflect` and `lnot`.
 
+`reflect` confirms my suspicion that the dual of `msplit` is `mplus
+(return a) m'`.
 
+``` haskell
+    reflect :: MonadLogic m => Maybe (a, m a) -> m a
+    reflect Nothing = mzero
+    reflect (Just (a, m)) = return a `mplus` m
+```
+
+The next function `lnot` negates a logical computation. Now, this is a
+little misleading because the negated computation either produces one
+value, `()`, or is `mzero` and produces nothing. This is easily
+accomplished with `ifte` and `once`
+
+``` haskell
+    lnot :: MonadLogic m => m a -> m ()
+    lnot m = ifte (once m) (const mzero) (return ())
+```
+
+That takes care of most of this file. What's left is a bunch of
+instances for monad transformers for `MonadTrans`. There's nothing to
+interesting in them so I won't talk about them here. It might be worth
+glancing at the code if you're interested.
+
+One slightly odd thing I'm noticing is that each class implements
+*all* the methods, rather than just `msplit`. This seems a bit
+odd.. I guess the default implementations are significantly slower?
+Perhaps some benchmarking is in order.
+
+## Control.Monad.Logic
+
+Now that we've finished with Control.Monad.Logic.Class, let's move on
+to the main file.
 
 
 [logict]: http://hackage.haskell.org/package/logict
