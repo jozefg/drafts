@@ -481,6 +481,60 @@ First is a simple tactic `sintuition`
     sintuition := simpl in *; intuition; try subst;
         repeat (simplHyp invOne; intuition; try subst); try congruence
 
+So this first runs the normal set of "generally useful tactics" and then
+breaks out some of our first custom tactic. This essentially will act
+like a souped-up version of `intuition` and solve goals that are trivially
+solvable with straightforward inversions and reductions.
+
+Next there's a more powerful version of `rewriter`
+
+    rewriter := autorewrite with core in *;
+        repeat (match goal with
+                  | [ H : ?P |- _ ] =>
+                    match P with
+                      | context[JMeq] => fail 1 (** JMeq is too fancy to deal with here. *)
+                      | _ => rewrite H by crush' lemmas invOne
+                    end
+                end; autorewrite with core in *)
+
+This is almost identical to what we have above but instead of solving
+side conditions with `solve [auto]`, we use `crush'` to hopefully
+deal with a larger number of possible rewrites.
+
+Finally, we have the main loop of `crush'`.
+
+    (sintuition; rewriter;
+      match lemmas with
+        | false => idtac
+        | _ =>
+          repeat ((app ltac:(fun L => inster L L) lemmas
+          (** ...or instantiating hypotheses... *)
+            || appHyps ltac:(fun L => inster L L));
+          (** ...and then simplifying hypotheses. *)
+          repeat (simplHyp invOne; intuition)); un_done
+      end;
+      sintuition; rewriter; sintuition;
+    try omega; try (elimtype False; omega)).
+
+Here we run our `sintuition` and `rewriter` and then get
+to work with the lemmas we supplied in `lemmas`.
+
+The first branch is just a match on `false`, which we
+use like a nil. Since we have no hypothesis we don't do
+anything new.
+
+If we do have lemmas, we try instantiating both
+them and our hypothesis as many times as necessary  and
+then repeatedly simplify the results. This loop will ensure that
+we make full use of bot our supplied lemmas and the surrounding environment.
+
+Finally, we make another few passes with `rewriter` and `sintuition` attempting
+to dispatch our goal using our new, instantiated and simplified environment.
+
+As a final bonus, if we *still* haven't dispatched our goal, we'll run `omega`
+to attempt to solve a Presburger arithmetic. On the off chance that we have
+something `omega` can be contradictory, we also try `elimType false; omega` to
+try to exploit such a contradiction.
 
 
 [cpdt-website]: http://adam.chlipala.net/cpdt/
