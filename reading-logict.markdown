@@ -142,9 +142,31 @@ like
     interleave' (x:xs) ys = x : interleave' ys xs
     interleave _ ys       = ys
 
-In fact, it seems correct to think of `msplit` as a fancier version of
+This makes sense, since this will fairly split between `xs` and `ys`
+just like `interleave` is supposed to. Here `msplit` is like pattern
+matching, `mplus` is `:`, and we have to sprinkle some `return` in
+there for kicks and giggles.
 
-    uncons :: [a] -> [(a, [a])]
+Now about this mysterious `>>-`, the biggest difference is that each
+`f a` is `interleaved`, rather than `mplus`-ed. This should mean that
+it can be fairly split between our first result, `f a` and the rest of
+them `m' >>- f`. Now if we can do something like
+
+    (m >>- f) `interleave` (m' >>- f)
+
+Should have nice and fair behavior.
+
+The next two are fairly clear, `ifte` splits it's computation, and if
+it can it feeds the whole stinking thing `return a `mplus` m'` to the
+success computation, otherwise it just returns the failure
+computation. Nothing stunning.
+
+`once` is my favorite function. To prevent backtracking all we do is
+grab the first result and `return` it.
+
+So that takes care of `MonadTrans`.
+
+
 
 
 [logict]: http://hackage.haskell.org/package/logict
