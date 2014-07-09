@@ -118,7 +118,7 @@ or `all f LS` failed. In this case we backtrack all the way back out of this cla
 should mean that this is a "all or nothing" tactic. It will either not fail on all
 members of `ls` or nothing at all will happen.
 
-Now we get to our first *big* tactic
+Now we get to the first *big* tactic
 
     Ltac simplHyp invOne :=
       let invert H F :=
@@ -287,7 +287,7 @@ We can combine this with `autorewrite` with two simple tactics
 
 This just repeatedly rewrite with `autorewrite` and `rewriteHyp` as
 long as they can. Worth noticing here how we can use `repeat` to make
-our smaller tactics modify *all* applicable hypothesis rather than just
+these smaller tactics modify *all* applicable hypothesis rather than just
 one.
 
 Next up is an innocent looking definition that frightens me a little bit
@@ -451,7 +451,7 @@ First is a simple tactic `sintuition`
         repeat (simplHyp invOne; intuition; try subst); try congruence
 
 So this first runs the normal set of "generally useful tactics" and then
-breaks out some of our first custom tactic. This essentially will act
+breaks out some of first custom tactics. This essentially will act
 like a souped-up version of `intuition` and solve goals that are trivially
 solvable with straightforward inversions and reductions.
 
@@ -483,7 +483,7 @@ Finally, we have the main loop of `crush'`.
       sintuition; rewriter; sintuition;
     try omega; try (elimtype False; omega)).
 
-Here we run our `sintuition` and `rewriter` and then get
+Here we run the `sintuition` and `rewriter` and then get
 to work with the lemmas we supplied in `lemmas`.
 
 The first branch is just a match on `false`, which we
