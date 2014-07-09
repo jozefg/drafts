@@ -387,8 +387,10 @@ with another package, I'm leaning towards extensible-effects.
 
 If you're interested in doing this yourself, I highly recommend it!
 I've learned a *lot* about practical engineering with Haskell, as well
-as really clever and elegant Haskell code. Like using a church list to
-represent a logic computation!
+as really clever and elegant Haskell code.
+
+One thing I've always enjoyed about the Haskell ecosystem is that some
+of the most interesting code is often quite easy to read given some time.
 
 
 [logict]: http://hackage.haskell.org/package/logict
