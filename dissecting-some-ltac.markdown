@@ -5,20 +5,23 @@ title: Dissecting `crush`
 For almost a year and half now I've been referencing one particular
 book on Coq,
 [Certified Programming with Dependent Types][cpdt-website]. CPDT is a
-literate book on building practical things with Coq.
+literate program on building practical things with Coq.
 
 One of the main ideas of CPDT is that proofs ought to be fully
-automated. Meaning that a proof should be primarily a logic program
+automated. This means that a proof should be primarily a logic program
 (Ltac) which constructs some boring and large proof term. To this end,
 CPDT has a bunch of Ltac "tactics" for constructing such logic
 programs.
 
-Since CPDT is literate, there's actual working source for each of
+Since CPDT is a program, there's actual working source for each of
 these tactics. It occurred to me today that in my 18 months of
-blinking uncomprehendingly at CPDT, I've never read its source.
+blinking uncomprehendingly at CPDT, I've never read its source for
+these tactics.
 
 In this post, we'll dissect how CPDT's main tactic for automation,
-`crush`, actually works.
+`crush`, actually works. In the process, we'll get the chance to explore
+some nice, compositional, ltac engineering as well as a whole host
+of useful tricks.
 
 ## The Code
 
@@ -124,9 +127,7 @@ Now we get to our first *big* tactic
           || (inversion H; [idtac]; clear H; try subst) in
     
       match goal with
-        (** Eliminate all existential hypotheses. *)
         | [ H : ex _ |- _ ] => destruct H
-    
         | [ H : ?F ?X = ?F ?Y |- ?G ] =>
           (assert (X = Y); [ assumption | fail 1 ])
           || (injection H;
@@ -460,7 +461,7 @@ Next there's a more powerful version of `rewriter`
         repeat (match goal with
                   | [ H : ?P |- _ ] =>
                     match P with
-                      | context[JMeq] => fail 1 (** JMeq is too fancy to deal with here. *)
+                      | context[JMeq] => fail 1
                       | _ => rewrite H by crush' lemmas invOne
                     end
                 end; autorewrite with core in *)
@@ -476,9 +477,7 @@ Finally, we have the main loop of `crush'`.
         | false => idtac
         | _ =>
           repeat ((app ltac:(fun L => inster L L) lemmas
-          (** ...or instantiating hypotheses... *)
             || appHyps ltac:(fun L => inster L L));
-          (** ...and then simplifying hypotheses. *)
           repeat (simplHyp invOne; intuition)); un_done
       end;
       sintuition; rewriter; sintuition;
@@ -504,7 +503,8 @@ to attempt to solve a Presburger arithmetic. On the off chance that we have
 something `omega` can be contradictory, we also try `elimType false; omega` to
 try to exploit such a contradiction.
 
-So all `crush` does is call this tactic with no lemmas (`false`)
+So all `crush` does is call this tactic with no lemmas (`false`) and no suggestions
+to invert upon (`fail`). There you have it, and it only took 500 lines to get here.
 
 ## Wrap Up
 
