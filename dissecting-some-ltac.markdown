@@ -504,6 +504,20 @@ to attempt to solve a Presburger arithmetic. On the off chance that we have
 something `omega` can be contradictory, we also try `elimType false; omega` to
 try to exploit such a contradiction.
 
+So all `crush` does is call this tactic with no lemmas (`false`)
+
+## Wrap Up
+
+So that's it, hopefully you got a few useful Ltac trick out of reading this. I certainly
+did writing it :)
+
+If you enjoyed these tactics, there's a more open-source version of these
+tactics, on the [CPDT website][cpdt-website]. It might also interest you to read the rest
+of `CpdtTactics.v` since it has some useful gems like `dep_destruct`.
+
+Last but not least, if you haven't read CPDT itself and you've made it this far, go
+read it! It's available as either dead-tree or online. I still reference it regularly
+so I at least find it useful. It's certainly better written than this post :)
 
 <i>Note, all the code I've shown in this post is from CPDT and is licensed under
 ANCND license. I've removed some comments from the code where they wouldn't
