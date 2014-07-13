@@ -503,5 +503,152 @@ As always, we start by looking at what exactly this module provides
                                   ) where
 ```
 
+The definition of `Reader` is refreshingly simple
+
+``` haskell
+    newtype Reader e v = Reader (e -> v)
+```
+
+Keen readers will note that this is just half of the `State`
+definition which makes sense; `Reader` is half of `State`.
+
+`ask` is defined almost identically to `get`
+
+``` haskell
+    ask :: (Typeable e, Member (Reader e) r) => Eff r e
+    ask = send (inj . Reader)
+```
+
+We just feed the continuation for the program into `Reader`. A simple
+wrapper over this gives our equivalent of `reads`
+
+``` haskell
+    reader :: (Typeable e, Member (Reader e) r) => (e -> a) -> Eff r a
+    reader f = f <$> ask
+```
+
+Next up is `local`, which is the most interesting bit of this module.
+
+``` haskell
+    local :: (Typeable e, Member (Reader e) r)
+          => (e -> e)
+          -> Eff r a
+          -> Eff r a
+    local f m = do
+      e <- f <$> ask
+      let loop (Val x) = return x
+          loop (E u) = interpose u loop (\(Reader k) -> loop (k e))
+      loop (admin m)
+```
+
+So `local` starts by grabbing the view of the environment we're
+interested in, `e`. From there we define our worker function which
+looks a lot like `runState`. The key difference is that instead of
+using `handleRelay` we use `interpose` to replace each `Reader` effect
+with the appropriate environment. Remember that `interpose` is not
+going to remove `Reader` from the set of effects, just update each
+`Reader` effect in the current computation.
+
+Finally, we simply rejigger the computation with `admin` and feed it
+to `loop`.
+
+In fact, this is very similar to how `runReader` works!
+
+``` haskell
+    runReader :: Typeable e => Eff (Reader e :> r) w -> e -> Eff r w
+    runReader m e = loop (admin m)
+      where
+        loop (Val x) = return x
+        loop (E u) = handleRelay u loop (\(Reader k) -> loop (k e))
+```
+
+## Control.Eff.Lift
+
+Now between `Control.Eff.Reader` and `Control.Eff.State` I felt I had
+a pretty good handle on most of what I'd read in
+extensible-effects. There was just one remaining loose end:
+`SetMember`. Don't remember what that was? It was a class in
+`Data.OpenUnion1` that was conspicuously absent of detail or use.
+
+I finally found where it seemed to be used! In `Control.Eff.Lift`.
+
+First let's poke at the exports of his module
+
+``` haskell
+    module Control.Eff.Lift( Lift (..)
+                           , lift
+                           , runLift
+                           ) where
+```
+
+This module is designed to lift an arbitrary monad into the world of
+effects. There's a caveat though, since monads aren't necessarily
+commutative, the order in which we run them in is very
+important. Imagine for example the difference between `IO (m a)` and
+`m (IO a)`.
+
+So to ensure that `Eff` can support lifted monads we have to do some
+evil things. First we must require that we never have to lifted
+monads and we always run the monad last. This is a little icky but
+it's usefulness outweighs such ugliness.
+
+To ensure condition 1, we need `SetMember`.
+
+``` haskell
+    instance SetMember Lift (Lift m) (Lift m :> ())
+```
+
+So we define a new instance of `SetMember`. Basically this says that
+any `Lift` is a `SetMember ... r` iff `Lift m` is the last item in
+`r`.
+
+To ensure condition number two we define `runLift` with the more
+restrictive type
+
+``` haskell
+    runLift :: (Monad m, Typeable1 m) => Eff (Lift m :> ()) w -> m w
+```
+
+We can now look into exactly how `Lift` is defined.
+
+``` haskell
+    data Lift m v = forall a. Lift (m a) (a -> v)
+```
+
+So this `Lift` acts sort of like a "suspended bind". We postpone
+actually binding the monad and simulate doing so with a continuation
+`a -> v`.
+
+We can define our one operation with `Lift`, `lift`.
+
+``` haskell
+    lift :: (Typeable1 m, SetMember Lift (Lift m) r) => m a -> Eff r a
+    lift m = send (inj . Lift m)
+```
+
+This works by suspending the rest of the program in a our faux binding
+to be unwrapped later in `runLift`.
+
+
+``` haskell
+    runLift :: (Monad m, Typeable1 m) => Eff (Lift m :> ()) w -> m w
+    runLift m = loop (admin m) where
+     loop (Val x) = return x
+     loop (E u) = prjForce u $ \(Lift m' k) -> m' >>= loop . k
+```
+
+The one interesting difference between this function and the rest of
+the run functions we've seen is that here we use `prjForce`. The
+reason for this is that we know that `r` is just `Lift m :> ()`. This
+drastically simplifies the process and means all we're essentially
+doing is transforming each `Lift` into `>>=`.
+
+That wraps up our tour of the module and with it, extensible-effects.
+
+## Wrap Up
+
+This post turned out a lot longer than I'd expected, but I think it
+was worth it.
+
 [ee-pack]: http://hackage.haskell.org/package/extensible-effects
 [last-post]: /posts/2014-07-10-reading-logict.html
