@@ -3,7 +3,7 @@ title: Examining Hackage: extensible-effects
 ---
 
 I had a few people tell me after my [last post][last-post] that they would enjoy a
-write up on reading [extensible-effects][ee-pk] so here goes.
+write up on reading [extensible-effects][ee-pack] so here goes.
 
 I'm going to document my process of reading through and understanding
 how extensible-effects is implemented. Since this is a fairly large
@@ -298,3 +298,210 @@ I must admit, this tripped me up for a while. Here's how I read it,
 "provide a function, which when given a continuation for the rest of
 the program expecting an `a`, produces a side effecting `VE r w` and
 we'll map that into `Eff`".
+
+Remember how `Union` holds functors? Well each of our effects must act
+like as a functor and wrap itself in that union. By being open, we get
+the "extensible" in extensible-effects.
+
+Next we look at how to remove effects once they've been added to our
+set of effects. In mtl-land, this is similar to the collection of
+`runFooT` functions that are used to gradually strip a layer of
+transformers away.
+
+The first step towards this is to transform the CPS-ed effectful
+computation `Eff`, into a more manageable form, `VE`
+
+``` haskell
+    admin :: Eff r w -> VE r w
+    admin (Eff m) = m Val
+```
+
+This is a setup step so that we can traverse the "tree" of effects
+that our `Eff` monad built up for us.
+
+Next, we know that we can take an `Eff` with *no* effects and unwrap
+it into a pure value. This is the "base case" for running an effectful
+computation.
+
+``` haskell
+    run :: Eff () w -> w
+    run = fromVal . admin
+```
+
+Concerned readers may notice that we're using a partial function, this
+is OK since the `E` case is "morally impossible" since there is no `t`
+so that `Member t ()` holds.
+
+Next is the function to remove just one effect from an `Eff`
+
+``` haskell
+    handleRelay :: Typeable1 t
+                => Union (t :> r) v -- ^ Request
+                -> (v -> Eff r a)   -- ^ Relay the request
+                -> (t v -> Eff r a) -- ^ Handle the request of type t
+                -> Eff r a
+    handleRelay u loop h = either passOn h $ decomp u
+      where passOn u' = send (<$> u') >>= loop
+```
+
+Next to `send`, this function gave me the most trouble. The trick was
+to realize that that `decomp` will leave us in two cases.
+
+ 1. Some effect producing a `v`, `Union r v`
+ 2. A `t` producing a `v`, `t v`
+
+If we have a `t v`, then we're all set since we know exactly how to
+map that to a `Eff r a` with `h`.
+
+Otherwise we need to take this effect, add it back into our
+computation. `send (<$> u')` takes the rest of the computation, that
+continuation and feeds it the `v` that we know our effects
+produce. This gives us the type `Eff r v`, where that outer
+`Eff r` contains our most recent effect as well as everything
+else. Now to convert this to a `Eff r a` we need to transform that `v`
+to an `a`. The only way to do that is to use the supplied `loop`
+function so we just bind to that.
+
+Last but not least is a function to actually modify an effect
+somewhere in our effectful computation. A `grep` reveals will see this
+later with things like `local` from `Control.Eff.Reader` for example.
+
+To do this we want something like `handleRelay` but without actually
+removing `t` from `r`. We also need to generalize the type so that `t`
+can be *anywhere* in our. Otherwise we'll have to prematurally
+solidify our stack of effects to use something like `modify`.
+
+``` haskell
+    interpose :: (Typeable1 t, Functor t, Member t r)
+              => Union r v
+              -> (v -> Eff r a)
+              -> (t v -> Eff r a)
+              -> Eff r a
+    interpose u loop h = maybe (send (<$> u) >>= loop) h $ prj u
+```
+
+Now this is almost identical to `handleRelay` except instead of using
+`decomp` which will split off `t` and only works when `r ~ t :> r'`,
+we use `prj`! This gives us a `Maybe` and since the type of `u`
+doesn't need to change we just recycle that for the `send (<$> u) >>=
+loop` sequence.
+
+That wraps up the core of extensible-effects, and I must admit that
+when writing this I was still quite confused as to actually *use*
+`Eff` to implement new effects. Reading a few examples really helped
+clear things up for me.
+
+## Control.Eff.State
+
+The `State` monad has always been the sort of classic monad example so
+I suppose we'll start here.
+
+``` haskell
+    module Control.Eff.State.Lazy( State (..)
+                                 , get
+                                 , put
+                                 , modify
+                                 , runState
+                                 , evalState
+                                 , execState
+                                 ) where
+```
+
+So we're *not* reusing the `State` from `Control.Monad.State` but
+providing our own. It looks like
+
+``` haskell
+    data State s w = State (s -> s) (s -> w)
+```
+
+So what is this supposed to do? Well that `s -> w` looks a
+continuation of sorts, it takes the state `s`, and produces the
+resulting value. The `s -> s` looks like something that `modify`
+should use.
+
+Indeed this is the case
+
+``` haskell
+    modify :: (Typeable s, Member (State s) r) => (s -> s) -> Eff r ()
+    modify f = send $ \k -> inj $ State f $ \_ -> k ()
+
+    put :: (Typeable e, Member (State e) r) => e -> Eff r ()
+    put = modify . const
+```
+
+we grab the continuation from `send` and add a `State` effect on top
+which uses our modification function `s`. The continuation that
+`State` takes ignores the value it's passed, the current state, and
+instead  feeds the program computation the `()` it's expecting.
+
+`get` is defined in a similar manner, but instead of modifying the
+state, we use State's continuation to feed the program the current
+state.
+
+``` haskell
+    get :: (Typeable e, Member (State e) r) => Eff r e
+    get = send (inj . State id)
+```
+
+So we grab the continuation, feed it to a `State id` which won't
+modify the state, and then inject that into our open union of effects.
+
+Now that we have the API for working with states, let's look at how to
+remove that effect.
+
+``` haskell
+    runState :: Typeable s
+             => s                     -- ^ Initial state
+             -> Eff (State s :> r) w  -- ^ Effect incorporating State
+             -> Eff r (s, w)          -- ^ Effect containing final state and a return value
+    runState s0 = loop s0 . admin where
+     loop s (Val x) = return (s, x)
+     loop s (E u)   = handleRelay u (loop s) $
+                           \(State t k) -> let s' = t s
+                                           in loop s' (k s')
+```
+
+`runState` first preps our effect to be pattern matched on with
+`admin`. We then start `loop` with the initial state.
+
+`loop` has two components, if we have run into a value, then we don't
+interpret any effects, just stick the state and value together and
+`return` them.
+
+If we do have an effect, we use `handleRelay` to split out the `State s`
+from our effects. To handle the case where we get a `VE w`, we just
+`loop` with the current state. However, if we get a `State t k`, we
+update the state with `t` and pass the continuation `k`.
+
+From `runState` `evalState` and `execState`.
+
+``` haskell
+    evalState :: Typeable s => s -> Eff (State s :> r) w -> Eff r w
+    evalState s = fmap snd . runState s
+    
+    execState :: Typeable s => s -> Eff (State s :> r) w -> Eff r s
+    execState s = fmap fst . runState s
+```
+
+That wraps up the interface for `Control.Eff.State`. The nice bit is
+this makes it a lot clearer how to use `send`, `handleRelay` and a few
+other functions from the core.
+
+## Control.Eff.Reader
+
+Now we're on to `Reader`. The interesting thing here is that `local`
+highlights how to use `interpose` properly.
+
+As always, we start by looking at what exactly this module provides
+
+``` haskell
+    module Control.Eff.Reader.Lazy( Reader (..)
+                                  , ask
+                                  , local
+                                  , reader
+                                  , runReader
+                                  ) where
+```
+
+[ee-pack]: http://hackage.haskell.org/package/extensible-effects
+[last-post]: /posts/2014-07-10-reading-logict.html
