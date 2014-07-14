@@ -648,7 +648,16 @@ That wraps up our tour of the module and with it, extensible-effects.
 ## Wrap Up
 
 This post turned out a lot longer than I'd expected, but I think it
-was worth it.
+was worth it. We've gone through the coroutine/continuation based core
+of extensible-effects and walked through a few different examples of
+how to actually use them.
+
+If you're still having some trouble putting the pieces together, the
+rest of extensible effects is a great collection of useful examples of
+building effects.
+
+I hope you had as much fun as I did with this one!
+
 
 [ee-pack]: http://hackage.haskell.org/package/extensible-effects
 [last-post]: /posts/2014-07-10-reading-logict.html
