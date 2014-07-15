@@ -82,15 +82,13 @@ So we're looking at a data type `Union`, which we export everything
 for. Two type classes `SetMember` and `Member`, a type operator `:>`,
 and a handful of functions, most likely to work with `Union`.
 
-Before we get to anything else, there seems a simple identity 
-
 So let's figure out exactly what this union thing is
 
     data Union r v = forall t. (Functor t, Typeable1 t) => Union (t v)
 
 So `Union r v` is just a wrapper around some of functor applied to
-`v`? This seems a little odd, what's this `r` thing? The docs hint
-that it should always be true that `Member t r` should always hold.
+`v`. This seems a little odd, what's this `r` thing? The docs hint
+that `Member t r` should always hold.
 
 `Member` is a type class of two parameters with no members. In fact,
 `grep`ing the entire source reveals that the entire definition and
@@ -204,7 +202,7 @@ how this is actually used.
 
 ## Control.Eff
 
-Now let's actually talk about the core of extensible-effects,
+Now let's talk about the core of extensible-effects,
 `Control.Eff`. As always we'll start by taking a look at the export
 list
 
@@ -287,7 +285,7 @@ instances. `Functor` adds a function to the head of the continuation.
 `Monad` dereferences `m` and feeds the result into `f`. Exactly as
 with `Cont`.
 
-Next we can our primitive function for handling effects
+Next we can look at our primitive function for handling effects
 
 ``` haskell
     send :: (forall w. (a -> VE r w) -> Union r (VE r w)) -> Eff r a
@@ -362,11 +360,11 @@ else. Now to convert this to a `Eff r a` we need to transform that `v`
 to an `a`. The only way to do that is to use the supplied `loop`
 function so we just bind to that.
 
-Last but not least is a function to actually modify an effect
+Last but not least is a function to modify an effect
 somewhere in our effectful computation. A `grep` reveals will see this
 later with things like `local` from `Control.Eff.Reader` for example.
 
-To do this we want something like `handleRelay` but without actually
+To do this we want something like `handleRelay` but without
 removing `t` from `r`. We also need to generalize the type so that `t`
 can be *anywhere* in our. Otherwise we'll have to prematurally
 solidify our stack of effects to use something like `modify`.
@@ -658,6 +656,7 @@ building effects.
 
 I hope you had as much fun as I did with this one!
 
+*Thanks to Erik Rantapaa a much longer post than I led him to believe*
 
 [ee-pack]: http://hackage.haskell.org/package/extensible-effects
 [last-post]: /posts/2014-07-10-reading-logict.html
