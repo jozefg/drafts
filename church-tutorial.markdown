@@ -228,4 +228,23 @@ We can implement CR lists trivially using `foldr`
     foldr list cons nil = list cons nil
 ```
 
-Notice that we handle
+Notice that we handle the recursion in the list type by having a `b`
+as an argument? This is similar to how the accumulator to `foldr`
+gets the processed tail of the list. This is a common technique for
+handling recursion in our church representations.
+
+## Numbers
+
+Similar to lists, we can encode the natural numbers in a very pleasant
+manner. First we have to define a concrete version of natural numbers
+since Haskell doesn't come with one.
+
+The way to think about this is inspired by the induction principle of
+natural numbers. We can prove some property P with `P Z` and `P n -> P(n + 1)`.
+We can reflect this in our type with something like
+
+``` haskell
+    data Nat = S Nat | Z
+```
+
+Now for our API, 
