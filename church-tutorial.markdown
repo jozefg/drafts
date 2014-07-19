@@ -233,6 +233,15 @@ as an argument? This is similar to how the accumulator to `foldr`
 gets the processed tail of the list. This is a common technique for
 handling recursion in our church representations.
 
+Last but not least, the isomorphism arises from `foldr (:) []`,
+
+``` haskell
+    isoL :: List a -> [a]
+    isoL l = l (:) []
+
+    isoR :: [a] -> List a
+    isoR l f z = foldr f z l
+
 ## Either
 
 The last case that we'll look at is `Either`. Like `Pair`, `Either`
@@ -269,13 +278,59 @@ of the API. In this case we use the type of `or`
     or x = x
 ```
 
-That concludes our list of pure examples, let's now take a look at how
-to identify some underlying patterns.
+Last but not least, let's quickly rattle off our isomorphism.
+
+``` haskell
+    isoL :: Or a b -> Either a b
+    isoL o = o Left Right
+
+    isoR o :: Either a b -> Or a b
+    isoR o = or o
+```
+
+## The Pattern
+
+So now we can talk about the underlying pattern in CRs. First remember
+that for any type `T`, we have a list of `n` distinct constructors `T1`
+`T2` `T3`...`Tn`. Each of the constructors has a `m` fields `T11`,
+`T12`, `T13`...
+
+Now the church representation of such a type `T` is
+
+``` haskell
+    forall c.  (T11 -> T12 -> T13 -> .. -> c)
+            -> (T21 -> T22 -> T23 -> .. -> c)
+            ...
+            -> (Tn1 -> Tn2 -> Tn3 -> .. -> c)
+            -> c
+```
+
+This pattern doesn't map quite as nicely to recursive types. Here we
+have to take the extra step of substituting all occurrences of `T` for
+`c` in our resulting church representation.
 
 
-## Math
+This is actually such a pleasant pattern to work with that I've
+written a [library][gchurch] for automatically reifying a type between its
+church representation and concrete form.
 
-Now that we've looked at a few different examples, it's worth
-wondering whether there's some underlying mathematical patterns.
+## Wrap Up
 
-As it turns out catamorphisms , a general version of `foldr`.
+Hopefully you now understand *what* a church representation is. It's
+worth noting that a lot of stuff Haskellers stumble upon daily are
+really church representations in disguise.
+
+My favorite example is `maybe`, this function takes a success and
+failure continuation with a `Maybe` and produces a value. With a
+little bit of imagination, one can realize that this is really just 
+a function mapping a `Maybe` to a church representation!
+
+If you're thinking that CRs are pretty cool! Now might be a time to
+take a look at one of my previous [posts][cr1] on deriving them
+automagically.
+
+[cr1]: /posts/2014-03-06-church.html
+[cr2]: /posts/2014-03-07-church-the-sequel.html
+[cr3]: /posts/2014-03-10-revenge-of-churchrep.html
+[gchurch]: http://hackage.haskell.org/package/generic-church
+
