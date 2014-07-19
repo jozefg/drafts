@@ -233,18 +233,49 @@ as an argument? This is similar to how the accumulator to `foldr`
 gets the processed tail of the list. This is a common technique for
 handling recursion in our church representations.
 
-## Numbers
+## Either
 
-Similar to lists, we can encode the natural numbers in a very pleasant
-manner. First we have to define a concrete version of natural numbers
-since Haskell doesn't come with one.
-
-The way to think about this is inspired by the induction principle of
-natural numbers. We can prove some property P with `P Z` and `P n -> P(n + 1)`.
-We can reflect this in our type with something like
+The last case that we'll look at is `Either`. Like `Pair`, `Either`
+has 3 different operations.
 
 ``` haskell
-    data Nat = S Nat | Z
+    type Or a b = ...
+    inl :: a -> Or a b
+    inr :: b -> Or a b
+    
+    or :: Or a b -> (a -> c) -> (b -> c)  -> c
+````
+
+This is pretty easy to implement with `Either`
+
+``` haskell
+    type Or a b = Either a b
+    inl = Left
+    inr = Right
+    
+    or (Left a)  f g = f a
+    or (Right b) f g = g b
 ```
 
-Now for our API, 
+Once again, the trick to encoding this as a function falls right out
+of the API. In this case we use the type of `or`
+
+``` haskell
+     type Or a b = forall c. (a -> c) -> (b -> c) -> c
+  
+    inl a = \f g -> f a
+    inr b = \f g -> g a
+
+    or x = x
+```
+
+That concludes our list of pure examples, let's now take a look at how
+to identify some underlying patterns.
+
+
+## Math
+
+Now that we've looked at a few different examples, it's worth
+wondering whether there's some underlying mathematical patterns.
+
+As it turns out catamorphisms , a general version of `foldr`.
