@@ -1,0 +1,72 @@
+\documentclass[12pt]{article}
+\usepackage{syntax}
+\usepackage{semantic}
+\usepackage{amsmath}
+
+\begin{document}
+\title{Logical Relations}
+\author{Danny Gratzer}
+\date{\today}
+\maketitle
+
+\begin{abstract}
+Logical relations are a powerful tool in PLT. In particular it
+provides an elegant method of proving properties that don't follow
+cleanly from obvious methods of induction.
+
+In this ``paper'', we'll step through a proof of algorithmic
+equivalence for STLC as well as parametricity in System F to motivate
+and demonstrate logical relations.
+\end{abstract}
+
+\section{Introduction}
+This paper is laid out into 5 parts. First we define simply typed
+lambda calculus (STLC) and as well as System F. We'll also step
+through the definitions of a few basic judgments such as typing. 
+
+We then set out on a doomed mission to prove the sanity of an
+equivalency equivalence relation without major contortions or logical
+relations.
+
+Next we introduce logical relations and define such a relation across
+STLC and System F. In this section we'll also prove that they have
+pleasant properties
+
+We'll then use these relationships to prove our algorithm and
+parametricity respectively.
+
+\section{Definitions}
+In order to play with logical relations we first must define a few
+different languages to use and experiment with.
+
+Let's start with simply typed lambda calculus.
+
+\begin{grammar}
+<type> ::= \top \alt <type> \rightarrow <type>
+
+<exp>  ::= <var>
+       \alt <exp> <exp>
+       \alt \lambda <var> : <type> . <exp>
+       \alt \top
+\end{grammar}
+
+There's nothing much to say about this grammar, it's worth noting that
+we've overloaded $\top$ to be both a type and a value. The typing
+and evaluation rules are the really interesting bit.
+
+\begin{gather*}
+  \inference[tvar]{v : t \in \Gamma}{\Gamma |- v : t} \\\\
+  \inference[tunit]{}{\Gamma |- \top : \top}          \\\\
+  \inference[tlam]{\Gamma, v : t |- e : t'}
+            {\Gamma |- \lambda v : t.\; e}            \\\\
+  \inference[tapp]{\Gamma |- f : t -> t' \quad \Gamma |- a : t}
+                 {\Gamma |- f\;a : t'}                \\\\
+  \inference[eunit]{}{\Gamma |- v -> v}               \\\\
+  \inference[eunit]{}{\Gamma |- \top -> \top}         \\\\
+  \inference[eapl]{\Gamma |- f -> f'}
+            {\Gamma |- f\;a -> f'\;a}                 \\\\
+  \inference[eapr]{\Gamma |- a -> a'}
+            {\Gamma |- f\;a -> f\;a'}                 \\\\
+\end{gather*}
+
+\end{document}
