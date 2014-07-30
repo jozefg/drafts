@@ -57,7 +57,7 @@ certainly doable. By lifting the burden of Coq, we go from
 "constructing arbitrary proof of termination" to "checking arbitrary
 proof of termination", which is decidable.
 
-In Coq we can do this will
+In Coq we can do this with
 [well founded recursion](http://adam.chlipala.net/cpdt/html/GeneralRec.html). Simply
 put, well founded recursion means that we shift from using only term
 "size" to decide what's a smaller recursive call.
