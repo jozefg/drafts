@@ -19,11 +19,11 @@ This is not really an equality type per say, but it's worth stating
 explicitly what definitional equality is since I must refer to it
 several times throughout this post.
 
-Two terms `A` and `B` are definitional equal is a judgement notated
+Two terms `A` and `B` are definitional equal is a judgment notated
 
     Γ ⊢ A ≡ B
 
-This is *not* a user level proof but rather a primitive, untyped judgement in
+This is *not* a user level proof but rather a primitive, untyped judgment in
 the meta-theory of the language itself. The typing rules of the
 language will likely include a rule along the lines of
 
@@ -34,6 +34,20 @@ language will likely include a rule along the lines of
 So this isn't an identity type you would prove something with, but a
 much more magical notion that two things are completely the same to
 the typechecker.
+
+Now in most type theories we have a slightly overgrown notion of
+definitional equality where not only are `x ≡ y` if `x` is `y` only by
+definition but also by computation.
+
+So in Coq for example
+
+    (2 + 2) ≡ 4
+
+Even though definitionally these are entirely separate entities. In
+type theories that distinguish between the two, the judgment that
+when normalized `x` is `y` is called judgemental equality. I won't
+distinguish between the two further because most don't, but it's worth
+noting that they're technically separate concepts.
 
 ## Propositional Equality
 
