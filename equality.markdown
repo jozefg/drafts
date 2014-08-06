@@ -106,8 +106,8 @@ to talk about observational equality.
 Observational equality is the idea that two "thingies" are
 indistinguishable by any test.
 
-It's clear that we can prove that if `Id x y`, then `f x = f y`, but it's less
-clear how to go the other way and prove something like
+It's clear that we can prove that if `Id x y`, then `f x = f y`, but
+it's less clear how to go the other way and prove something like
 
     fun_ext : (A B : Set)(f g : A → B)
              → ((x : A) → Id (f x) (g x)) → Id f g
@@ -124,20 +124,21 @@ following
 
 Some this has been avoided by regarding equality as an induction over
 the *class* of types as in Martin Lof's intuitionist type theory.
+
 In the type theory that we've outlined, this isn't expressible sadly.
 
 ## Definitional + Extensional
 
-Some type theories go the opposite route in the hope to regain that
-missing extensionality. One of those type theories is extensional type
-theory.
+Some type theories go a different route to equality, giving us back
+the extensionality in the process. One of those type theories is
+extensional type theory.
 
 In the simplest formulation, we have intensional type theory with a
 new rule, reflection
 
-    Γ ⊢ Id x y
-    ——————————–
-    Γ ⊢ x ≡ y
+    Γ ⊢ p : Id x y
+    ——————————–————
+      Γ ⊢ x ≡ y
 
 This means that our normal propositional equality can be shoved *back*
 into the more magical definitional equality. This gives us a lot more
@@ -162,6 +163,9 @@ with `(a, a) ∈ T`. Notice that since we are dealing with a PER, we
 know that `∀ a. (a, a) ∈ T` need not hold. This is reassuring,
 otherwise we'd be able to prove that every type was inhabited by every
 term!
+
+If this sounds interesting, dig further into the literature around
+NuRPL and friends.
 
 ## Propositional Extensionality
 This is another flavor of extensional type theory which is really just
@@ -250,7 +254,9 @@ that we *know* must be the same, but require pattern matching or other
 jiggering to prove.
 
 If you're looking for a concrete example, look no further than
-[Observational Equality Now!](https://synrc.com/publications/cat/Temp/Logic/Observational.pdf)
+[Observational Equality Now!](https://synrc.com/publications/cat/Temp/Logic/Observational.pdf). This
+paper gives allows observational equality to be jammed into a
+principally intensional system!
 
 ## Wrap Up
 
@@ -259,4 +265,4 @@ theories. I partially wrote this to gather some of this information in
 one (free) place. If there's something here missing that you'd like to
 see added, feel free to comment or email me.
 
-*Thanks to Jon Sterling for proof reading*
+*Thanks to Jon Sterling for proof reading and many subtle corrections :)*
