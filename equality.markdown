@@ -35,7 +35,7 @@ So this isn't an identity type you would prove something with, but a
 much more magical notion that two things are completely the same to
 the typechecker.
 
-Now in most type theories we have a slightly overgrown notion of
+Now in most type theories we have a slightly more powerful notion of
 definitional equality where not only are `x ≡ y` if `x` is `y` only by
 definition but also by computation.
 
@@ -52,8 +52,8 @@ noting that they're technically separate concepts.
 ## Propositional Equality
 
 This is the sort of equality that we'll spend the rest of our time
-discussing. Propositional equality is a particular proposition with
-the type
+discussing. Propositional equality is a particular type constructor with
+the type/kind
 
     Id : (A : Set) → A → A → Type
 
@@ -64,7 +64,7 @@ We should be able to prove a number of definitions like
     transitivity : (A : Set)(x y z : A) → Id x y → Id y z → Id x z
 
 This is an entirely separate issue from definitional equality since
-propositional equality is a userland concept.
+propositional equality is a concept that users can hypothesis about.
 
 One very important difference is that we can make proofs like
 
@@ -77,7 +77,7 @@ be inhabited.
 
 This is arguably the simplest form of equality. Identity types are
 just normal inductive types with normal induction principles. The most
-common is leibniz equality
+common is equality given by Martin Lof
 
     data Id (A : Set) : A → A → Type where
        Refl : (x : A) → Id x x
@@ -103,16 +103,18 @@ with. An intensional identity type means the burden of constructing
 our equality proofs falls on users. Furthermore, we lose the ability
 to talk about observational equality.
 
-Observational equality is the idea that two types are equal when they
-can produce identical results no matter how they're used. It's clear
-that we can prove that if `Id x y`, then `f x = f y`, but it's less
+Observational equality is the idea that two "thingies" are
+indistinguishable by any test.
+
+It's clear that we can prove that if `Id x y`, then `f x = f y`, but it's less
 clear how to go the other way and prove something like
 
     fun_ext : (A B : Set)(f g : A → B)
              → ((x : A) → Id (f x) (g x)) → Id f g
     fun_ext f g p = ??
 
-This can be introduced as an axiom but we have to sacrifice one of the
+This can be introduced as an axiom but to maintain our inductively
+defined equality type we have to sacrifice one of the
 following
 
  1. Coherence
@@ -120,9 +122,9 @@ following
  3. Extensionality
  4. Decidability
 
-This strikes at the core issue of why intensional type theory doesn't
-always work well: it's concerned with how things are constructed vs
-how they're used.
+Some this has been avoided by regarding equality as an induction over
+the *class* of types as in Martin Lof's intuitionist type theory.
+In the type theory that we've outlined, this isn't expressible sadly.
 
 ## Definitional + Extensional
 
@@ -142,22 +144,26 @@ into the more magical definitional equality. This gives us a lot more
 power, all the typecheckers magic and support of definitional equality
 can be used with our equality types!
 
-There are two main drawbacks however
+It isn't all puppies an kittens though, arbitrary reflection can also
+make things undecidable in general. For example Martin Lof's system is
+undecidable in with extensional equality.
 
- 1. Magical Identity Types
- 2. Potentially Undecidable
+It's worth noting that no extensional type theory is implemented this
+way. Instead they've taken a different approach to defining types
+themselves!
 
-With this flavor of extensional type theory our type of equality must
-be known to the typechecker so it can perform reflection, this means
-that a user can't define his or her own equality as in standard
-intensional type theory.
+Types are regarded as a partial equivalence relation (PER) over
+unityped (untyped if you want to get in a flamewar) lambda calculus
+terms.
 
-Furthermore, arbitrary reflection can also make things undecidable in
-general. For example Martin Lof's system is undecidable in with
-extensional equality.
+These PERs precisely reflect the extensional equality at that "type"
+and we then check membership by reflexivity. So `a : T` is synonymous
+with `(a, a) ∈ T`. Notice that since we are dealing with a PER, we
+know that `∀ a. (a, a) ∈ T` need not hold. This is reassuring,
+otherwise we'd be able to prove that every type was inhabited by every
+term!
 
 ## Propositional Extensionality
-
 This is another flavor of extensional type theory which is really just
 intensional type theory plus some axioms.
 
@@ -170,7 +176,7 @@ to add axiom K
 This says that if we can prove that for any property `P`,
 `P x (Refl x)` holds, then it holds for any proof that `Id x x`. This
 is subtly different than straightforward induction on `Id` because
-here we're not proving that a property parametrized over two
+here we're not proving that a property parameterized over two
 different values of `A`, but only one.
 
 This is horribly inconsistent in something like homotopy type theory
@@ -207,6 +213,11 @@ reflection rule. However, with `rec-refl-is–useless` we can do much of
 the same things, whenever we have something that matches on an
 equality proof we can just remove it.
 
+We essentially have normal propositional equality, but with the
+knowledge that things can only be equal in 1 way, up
+to propositional equality! (How many "propositional"s did you think I
+could fit in a sentence)
+
 ## Heterogeneous Equality
 
 The next form of equality we'll talk about is slightly different than
@@ -238,9 +249,14 @@ it's worth at first. It really shines when we're working with terms
 that we *know* must be the same, but require pattern matching or other
 jiggering to prove.
 
+If you're looking for a concrete example, look no further than
+[Observational Equality Now!](https://synrc.com/publications/cat/Temp/Logic/Observational.pdf)
+
 ## Wrap Up
 
 So this has been a whirlwind tour through a lot of different type
 theories. I partially wrote this to gather some of this information in
 one (free) place. If there's something here missing that you'd like to
 see added, feel free to comment or email me.
+
+*Thanks to Jon Sterling for proof reading*
