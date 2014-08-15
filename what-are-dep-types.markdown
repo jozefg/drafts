@@ -24,7 +24,7 @@ called Γ. So to say that `a : T` in some environment `Γ`, we'd write
 
     Γ ⊢ a : T
 
-Last but not least, sometimes these type assertions have
+Sometimes these type assertions have
 preconditions. For example, `f x : B` when `f : A → B` and `x : A`.
 
 We'd write this as
@@ -32,6 +32,9 @@ We'd write this as
     Γ ⊢ f : A → B,  Γ ⊢ x : A
     —————————————————————————–
        Γ ⊢ f x : B
+
+Finally, we can indicate substituting a variable for a value in an
+expression. Substituting `val` for `var` in `e` is `[val/var]e`.
 
 That should cover it as var as notation goes. If something is
 unfamiliar to you, please comment so I can add it to this section.
@@ -67,11 +70,11 @@ Let's notate the dependent function type (Pi types) like this
 where `B` is some expression that may refer to the free variable
 `x`. Now the typing rule for function types becomes
 
-    Γ ⊢ x : A, Γ ⊢ f : Π (x : A) B
+    Γ ⊢ a : A, Γ ⊢ f : Π (x : A) B
     ———————————————————————————————–
-         Γ ⊢ f x : B x
+         Γ ⊢ f a : [a/x]B
 
-Notice the symmetry here, `B` is applied to the argument just like the
+Notice the symmetry here, `B` is "applied" to the argument just like the
 actual function value!
 
 Coming from Haskell, this seems kinda useless. After all, what could
@@ -160,6 +163,16 @@ rescue
 The type of `snd` depends on the pair we supply it. To determine this
 type we extract the first component of the pair and feed it to `B`
 constructing the appropriate concrete type.
+
+Some languages also provide large elimination. This is when a type
+family pattern matches on a value to determine a type. For example
+
+    isZero :: Int → Type
+    isZero 0 = Unit
+    isZero _ = Void
+
+This turns out to be critical for a large number of proofs and while
+not fundamental most DT languages support this.
 
 Now let's talk about what about what dependent types mean on a more
 philosophical level
@@ -365,7 +378,7 @@ Now we absolutely know for certain that this property holds
 *everywhere* and that `sqrt` is correct. Such is the magic of formal
 verification.
 
-This may seem impratical, but in actuality it does scale well. People
+This may seem impractical, but in actuality it does scale well. People
 have proven entire industry strength C compilers to be correct!
 
 Last summer I proved a compiler for something like STLC correct. I
