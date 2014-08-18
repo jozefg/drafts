@@ -269,7 +269,9 @@ them and prove them all equal with something like
     sanePlus n = ...
 ```
 
-Now, how does this work in a real dependently typed language.
+These two ideas, data types and functions acting over types *and*
+values is the core idea of dependent types. Now, how does this work in
+a real dependently typed language.
 
 ## Haskell on Steroids
 
@@ -305,6 +307,16 @@ In fact, a normal function arrow is just sugar
 So really all functions are pi types, some are just simpler than
 others!
 
-Agda already has our `Eq` type defined
+Agda already has our `Eq` type defined an infix operator, `≡`.
+
+    data _≡_ {A : Set} : A → A → Set where
+      refl : (x : A) → x ≡ x
+
+That `{A : Set}` is the equivalent of the implicit `∀ a.` that Haskell
+inserts for it's type variables. Notice how `≡` is a map from `A` to
+`A` to `Set`?
+
+In our next post we'll discuss some of the implications and finer
+details of dependent types.
 
 [kind-exp]: /posts/2014-02-10-types-kinds-and-sorts.markdown
