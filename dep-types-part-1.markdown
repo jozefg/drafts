@@ -20,7 +20,11 @@ limits.
 
 Let's start with the flurry of extensions we need
 
-    TODO, FILL THIS OUT
+    {-# LANGUAGE DataKinds            #-}
+    {-# LANGUAGE KindSignatures       #-}
+    {-# LANGUAGE GADTs                #-}
+    {-# LANGUAGE TypeFamilies         #-}
+    {-# LANGUAGE UndecidableInstances #-}
 
 Now our first definition is a standard formulation of natural numbers
 
