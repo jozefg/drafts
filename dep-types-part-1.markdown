@@ -188,6 +188,123 @@ is duplicating code.
 
 ## Fitting GHC with Steel Dentures
 
+If we could add some extensions to GHC, what could we do to make this
+process easier?
 
+The simplest thing we could do is to simply skip the whole `RNat`
+step. If we could simply pass normal values to types this whole thing
+would be so much easier.
 
-[kind-exp]: TODO FILL IN LINK
+Nothing magical mind you, but instead of using data kinds we allow
+data types themselves to be indexed on normal values. Now we need a
+replacement for our `RNat n -> P n` idiom. After all we still need
+something to induct upon.
+
+We really want something like
+
+``` haskell
+    foo :: (n : Nat) -> P n
+```
+
+where this funky syntax means the same thing is `RNat n`, we want to
+reflect the value back up into the types. We'll call this lifter thing
+a "pi type" or dependent function type. This simplifies a lot of our
+boilerplate since now we don't need to duplicate everything.
+
+Now we can just define a type and function
+
+``` haskell
+    data Nat = Z | S Nat
+
+    plus :: Nat -> Nat -> Nat
+    plus Z n     = n
+    plus (S n) m = S (plus n m)
+```
+
+In order to get those proofs back we need to rephrase our `Eq`
+type. Now instead of using on different kinds it should take
+different values!
+
+``` haskell
+    data Eq :: a -> a -> * where
+        Refl :: (x : a) -> Eq x x
+```
+
+So here `a :: *` and `x :: a`. Notice that we have to "universes" that
+we quantify over in each type, one for values and one for
+types. Notice that our `Refl` constructor has one of those special
+lifting types in order to take the value given to it and boost it into
+the type level.
+
+Now we can rewrite some of our proofs to work with our new shiny and
+fake syntax.
+
+``` haskell
+    leftId :: (n : Nat) -> Eq (plus Z n) n
+    liftId n = Refl n
+```
+
+Again this proof just goes through by computation, but we have to
+supply `Refl` with it's argument explicitly since we're using a pi
+type under the hood.
+
+Next is `rightId`
+
+``` haskell
+    rightId :: (n : Nat) -> Eq (plus n Z) n
+    rightId Z = Refl Z
+    rightId (S n) = case rightId n of
+      Refl n' -> Refl (S n')
+```
+
+This looks a bit messier, but that's just because we're notating a few
+extra details for the compiler's sake.
+
+Now because we're just using normal functions and not type families,
+we can easily create multiple versions of `plus` without duplicating
+them and prove them all equal with something like
+
+``` haskell
+    sanePlus :: (n : Nat) -> (m : Nat) -> Eq (plus n m) (plus' n m)
+    sanePlus n = ...
+```
+
+Now, how does this work in a real dependently typed language.
+
+## Haskell on Steroids
+
+Now let's look at a language with these concepts already baked into
+the language: Agda. I'll talk about this more thoroughly next time but
+I just wanted to give a taste of Agda so that you can see how these
+features really look in a language.
+
+With Agda we have definitions that look like GADTs
+
+    data Some : Set where -- Set is the Agda version of *
+      Data    : Some
+      Constrs : Some
+
+However, we can also make these declarations be indexed by other
+normal values, just like our definition of `Eq` above!
+
+    data Other : Some -> Set where
+      Example1 : Other Data
+      Example2 : Other Constrs
+
+Now in addition, we have pi types like we had above
+
+    fn : (o : Some) -> Other o
+    fn Data    = Example1 Data
+    fn Constrs = Example2 Constrs
+
+In fact, a normal function arrow is just sugar
+
+    A -> B
+    (_ : A) -> B
+
+So really all functions are pi types, some are just simpler than
+others!
+
+Agda already has our `Eq` type defined
+
+[kind-exp]: /posts/2014-02-10-types-kinds-and-sorts.markdown
