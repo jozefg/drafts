@@ -175,7 +175,16 @@ just ask GHC to prove everything by reduction. For `RS n` we need to
 pattern match on `rightId`. This forces the equality `Plus n Z ~ n`
 into scope, from there GHC can figure out the proof for us.
 
-How far can we take this though? We can go on to prove
+How far can we take this though? We can go on to prove things like
+commutativity and associativity, but it's painful! All this hammers on
+the fact that Haskell was not intended to support this form of
+proofs/contract style programming.
+
+In fact it'd be nearly impossible to replace the definition of `RNat`
+or `plus'` with a more efficient representation without modifying
+their type level equivalents so we're not gaining much here. The whole
+point after all is to shift trust to GHC, but all we're really doing
+is duplicating code.
 
 ## Fitting GHC with Steel Dentures
 
