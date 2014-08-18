@@ -231,7 +231,7 @@ different values!
 
 ``` haskell
     data Eq :: a -> a -> * where
-        Refl :: (x : a) -> Eq x x
+      Refl :: (x : a) -> Eq x x
 ```
 
 So here `a :: *` and `x :: a`. Notice that we have to "universes" that
