@@ -12,9 +12,22 @@ you're a Haskell programmer and don't understand something, it's a
 bug! Please comment so I can help make this a more useful resource for
 you :)
 
-Alright, to kick this off we're going to start writing some Haskell
-code. Really we're going to try pushing some GHC extensions to their
-limits.
+There are four parts to this series, each answering one question
+
+ 1. What are dependent types?
+ 2. What does a dependently typed language look like?
+ 3. What does it feel like to write programs with dependent types?
+ 4. What does it mean to "prove" something
+
+So first things first, what are dependent types? Most people by now
+have heard the unhelpful quick answer
+
+> A dependent type is a type that depends on a value, not just other
+> types.
+
+But that's not helpful! What does this actually look like? To try to
+understand this we're going to write some Haskell code that pushes us
+as close as we can get to dependent types in Haskell.
 
 ## Kicking GHC in the Teeth
 
@@ -34,6 +47,16 @@ Now our first definition is a standard formulation of natural numbers
 
 Here `Z` represents 0 and `S` means `+ 1`. So you should read `S Z` as
 1, `S (S Z)` as 2 and so on and so on.
+
+If you're having some trouble, this function to convert an `Int` to a
+`Nat` might help
+
+``` haskell
+    -- Naively assume n >= 0
+    toNat :: Int -> Nat
+    toNat 0 = Z
+    toNat n = S (toNat $ n - 1)
+```
 
 We can use this definition to formulate addition
 
@@ -110,217 +133,136 @@ Now if we messed up this definition we'd get a type error!
     plus' (RS n) m = plus' n m -- Unification error! n ~ S n
 ```
 
-Super! But this still hasn't bought us that much, we've just shifted
-the bugs to a new higher level! What if our type family is wrong?
+Super! We know have types that express strict guarantees about our
+program. But how useable is this?
 
-We could write a few tests, but that's not satisfying enough! We could
-write tests for functions after all. If we've gone through all this
-trouble we really ought to get some stronger guarantees.
+To put it to the test, let's try to write some code that reads to
+integers for standard input and prints their sum.
 
-A simple guarantee should be that `Plus Z n` should always be
-`n`. This is to say that zero is the "left identity" for `Plus`. Now,
-how could we go about showing that? We could opt to do something like
-
-    data Dict c = c => Dict c
-
-And use the `~` equality constraint. That's an unwieldy approach
-however, since we have now way of manipulating that equality. Instead
-we can opt for another GADT.
-
-    data Eq :: k -> k -> * where
-      Refl :: Eq a a
-
-This definition says that `Eq` is a map from some kind `k` to `k` to
-`*`. The only way we can create an `Eq a b` is if `a` unifies with `b`
-so therefore, if `Eq a b` than `a` is the same thing as `b`.
-
-Shweet, now we can at least state something like the left identity
-property we wanted.
+We can easily do this with our normal `plus`
 
 ``` haskell
-    leftId :: Eq n (Plus Z n)
-    leftId = _
+    readNat :: IO Nat
+    readNat = toNat <$> readLn
+
+    main :: IO ()
+    main = plus <$> readNat <*> readNat
 ```
 
-Now if we can fill in that `_`, then we know that this holds for all
-`n` because GHC type checker says so. What on Earth could we fill it
-with though.. let's try `Refl`!
+Easy as pie! But what about `RNat`, how can we convert a `Nat` to an
+`RNat`? Well we could try something with type classes I guess
+
+    class Reify a where
+      type N
+      reify :: a -> RNat N
+
+
+But wait, that doesn't work since we can only have once instance for
+all `Nat`s. What if we did the opposite
+
+    class Reify (n :: Nat) where
+      nat :: RNat n -> Nat
+
+This let's us go in the other direction.. but that doesn't help us! In
+fact there's no obvious way to propagate runtime values back into the
+types. We're stuck.
+
+## GHC with Iron Dentures
+
+Now, if we could add some magical extension to GHC could we write
+something like above program? Yes of course! The key idea is to not
+reflect up our types with data kinds, but rather just allow the values
+to exist in the types on their own.
+
+For these I propose two basic ideas
+
+ 1. A special reflective function type
+ 2. Lifting expressions into types
+
+For our special function types, we allow the return *type* to use the
+supplied *value*. These are called pi types. We'll give this the
+following syntax
+
+    (x :: A) -> B x
+
+Where `A :: *` and `B :: Nat -> *` are some sort of type. Notice that
+that `Nat` in `B`'s kind isn't the data kind promoted version, but
+just the goodness to honest normal value.
+
+Now in order to allow `B` to actually make use of it's supplied value,
+our second idea let's normal types be indexed on values! Just like how
+GADTs can be indexed on types. We'll call these GGADTs.
+
+So let's define a new version of `RNat`
+
+    data RNat :: Nat -> * where
+      RZ : RNat Z
+      RS : RNat n -> RNat (S n)
+
+This looks quite familier to what we had before, but our intentions
+are different now. Those `Z`'s and `S`'s are meant to represent actual
+values, not members of some kind.
+
+Because we can depend on normal values, we don't even have to use our
+simple custom natural numbers.
+
+    data RInt :: Int -> * where
+      RZ :: RInt 0
+      RS :: RInt n -> RInt (1 + n)
+
+Notice that we allowed our types to call functions, like `+`. This can
+potentially be undecidable, something that we'll address later.
+
+Now we can write our function with a combination of these two ideas
+
+    toRInt :: (n :: Int) -> RInt n
+    toRInt 0 = RZ
+    toRInt n = RS (toRInt $ n - 1)
+
+Notice how we used pi types to change the return type dependent on the
+input *value*. Now we can feed this any old value, including ones we
+read from standard input.
+
 
 ``` haskell
-    leftId :: Eq n (Plus Z n)
-    leftId = Refl
+    main = print . toInt $ plus' <$> fmap toRInt readLn <*> fmap toRInt readLn
 ```
 
-And it goes through. This proof goes through so easily since
-`Plus Z n` is simply defined to be `n`. This is hardly a fair
-example. Let's try proving that zero is also the right identity.
+Now, one might wonder how the typechecker could possibly know how to
+handle such things, after all how could it know what'll be read from
+stdin!
 
-``` haskell
-    rightId :: Eq n (Plus n Z)
-    rightId = Refl
-```
+The answer is that it doesn't. When a value is reflected to the type
+level we can't do anything with it. For example, if we had a type like
 
-Urk type errors! It's clear why though, GHC isn't smart enough to try
-to prove this on it's own and it doesn't follow from straightforward
-reduction. So what can we do? Let's try that structural induction
-thing. To give us something to induct upon we'll pass in that `n` with
-an `RNat n`, a concrete value term.
+    (n :: Int) -> (if n == 0 then Bool else ())
 
-``` haskell
-    rightId :: RNat n -> Eq n (Plus n Z)
-    rightId RZ = Refl -- Base case
-    rightId (RS n) = case rightId n of
-      Refl -> Refl
-```
+Then we would have to pattern match on `n` at the value level to
+propagate information about `n` back to the type level.
 
-There are 3 interesting bits to this function. First is the base case,
-when we pattern match with `RZ`, `n` is forced to be `Z` we can then
-just ask GHC to prove everything by reduction. For `RS n` we need to
-pattern match on `rightId`. This forces the equality `Plus n Z ~ n`
-into scope, from there GHC can figure out the proof for us.
+If we did something like
 
-How far can we take this though? We can go on to prove things like
-commutativity and associativity, but it's painful! All this hammers on
-the fact that Haskell was not intended to support this form of
-proofs/contract style programming.
+    foo :: (n :: Int) -> (if n == 0 then Bool else ())
+    foo n = case n of
+      0 -> True
+      _ -> ()
 
-In fact it'd be nearly impossible to replace the definition of `RNat`
-or `plus'` with a more efficient representation without modifying
-their type level equivalents so we're not gaining much here. The whole
-point after all is to shift trust to GHC, but all we're really doing
-is duplicating code.
+Then the typechecker would see that we're matching on `n`, so if we
+get into the `0 -> ...` branch then `n` must be `0`. It can then
+reduce the return type to `if 0 == 0 then Bool else ()` and finally
+`Bool`.
 
-## Fitting GHC with Steel Dentures
+This means that when we use pi types we often have to pattern match on
+our arguments in order to help the typechecker figure out what's going
+on.
 
-If we could add some extensions to GHC, what could we do to make this
-process easier?
+To make this clear, let's play the typechecker for this function
 
-The simplest thing we could do is to simply skip the whole `RNat`
-step. If we could simply pass normal values to types this whole thing
-would be so much easier.
+    p :: (n :: Int) -> (m :: Int) -> RInt (n + m)
+    p 0 m = toRInt m
+    p n m = case
 
-Nothing magical mind you, but instead of using data kinds we allow
-data types themselves to be indexed on normal values. Now we need a
-replacement for our `RNat n -> P n` idiom. After all we still need
-something to induct upon.
+first we 
 
-We really want something like
-
-``` haskell
-    foo :: (n : Nat) -> P n
-```
-
-where this funky syntax means the same thing is `RNat n`, we want to
-reflect the value back up into the types. We'll call this lifter thing
-a "pi type" or dependent function type. This simplifies a lot of our
-boilerplate since now we don't need to duplicate everything.
-
-Now we can just define a type and function
-
-``` haskell
-    data Nat = Z | S Nat
-
-    plus :: Nat -> Nat -> Nat
-    plus Z n     = n
-    plus (S n) m = S (plus n m)
-```
-
-In order to get those proofs back we need to rephrase our `Eq`
-type. Now instead of using on different kinds it should take
-different values!
-
-``` haskell
-    data Eq :: a -> a -> * where
-      Refl :: (x : a) -> Eq x x
-```
-
-So here `a :: *` and `x :: a`. Notice that we have to "universes" that
-we quantify over in each type, one for values and one for
-types. Notice that our `Refl` constructor has one of those special
-lifting types in order to take the value given to it and boost it into
-the type level.
-
-Now we can rewrite some of our proofs to work with our new shiny and
-fake syntax.
-
-``` haskell
-    leftId :: (n : Nat) -> Eq (plus Z n) n
-    liftId n = Refl n
-```
-
-Again this proof just goes through by computation, but we have to
-supply `Refl` with it's argument explicitly since we're using a pi
-type under the hood.
-
-Next is `rightId`
-
-``` haskell
-    rightId :: (n : Nat) -> Eq (plus n Z) n
-    rightId Z = Refl Z
-    rightId (S n) = case rightId n of
-      Refl n' -> Refl (S n')
-```
-
-This looks a bit messier, but that's just because we're notating a few
-extra details for the compiler's sake.
-
-Now because we're just using normal functions and not type families,
-we can easily create multiple versions of `plus` without duplicating
-them and prove them all equal with something like
-
-``` haskell
-    sanePlus :: (n : Nat) -> (m : Nat) -> Eq (plus n m) (plus' n m)
-    sanePlus n = ...
-```
-
-These two ideas, data types and functions acting over types *and*
-values is the core idea of dependent types. Now, how does this work in
-a real dependently typed language.
-
-## Haskell on Steroids
-
-Now let's look at a language with these concepts already baked into
-the language: Agda. I'll talk about this more thoroughly next time but
-I just wanted to give a taste of Agda so that you can see how these
-features really look in a language.
-
-With Agda we have definitions that look like GADTs
-
-    data Some : Set where -- Set is the Agda version of *
-      Data    : Some
-      Constrs : Some
-
-However, we can also make these declarations be indexed by other
-normal values, just like our definition of `Eq` above!
-
-    data Other : Some -> Set where
-      Example1 : Other Data
-      Example2 : Other Constrs
-
-Now in addition, we have pi types like we had above
-
-    fn : (o : Some) -> Other o
-    fn Data    = Example1 Data
-    fn Constrs = Example2 Constrs
-
-In fact, a normal function arrow is just sugar
-
-    A -> B
-    (_ : A) -> B
-
-So really all functions are pi types, some are just simpler than
-others!
-
-Agda already has our `Eq` type defined an infix operator, `≡`.
-
-    data _≡_ {A : Set} : A → A → Set where
-      refl : (x : A) → x ≡ x
-
-That `{A : Set}` is the equivalent of the implicit `∀ a.` that Haskell
-inserts for it's type variables. Notice how `≡` is a map from `A` to
-`A` to `Set`?
-
-In our next post we'll discuss some of the implications and finer
-details of dependent types.
 
 [kind-exp]: /posts/2014-02-10-types-kinds-and-sorts.markdown
