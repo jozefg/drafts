@@ -250,19 +250,68 @@ If we did something like
 Then the typechecker would see that we're matching on `n`, so if we
 get into the `0 -> ...` branch then `n` must be `0`. It can then
 reduce the return type to `if 0 == 0 then Bool else ()` and finally
-`Bool`.
+`Bool`. A very important thing to note here is that the typechecker
+*doesn't evaluate the program*. It's examining the function in
+isolation of all other values. This means we sometimes have to hold
+its hand to ensure that it can figure out that all branches have the
+correct type.
 
 This means that when we use pi types we often have to pattern match on
 our arguments in order to help the typechecker figure out what's going
 on.
 
-To make this clear, let's play the typechecker for this function
+To make this clear, let's play the typechecker for this function. I'm
+reverting to the `Nat` type since it's nicer for pattern matching.
 
-    p :: (n :: Int) -> (m :: Int) -> RInt (n + m)
-    p 0 m = toRInt m
-    p n m = case
+    toRNat :: (n :: Nat) -> RNat n
+    toRNat Z = RZ -- We know that n is `Z` in this branch
+    toRNat (S n) = RS (toRNat n {- This has the type RNat n' -})
 
-first we 
+    p :: (n :: Nat) -> (m :: Int) -> RNat (plus n m)
+    p Z m     = toRNat m
+    p (S n) m = RS (toRNat n m)
+
+First the type checker goes through `toRNat`. In the first branch we
+have `n` equals `Z`, so `RZ` trivially typechecks. Next we have the
+case `S n`. We know that `toRNat n` has the type `RNat n'` by
+induction, and `S n' = n`. Therefore `RS` builds us a term of type
+`RNat n`.
+
+Now for `p`. We start in much the same manner, if we enter the
+`p Z m` case we know that `n` is `Z`. This means that we can reduce
+`plus n m` since `plus Z m` is by definition equal to `m` (look at the
+definition of `plus` to confirm this). We know how to produce `RNat m`
+easily since we have a function `toRNat :: (n :: Nat) -> RNat n`. We
+can apply this to `m` and the resulting term has the type `RNat m`.
+
+In the `RS` case we know that we're trying to produce a term of type
+`RNat (plus (S n) m)`. Now since we know that the constructor for the
+first argument of `plus`, we can reduce `plus (S n) m` to
+`S (plus n m)` by the definition of `plus`. From here we're looking to
+build a term of type `plus n m` and that's as simple as a recursive
+call. From here we just need to apply `RS` to give us `S (plus n m)`.
+
+Notice how as we stepped through this as the typechecker we never
+needed to do any arbitrary reductions. We only ever reduce
+definitions when we have the outer constructor (WHNF) of one of the
+arguments. By being conservative in both what we choose to reduce the
+typechecker can remain decidable.
+
+## Wrap Up
+
+Believe or not we've just gone through two of the most central
+concepts in dependent types
+
+ - Indexed type families (GGADTs)
+ - Dependent function types (Pi types)
+
+Not so bad was it? :) From here we'll look in the next post how to
+translate our faux Haskell into actual Agda code. From there we'll go
+through a few more detailed examples of pi types and GGADTs by poking
+through some of the Agda standard library.
+
+Thanks for reading, I must run since I'm late for class. It's an FP
+class ironically enough.
 
 
 [kind-exp]: /posts/2014-02-10-types-kinds-and-sorts.markdown
