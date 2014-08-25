@@ -104,7 +104,14 @@ GADTed definition of natural numbers.
       RS :: RNat n -> RNat (S n)
 ```
 
-Awesome! What on earth could that be useful for? Well with this we can
+Now, let's precisely specify the somewhat handwavy term
+"reflection". I'm using it in the imprecise sense meaning that we've
+lifted a value into something isomorphic at the type level. Later
+we'll talk about reflection precisely mean lifting a value into the
+type level. That's currently not possible since we can't have values
+in our types!
+
+What on earth could that be useful for? Well with this we can
 do something fancy with the definition of addition.
 
 
@@ -195,29 +202,36 @@ GADTs can be indexed on types. We'll call these GGADTs.
 
 So let's define a new version of `RNat`
 
+``` haskell
     data RNat :: Nat -> * where
       RZ : RNat Z
       RS : RNat n -> RNat (S n)
+```
 
-This looks quite familier to what we had before, but our intentions
+This looks exactly like what we had before, but our semantics
 are different now. Those `Z`'s and `S`'s are meant to represent actual
-values, not members of some kind.
+values, not members of some kind. There's no promoting types to
+singleton kinds anymore, just plain old values being held in fancier types.
 
 Because we can depend on normal values, we don't even have to use our
 simple custom natural numbers.
 
+``` haskell
     data RInt :: Int -> * where
       RZ :: RInt 0
       RS :: RInt n -> RInt (1 + n)
+```
 
 Notice that we allowed our types to call functions, like `+`. This can
 potentially be undecidable, something that we'll address later.
 
 Now we can write our function with a combination of these two ideas
 
+``` haskell
     toRInt :: (n :: Int) -> RInt n
     toRInt 0 = RZ
     toRInt n = RS (toRInt $ n - 1)
+```
 
 Notice how we used pi types to change the return type dependent on the
 input *value*. Now we can feed this any old value, including ones we
@@ -235,17 +249,21 @@ stdin!
 The answer is that it doesn't. When a value is reflected to the type
 level we can't do anything with it. For example, if we had a type like
 
+``` haskell
     (n :: Int) -> (if n == 0 then Bool else ())
+```
 
 Then we would have to pattern match on `n` at the value level to
 propagate information about `n` back to the type level.
 
 If we did something like
 
+``` haskell
     foo :: (n :: Int) -> (if n == 0 then Bool else ())
     foo n = case n of
       0 -> True
       _ -> ()
+```
 
 Then the typechecker would see that we're matching on `n`, so if we
 get into the `0 -> ...` branch then `n` must be `0`. It can then
@@ -263,6 +281,7 @@ on.
 To make this clear, let's play the typechecker for this function. I'm
 reverting to the `Nat` type since it's nicer for pattern matching.
 
+``` haskell
     toRNat :: (n :: Nat) -> RNat n
     toRNat Z = RZ -- We know that n is `Z` in this branch
     toRNat (S n) = RS (toRNat n {- This has the type RNat n' -})
@@ -270,32 +289,46 @@ reverting to the `Nat` type since it's nicer for pattern matching.
     p :: (n :: Nat) -> (m :: Int) -> RNat (plus n m)
     p Z m     = toRNat m
     p (S n) m = RS (toRNat n m)
+```
 
-First the type checker goes through `toRNat`. In the first branch we
-have `n` equals `Z`, so `RZ` trivially typechecks. Next we have the
-case `S n`. We know that `toRNat n` has the type `RNat n'` by
-induction, and `S n' = n`. Therefore `RS` builds us a term of type
-`RNat n`.
+First the type checker goes through `toRNat`.
 
-Now for `p`. We start in much the same manner, if we enter the
-`p Z m` case we know that `n` is `Z`. This means that we can reduce
-`plus n m` since `plus Z m` is by definition equal to `m` (look at the
-definition of `plus` to confirm this). We know how to produce `RNat m`
-easily since we have a function `toRNat :: (n :: Nat) -> RNat n`. We
-can apply this to `m` and the resulting term has the type `RNat m`.
+In the first branch we have `n` equals `Z`, so `RZ` trivially typechecks. Next we have the
+case `S n`.
+
+ - We know that `toRNat n` has the type `RNat n'` by induction
+ - We also know that `S n' = n`.
+ - Therefore `RS` builds us a term of type `RNat n`.
+
+Now for `p`. We start in much the same manner.
+
+if we enter the `p Z m` case
+
+ - we know that `n` is `Z`.
+ - we can reduce `plus n m` since `plus Z m` is by definition equal to `m`
+   Look at the definition of `plus` to confirm this).
+ - We know how to produce `RNat m` easily since we have a function
+ `toRNat :: (n :: Nat) -> RNat n`.
+ - We can apply this to `m` and the resulting term has the type `RNat m`.
 
 In the `RS` case we know that we're trying to produce a term of type
-`RNat (plus (S n) m)`. Now since we know that the constructor for the
-first argument of `plus`, we can reduce `plus (S n) m` to
-`S (plus n m)` by the definition of `plus`. From here we're looking to
-build a term of type `plus n m` and that's as simple as a recursive
-call. From here we just need to apply `RS` to give us `S (plus n m)`.
+`RNat (plus (S n) m)`.
+
+ - Now since we know that the constructor for the first argument of
+ `plus`, we can reduce `plus (S n) m` to  `S (plus n m)` by the definition of `plus`.
+ - We're looking to build a term of type `plus n m` and that's as
+   simple as a recursive call.
+ - From here we just need to apply `RS` to give us `S (plus n m)`
+ - As we previously noted `S (plus n m)` is equal to `plus (S n) m`
 
 Notice how as we stepped through this as the typechecker we never
 needed to do any arbitrary reductions. We only ever reduce
 definitions when we have the outer constructor (WHNF) of one of the
-arguments. By being conservative in both what we choose to reduce the
-typechecker can remain decidable.
+arguments.
+
+While I'm not actually proposing adding `{-# LANGUAGE PiTypes #-}` to
+GHC, it's clear that with only a few orthogonal editions to system F
+we can get some seriously cool types.
 
 ## Wrap Up
 
