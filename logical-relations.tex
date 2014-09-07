@@ -51,24 +51,5 @@ A hole is exactly what it sounds like, a space where an expression can
 be inserted into a program leaving a complete program behind. It's
 almost like a faux-function where we textually modify the body of the
 function. We can build up the syntactic sort for holes. I'll only show
-the sort for STLC holes, but extending this to System F is straightforward.
-
-\begin{grammar}
-  <hole> ::= \circ
-  \alt <hole> <hole>
-  \alt \lambda <var>. <hole>
-  \alt <exp>
-\end{grammar}
-
-So we notate the actual hole with $ \circ $, and other than that a whole
-is more or less equivalent to an expression. A hole also should have a
-special typing judgment which maps the type of the hole to the type of
-the whole expression built around the hole.
-
-Notice that we cleverly only allow at most one hole in a typed hole
-expression. We can have trivial holes where the expressions
-supplied to fill the hole is just tossed on the floor.
-
-Now that we have a definition a hole in a program, we can define
-our interesting notion of equivalence.
+the This is a definition
 \end{document}
