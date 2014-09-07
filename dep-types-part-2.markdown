@@ -90,6 +90,33 @@ but won't concern ourselves with anything beyond `Set`. It's also
 worth noting that Agda doesn't require any particular casing for
 constructors, traditionally their lower case.
 
+Pattern matching in Agda is pretty much identical to Haskell. We can
+define something like
+
+``` agda
+    not : Bool -> Bool
+    not true  = false
+    not false = true
+```
+
+One big difference between Haskell and Agda is that pattern matching
+**must** be exhaustive. Nonexhaustiveness is a compiler error in Agda.
+
+This brings me to another point worth mentioning. Remember that
+structural induction I mentioned the other day? Agda only allows
+recursion when the terms we recurse on are "smaller".
+
+In other words, all Agda functions are defined by structural
+induction. This together with the former restriction means that Agda
+programs are "total". In other words all Agda programs reduce to a
+single value, they never crash or loop forever.
+
+This can occasionally cause pain though since not all recursive
+functions are modelled nicely by structural induction! A classic
+example is merge sort. All the examples are carefully written to be
+defined in this way, but it will incur certain awkward bits in our
+code. Bear this restriction in mind as you continue reading.
+
 ### Dependent Types
 
 There wouldn't be much point in writing Agda if it didn't have
@@ -154,11 +181,56 @@ We indicate that we're going to index our data on something the same
 way we would in Haskell++, by adding it to the type signature on the
 top of the data declaration.
 
-Agda's GGADTs also allow us to
+Agda's GGADTs also allow us to us to add "parameters" instead of
+indices. These are things which the data type may use, but each
+constructor handles uniformly without inspecting it.
 
-It's almost like someone described Haskell++ with Agda in mind!
+For example a list type depends on the type of it's elements, but it
+doesn't poke further at the type or value of those elements. They're
+handled "parametrically".
+
+In Agda a list would be defined as
+
+``` agda
+    data List (A : Set) : Set where
+      nil  : List A
+      cons : A -> List A -> List A
+```
+
+This is closer to how Haskell's vanilla ADTs work. It has some
+important benefits for Agda, but they poke further than I'm willing to
+go in such a short post. I'm mentioning them here because our examples
+will use both parameters and indices.
+
+Finally, Agda's prelude is absolutely tiny. By tiny I mean essentially
+non-existant. Because of this I'm using the Agda standard library
+heavily and to import something in Agda we'd write
+
+    import Foo.Bar.Baz
+
+This isn't the same as a Haskell import though. By default, imports in
+Agda import a qualified name to use. To get a Haskell style import
+we'll use the special shortcut
+
+    open import Foo.Bar
+
+which is short for
+
+    import Foo.Bar
+    open Bar
+
+Because Agda's prelude is so tiny we'll have to import things like
+booleans, numbers, and unit.
 
 ### A Few Examples
+
+Now that we've seen what dependent types look like in Agda, let's go
+over a few examples of their use.
+
+First let's import a few things
+
+
+
 
 ### Bonus Coolness
 
