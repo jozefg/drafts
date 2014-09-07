@@ -90,11 +90,76 @@ but won't concern ourselves with anything beyond `Set`. It's also
 worth noting that Agda doesn't require any particular casing for
 constructors, traditionally their lower case.
 
-### What's Different
+### Dependent Types
 
-Obviously I wouldn't be writing this post if Agda was identical to
-Haskell! Let's no go over a few places where the two differ.
+There wouldn't be much point in writing Agda if it didn't have
+dependent types. In fact the two mechanisms that comprise our
+dependent types translate wonderfully into Agda.
 
-The most obvious is in the case of polymorphism.
+First we had pi types, remember those?
 
-In Haskell, we just write a lowercase word and
+``` haskell
+    foo :: (a :: A) -> B
+    foo a = ...
+```
+
+Those translate almost precisely into Agda, where we'd write
+
+``` agda
+    foo : (a : A) -> B
+```
+
+The only difference is the colons! In fact, Agda's pi types are far
+more general than what we'd discussed previously. The extra generality
+comes from what we allow `A` to be. In our previous post, `A` was
+always some normal type with the kind `*` (`Set` in Agda). In Agda
+though, we allow `A` to be `Set` itself. In Haskell syntax that would
+be something like
+
+``` haskell
+    foo :: (a :: *) -> B
+```
+
+What could `a` be then? Well anything with the kind `*` is a type,
+like `Bool`, `()`, or `Nat`. So that `a` is like a normal type
+variable in Haskell
+
+``` haskell
+    foo :: forall a. B
+```
+
+In fact, when we generalize pi types like this, they generalize
+parametric polymorphism. This is kind of like how we use "big lambdas"
+in System F to write out polymorphism explicitly.
+
+Here's a definition for the identity function in Agda.
+
+``` agda
+    id : (A : Set) -> A -> A
+    id _ a = a
+```
+
+This is how we actually do all parametric polymorphism in Agda, as a
+specific use of pi types.
+
+Now our other dependently typed mechanism was our generalized
+generalized algebraic data types. These also translate nicely to Agda.
+
+``` agda
+    data Foo : Bool -> Set where
+      Bar : Foo True
+```
+
+We indicate that we're going to index our data on something the same
+way we would in Haskell++, by adding it to the type signature on the
+top of the data declaration.
+
+Agda's GGADTs also allow us to
+
+It's almost like someone described Haskell++ with Agda in mind!
+
+### A Few Examples
+
+### Bonus Coolness
+
+### Wrap Up
