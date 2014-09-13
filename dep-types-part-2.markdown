@@ -202,9 +202,10 @@ important benefits for Agda, but they poke further than I'm willing to
 go in such a short post. I'm mentioning them here because our examples
 will use both parameters and indices.
 
-Finally, Agda's prelude is absolutely tiny. By tiny I mean essentially
-non-existant. Because of this I'm using the Agda standard library
-heavily and to import something in Agda we'd write
+Next let's talk about modules. Agda's prelude is absolutely tiny. By
+tiny I mean essentially non-existant. Because of this I'm using the
+Agda standard library heavily and to import something in Agda we'd
+write
 
     import Foo.Bar.Baz
 
@@ -222,6 +223,14 @@ which is short for
 Because Agda's prelude is so tiny we'll have to import things like
 booleans, numbers, and unit.
 
+Finally, Agda's names are somewhat.. unique. Agda and it's standard
+library are unicode heavy, meaning that instead of unit we'd type ⊤
+and instead of `Void` we'd use ⊥. Which is pretty nifty, but it does
+take some getting used to.
+
+The most common unicode name we'll use is ℕ. This is just the type of
+natural numbers as their defined in `Data.Nat`.
+
 ### A Few Examples
 
 Now that we've seen what dependent types look like in Agda, let's go
@@ -229,6 +238,234 @@ over a few examples of their use.
 
 First let's import a few things
 
+``` agda
+    open import Data.Nat
+    open import Data.Bool
+```
+
+Now we can define a few simple Agda functions just to get a feel for
+how that looks.
+
+``` agda
+    not : Bool -> Bool
+    not true  = false
+    not false = true
+
+    and : Bool -> Bool -> Bool
+    and true b  = b
+    and false _ = false
+
+    or : Bool -> Bool -> Bool
+    or false b = b
+    or true  _ = true
+```
+
+As you can see defining functions is mostly identical to Haskell, we
+just pattern match and the top level and go from there.
+
+We can define recursive functions just like in Haskell
+
+``` adga
+    plus : ℕ -> ℕ -> ℕ
+    plus (suc n) m = suc (plus n m)
+    plus zero    m = m
+```
+
+Now with Agda we can use our data types to encode "proofs" of sorts.
+
+For example
+
+``` agda
+    data IsEven : ℕ -> Set where
+      even-z : IsEven zero
+      even-s  : (n : Nat) -> IsEven n -> IsEven (suc (suc n))
+```
+
+Now this inductively defines what it means for a natural number to be
+even so that if `Even n` exists then `n` must be even. We can also
+state oddness
+
+``` agda
+    data IsOdd : ℕ -> Set where
+      odd-o : IsOdd (suc zero)
+      odd-s : (n : ℕ) -> IsOdd n -> IsOdd (suc (suc n))
+```
+
+Now we can construct a decision procedure which produces either a
+proof of evenness or oddness for all natural numbers.
+
+``` agda
+    open import Data.Sum -- The same thing as Either in Haskell; ⊎ is just Either
+
+    evenOrOdd : (n : ℕ) -> Odd n ⊎ Even n
+```
+
+So we're setting out to construct a function that, given any `n`,
+builds up an appropriate term showing it is either even or odd.
+
+The first two cases of this function are kinda the base cases of this
+recurrence.
+
+``` agda
+    evenOrOdd zero = inj₁ even-z
+    evenOrOdd (suc zero) = inj₂ odd-o
+```
+
+So if we're given zero or one, return the base case of `IsEven` or
+`IsOdd` as appropriate. Notice that instead of `Left` or `Right` as
+constructors we have `inj₁` and `inj₂`. They serve exactly the same
+purpose, just with a shinier unicode name.
+
+Now our next step would be to handle the case where we have
+
+``` agda
+    evenOrOdd (suc (suc n)) = ?
+```
+
+Our code is going to be like the Haskell code
+
+``` haskell
+    case evenOrOdd n of
+      Left evenProof -> Left (EvenS evenProof)
+      Right oddProof -> Right (OddS  oddProof)
+```
+
+In words, we'll recurse and inspect the result, if we get an even
+proof we'll build a bigger even proof and if we can an odd proof we'll
+build a bigger odd proof.
+
+In Agda we'll use the `with` keyword. This allows us to "extend" the
+current pattern matching by adding an expression to the list of
+expressions we're pattern matching on.
+
+``` agda
+    evenOrOdd (suc (suc n)) with evenOrOdd n
+    evenOrOdd (suc (suc n)) | inj₁ x = ?
+    evenOrOdd (suc (suc n)) | inj₂ y = ?
+```
+
+Now we add our new expression to use for matching by saying
+`... with evenOrOdd n`. Then we list out the next set of possible
+patterns.
+
+From here the rest of the function is quite straightforward.
+
+``` agda
+    evenOrOdd (suc (suc n)) | inj₁ x = inj₁ (even-s n x)
+    evenOrOdd (suc (suc n)) | inj₂ y = inj₂ (odd-s n y)
+```
+
+Notice that we had to duplicate the whole `evenOrOdd (suc (suc n))`
+bit of the match? It's a bit tedious so Agda provides some sugar. If
+we replace that portion of the match with `...` Agda will just
+automatically reuse the pattern we had when we wrote `with`.
+
+Now our whole function looks like
+
+``` agda
+    evenOrOdd : (n : ℕ) -> IsEven n ⊎ IsOdd n
+    evenOrOdd zero = inj₁ even-z
+    evenOrOdd (suc zero) = inj₂ odd-o
+    evenOrOdd (suc (suc n)) with evenOrOdd n
+    ... | inj₁ x = inj₁ (even-s n x)
+    ... | inj₂ y = inj₂ (odd-s n y)
+```
+
+How can we improve this? Well notice that that `suc (suc n)` case
+involved unpacking our `Either` and than immediately repacking it,
+this looks like something we can abstract over.
+
+``` agda
+    bimap : (A B C D : Set) -> (A -> A) -> (B -> B) -> A ⊎ B -> A ⊎ B
+    bimap A B C D f g (inj₁ x) = inj₁ (f x)
+    bimap A B C D f g (inj₂ y) = inj₂ (g y)
+```
+
+If we gave `bimap` a more Haskellish siganture
+
+``` haskell
+    bimap :: forall a b c d. (a -> c) -> (b -> d) -> Either a b -> Either c d
+```
+
+One interesting point to notice is that the *type* arguments in the
+Agda function (`A` and `B`) also appeared in the normal argument
+pattern! This is because we're using the normal pi type mechanism for
+parametric polymorphism, so we'll actually end up explicitly passing
+and receiving the types we quantify over. This messed with me quite a
+bit when I first starting learning DT languages, take a moment and
+convince yourself that this makes sense.
+
+Now that we have `bimap`, we can use it to simplify our `evenOrOdd`
+function.
+
+``` agda
+    evenOrOdd : (n : ℕ) -> IsEven n ⊎ IsOdd n
+    evenOrOdd zero = inj₁ even-z
+    evenOrOdd (suc zero) = inj₂ odd-o
+    evenOrOdd (suc (suc n)) =
+      bimap (IsEven n) (IsOdd n)
+            (IsEven (suc (suc n))) (IsOdd (suc (suc n)))
+            (even-s n) (odd-s n) (evenOrOdd n)
+```
+
+We've gotten rid of the explicit `with`, but at the cost of all those
+explicit type arguments! Those are both gross and obvious. Agda can
+clearly deduce what `A`, `B`, `C` and `D` should be from the arguments
+and what the return type must be. In fact, Agda provides a convenient
+mechanism for avoiding this boilerplate. If we simply insert `_` in
+place of an argument, Agda will try to guess it from the information
+it has about the other arguments and contexts. Since these type
+arguments are so clear from context, Agda can guess them all
+
+``` agda
+    evenOrOdd : (n : ℕ) -> IsEven n ⊎ IsOdd n
+    evenOrOdd zero = inj₁ even-z
+    evenOrOdd (suc zero) = inj₂ odd-o
+    evenOrOdd (suc (suc n)) =
+      bimap _ _ _ _ (even-s n) (odd-s n) (evenOrOdd n)
+```
+
+Now at least the code fits on one line! This also raises something
+interesting, the types are so strict that Agda can actually figure out
+parts of our programs for us! I'm not sure about you but at this point
+in time my brain mostly melted :) Because of this I'll try to avoid
+using `_` and other mechanisms for Agda writing programs for us where
+I can. The exception of course being situations like the above where
+it's necessary for readabilities sake.
+
+Another simple function we'll write is that if we can construct an
+`IsOdd n`, we can build an `IsEven (suc n)`.
+
+``` agda
+    oddSuc : (n : ℕ) -> IsOdd n -> IsEven (suc n)
+```
+
+Now this function has two arguments, a number and a term showing that
+that number is odd. To write this function we'll actually recurse on
+the `IsOdd` term.
+
+``` agda
+    oddSuc .1 odd-o = even-s zero even-z
+    oddSuc .(suc (suc n)) (odd-s n p) = even-s (suc n) (oddSuc n p)
+```
+
+Now if we squint hard and ignore those `.` terms, this looks much like
+we'd expect. We build the `Even` starting from `even-s zero
+even-z`. From there we just recurse and talk on a `even-s` constructor
+to scale the `IsEven` term up by two.
+
+There's a weird thing going on here though, those `.` patterns. Those
+are a nifty little idea in Agda that pattern matching on one thing
+might *force* another term to be some value. If we know that our
+`IsOdd n` is `odd-o` `n` **must** be `suc zero`. Anything else would
+just be completely incorrect. To notate these patterns Agda forces you
+to prefix them with `.`. You should read `.Y` as "because of X, this
+*must* be Y".
+
+This isn't an optional choice though, as `.` patterns may do several
+wonky things. The most notable is that they often use pattern
+variables nonlinearly, notice that `n` appeared twice in our second
+pattern clause. Without the `.` this would be very illegal.
 
 
 
