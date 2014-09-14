@@ -467,8 +467,19 @@ wonky things. The most notable is that they often use pattern
 variables nonlinearly, notice that `n` appeared twice in our second
 pattern clause. Without the `.` this would be very illegal.
 
+As an exercise to the reader, try to write
 
+``` agda
+    evenSuc : (n : ℕ) -> IsEven n -> IsOdd (suc n)
+```
 
 ### Bonus Coolness
+
+Up until this point most of the programs we've written are
+well... painfully boring. They're chosen to be as short and easily
+readable at the expense of doing something cool, but I'd like to fix
+that and finish this post up with something a bit more fun.
+
+Let's write a
 
 ### Wrap Up
