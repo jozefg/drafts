@@ -38,7 +38,7 @@ though)
     thingy = true
 ```
 
-Much like Haskell, we use
+where as in Haskell we'd say
 
 ``` haskell
     name :: Type
@@ -63,13 +63,16 @@ more expressive type system, type inference is woefully
 undecidable. Those top level signatures are not optional sadly. Some
 DT language work a little harder than Agda when it comes to inference,
 but for a beginner this is a bit of a feature: you learn what the
-actual somewhat scary types are.
+actual (somewhat scary) types are.
+
+And of course, you always give type signatures in Haskell I'm sure :)
 
 Like Haskell function application is whitespace and functions are
 curried
 
 ``` agda
-
+    -- We could explicitly add parens
+    -- foo : A -> (B -> C)
     foo : A -> B -> C
     foo = ...
 
@@ -94,7 +97,7 @@ just the kind of normal types, like `*` in Haskell. In Agda there's
 actually an infinite tower of these `Bool : Set : Set1 : Set2 ...`,
 but won't concern ourselves with anything beyond `Set`. It's also
 worth noting that Agda doesn't require any particular casing for
-constructors, traditionally their lower case.
+constructors, traditionally they're lower case.
 
 Pattern matching in Agda is pretty much identical to Haskell. We can
 define something like
@@ -113,15 +116,32 @@ structural induction I mentioned the other day? Agda only allows
 recursion when the terms we recurse on are "smaller".
 
 In other words, all Agda functions are defined by structural
-induction. This together with the former restriction means that Agda
-programs are "total". In other words all Agda programs reduce to a
-single value, they never crash or loop forever.
+induction. This together with the exhaustiveness restriction means
+that Agda programs are "total". In other words all Agda programs
+reduce to a single value, they never crash or loop forever.
 
 This can occasionally cause pain though since not all recursive
 functions are modelled nicely by structural induction! A classic
-example is merge sort. All the examples are carefully written to be
-defined in this way, but it will incur certain awkward bits in our
-code. Bear this restriction in mind as you continue reading.
+example is merge sort. The issue is that in merge sort we want to say
+something like
+
+``` agda
+    mergeSort : List Nat -> List Nat
+    mergeSort [] = []
+    mergeSort (x :: []) = x :: []
+    mergeSort xs = let (l, r) = split xs in
+                     merge (mergeSort l, mergeSort r)
+```
+
+But wait, how would the typechecker know that `l` and `r` are strictly
+smaller than `xs`? In fact, they might not be! We know that the length
+of `length xs > 1`, but convincing the typechecker of that fact is a
+pain! In fact, without elaborate trickery, Agda will reject this
+definition.
+
+So, apart from these restriction for totality Agda has pretty much
+been a stripped down Haskell. Let's start seeing what Agda offers over
+Haskell.
 
 ### Dependent Types
 
@@ -169,11 +189,13 @@ Here's a definition for the identity function in Agda.
 
 ``` agda
     id : (A : Set) -> A -> A
-    id _ a = a
+    id A a = a
 ```
 
 This is how we actually do all parametric polymorphism in Agda, as a
-specific use of pi types.
+specific use of pi types. This comes from the idea that types are also
+"first class". We can pass them around and use them as arguments to
+functions, even dependent arguments :)
 
 Now our other dependently typed mechanism was our generalized
 generalized algebraic data types. These also translate nicely to Agda.
@@ -203,10 +225,30 @@ In Agda a list would be defined as
       cons : A -> List A -> List A
 ```
 
-This is closer to how Haskell's vanilla ADTs work. It has some
-important benefits for Agda, but they poke further than I'm willing to
-go in such a short post. I'm mentioning them here because our examples
-will use both parameters and indices.
+If your wondering what on earth the difference is, don't worry! You've
+already in fact used parametric/non-parametric type arguments in
+Haskell. In Haskell a normal algebraic type can just take several type
+variables and can't try to do clever things depending on what the
+argument is. For example, our definition of lists
+
+``` haskell
+    data List a = Cons a (List a) | Nil
+```
+
+can't do something different if `a` is `Int` instead of `Bool` or
+something like that. That's not the case with GADTs though, there we
+can do clever things like
+
+``` haskell
+    data List :: * -> * where
+      IntOnlyCons :: Int -> List Int -> List Int
+      ...
+```
+
+Now we're not treating our type argument opaquely, we can figure
+things out about it depending on what constructor our value uses!
+That's the core of the difference between parameters in indices in
+Agda.
 
 Next let's talk about modules. Agda's prelude is absolutely tiny. By
 tiny I mean essentially non-existant. Because of this I'm using the
@@ -227,12 +269,17 @@ which is short for
     open Bar
 
 Because Agda's prelude is so tiny we'll have to import things like
-booleans, numbers, and unit.
+booleans, numbers, and unit. These are all things defined in the
+standard library, not even the core language. Expect any Agda code
+we write to make heavy use of the standard library and begin with a
+lot of imports.
 
 Finally, Agda's names are somewhat.. unique. Agda and it's standard
 library are unicode heavy, meaning that instead of unit we'd type ⊤
 and instead of `Void` we'd use ⊥. Which is pretty nifty, but it does
-take some getting used to.
+take some getting used to. If you're familiar with LaTeX, the Emacs
+mode for Agda allows LaTeX style entry. For example ⊥ can be entered
+as `\bot`.
 
 The most common unicode name we'll use is ℕ. This is just the type of
 natural numbers as their defined in `Data.Nat`.
