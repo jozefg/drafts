@@ -2,6 +2,12 @@
 title: Introduction to Dependent Types: Off, Off to Agda Land
 ---
 
+*First, an apology. Sorry this has take so long to push out. I've just
+started my first semester at Carnegie Mellon. I fully intend to keep
+blogging, but it's taken a little while to get my feet under me. Happy
+readings :)*
+
+
 In this second post of my "intro to dependent types" series we're
 going on a whirlwind tour of Agda. Specifically we're going to look at
 translating our faux-Haskell from the last post into honest to
@@ -473,13 +479,14 @@ As an exercise to the reader, try to write
     evenSuc : (n : ℕ) -> IsEven n -> IsOdd (suc n)
 ```
 
-### Bonus Coolness
-
-Up until this point most of the programs we've written are
-well... painfully boring. They're chosen to be as short and easily
-readable at the expense of doing something cool, but I'd like to fix
-that and finish this post up with something a bit more fun.
-
-Let's write a
-
 ### Wrap Up
+
+That wraps up this post which came out much longer than I
+expected. We've now covered enough basics to actually discuss
+meaningful dependently typed programs. That's right, we can finally
+kiss natural numbers good bye in the next post!
+
+Next time we'll cover writing a small program but interesting program
+and use dependent types to assure ourselves of it's correctness.
+
+As always, please comment with any questions :)
