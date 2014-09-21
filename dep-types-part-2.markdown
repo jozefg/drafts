@@ -486,6 +486,34 @@ using `_` and other mechanisms for Agda writing programs for us where
 I can. The exception of course being situations like the above where
 it's necessary for readabilities sake.
 
+One important exception to that rule is for parameteric
+polymorphism. It's a royal pain to pass around types explicitly
+everywhere. We're going to use an Agda feature called "implicit
+arguments". You should think of these as arguments for which the `_`
+is inserted for it. So instead of writing
+
+``` agda
+    foo _ zero zero
+```
+
+We could write
+
+``` agda
+    foo zero zero
+```
+
+This more closely mimicks what Haskell does for its parametric
+polymorphism. To indicate we want something to be an implicit
+argument, we just wrap it in `{}` instead of `()`. So for example, we
+could rewrite `bimap` as
+
+``` agda
+    bimap : {A B C D : Set} -> (A -> A) -> (B -> B) -> A ⊎ B -> A ⊎ B
+    bimap f g (inj₁ x) = inj₁ (f x)
+    bimap f g (inj₂ y) = inj₂ (g y)
+```
+To avoid all those underscores.
+
 Another simple function we'll write is that if we can construct an
 `IsOdd n`, we can build an `IsEven (suc n)`.
 
