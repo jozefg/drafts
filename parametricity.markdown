@@ -115,10 +115,11 @@ working with.
             true            [Boolean]
             false           [Boolean]
 
-So the only real notable feature of our language is that all
-polymorphism is explicit. In order to have a full polymorphic type we
-have to use a "big lambda" /\. This acts just like a normal lambda
-except instead of abstracting over a term this abstracts over a type.
+This language is commonly called "System F". The only real notable
+feature of our language is that all polymorphism is explicit. In order
+to have a full polymorphic type we have to use a "big lambda" /\. This
+acts just like a normal lambda except instead of abstracting over a
+term this abstracts over a type.
 
 For example the full term for the identity function is
 
@@ -129,4 +130,41 @@ application.
 
     id[Bool] true
 
-Now
+Now that we have our language, let's talk about what we're interested
+in proving. Our basic goal is to show that two expressions `e1` and
+`e2` are equal, `e1 ≅ e2`. However, we don't want to use a `==` sort
+of equality. We really mean that they can't be distinguished by our
+programs. That for all programs with a "hole", filling that whole with
+`e1` or `e2` will produce identical results.
+
+This is a bit more general than just `==`, for example it let's us say
+that `flip const () ≅ id`. Now let's define another notion of
+equality, logical equivalence.
+
+This logical equivalence is an attempt to define equality without just
+saying "running everything produces the same result". It turns out
+it's really really hard to prove things that aren't syntactically
+equivalent will always produce the same result!
+
+Our logical equivalence `~` is defined in a context `δ`. The reason
+for this is that our terms may have free type variables and we need to
+know how to deal with them. δ is just a map from a type variable to a
+relation between terms. Now this can't be just any relationship, it
+has to be "admissible". Admissibility means that for some relation R,
+two conditions hold
+
+ 1. If `e R e'` and `d ⇒ e` and `d' ⇒ e'`, then `d R d'`
+ 2. If `e R e'` and `d ≅ e` and `d' ≅ e'`, then `d R d'`
+
+Notice that R can be between two types or the same types.
+
+Now we define our logical equivalence in some context δ to be
+
+
+ 1. e ~ₜ e' [δ] if e δ(t) e'
+ 2. e ~₂ e' [δ] if e ⇓ v and e' ⇓ v
+ 3. f ~ g [δ] if for all a ~ b [δ] then f a ~ g b [δ]
+ 4. p ~ p' [δ]
+    if for all R between any p and p', e [p] ~ e'[p']. [δ + R]
+
+The key for this rule.
