@@ -99,10 +99,12 @@ fundamental behaviour about what we're instantiated.
 We can now set out to define rigorously define what we're really
 talking about.
 
-## Using Parametricity
+## Background
 
-To begin with, we'll specify what exactly is the language we're
-working with.
+Before we can formally define parametricity we need to flesh out a few
+things. First things first, we need to actually specify the language
+we're working in. For our purposes, we'll just deal with pure System
+F.
 
     ty ::= v                [Type Variables]
            ty -> ty         [Function Types]
@@ -117,7 +119,7 @@ working with.
             true            [Boolean]
             false           [Boolean]
 
-This language is commonly called "System F". The only real notable
+The only real notable
 feature of our language is that all polymorphism is explicit. In order
 to have a full polymorphic type we have to use a "big lambda" /\. This
 acts just like a normal lambda except instead of abstracting over a
@@ -132,6 +134,42 @@ application.
 
     id[Bool] true
 
+The next thing we need to discuss how we actually determine the type
+of an expression. Now the way that we actually determine the type is
+by "natural deduction", to describe this process I'm using the
+standard
+
+       A B C D E
+     —————————————–
+      Δ; Γ ⊢ e : t
+
+Δ is a list of bound type variables, Γ is a list of pairs `e : t`,
+meaning "`e` has the type `t`", and ⊢ should be read as
+"implies". That means the whole judgment above should be read as
+
+> If `A` ... `E` are true, then in the context `Δ; Γ`, `e` has the
+> type `t`.
+
+With that in mind here are our typing rules.
+
+         v : t ∈ Γ
+      ———————————–————
+       Δ; Γ ⊢ v : t
+
+       Δ; v : t, Γ ⊢ e : t'
+     ———————————————————————–
+      Δ; Γ ⊢ λv. e : t → t'
+
+      Δ; Γ ⊢ f : a → b,  Δ; Γ ⊢ x : a
+    ———————————————————————–—————————–
+             Δ; Γ ⊢ f x : b
+
+## Actual Parametricity
+
+To begin with, we'll specify what exactly is the language we're
+working with.
+
+This language is commonly called "System F".
 Now that we have our language, let's talk about what we're interested
 in proving. Our basic goal is to show that two expressions `e1` and
 `e2` are equal, `e1 ≅ e2`. However, we don't want to use a `==` sort
