@@ -164,6 +164,15 @@ With that in mind here are our typing rules.
     ———————————————————————–—————————–
              Δ; Γ ⊢ f x : b
 
+       v, Δ; Γ ⊢ e : t
+    ——————————————————————–
+       Δ; Γ ⊢ e : Λv. t
+
+         Δ; Γ ⊢ e : Λv. t
+     ———————————————————————–
+       Δ; Γ ⊢ e[τ] : [τ/v]t
+
+
 ## Actual Parametricity
 
 To begin with, we'll specify what exactly is the language we're
