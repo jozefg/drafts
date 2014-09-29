@@ -104,11 +104,13 @@ talking about.
 To begin with, we'll specify what exactly is the language we're
 working with.
 
-    ty ::= ty -> ty
-           forall v. ty
-           Bool
+    ty ::= v                [Type Variables]
+           ty -> ty         [Function Types]
+           forall v. ty     [Universal Quantification]
+           Bool             [Booleans]
 
-    exp ::= exp exp         [Application]
+    exp ::= v               [Variables]
+            exp exp         [Application]
             \v : ty -> exp  [Abstraction]
             /\v -> exp      [Type Abstraction]
             exp[ty]         [Type Application]
@@ -161,10 +163,25 @@ Notice that R can be between two types or the same types.
 Now we define our logical equivalence in some context δ to be
 
 
- 1. e ~ₜ e' [δ] if e δ(t) e'
- 2. e ~₂ e' [δ] if e ⇓ v and e' ⇓ v
- 3. f ~ g [δ] if for all a ~ b [δ] then f a ~ g b [δ]
- 4. p ~ p' [δ]
-    if for all R between any p and p', e [p] ~ e'[p']. [δ + R]
+ 1. When `e, e' : τ`, `e ~ e' [δ]`
+    if `e δ(t) e'`
+ 2. When `e, e' : Bool`, `e ~₂ e' [δ]`
+    if `e ⇓ v` and `e' ⇓ v`
+ 3. When `f, g : a → b`, `f ~ g [δ]`
+    if for all `a b : a`, when `a ~ b [δ]`, `f a ~ g b [δ]`
+ 4. When `e e' : forall v. t`, `e ~ e' [δ]`
+    if for all R between any p and p', `e [p] ~ e'[p']δ + R]`
 
-The key for this rule.
+Now this rule has 4 cases, one for each type. That's the first
+critical bit of this relation, we're talking about things by the
+structure of the type, not the value itself.
+
+Now with this in mind we can state the full parametricity theorem.
+
+> For all expressions e and δ, `e ~ e [̣̣δ]`
+
+That's it! Now this is only really useful when we're talking about
+polymorphic type, then parametricity states that for any admissible
+relation `R`, two different instantiations are related.
+
+## Applying Parametricity
