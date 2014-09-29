@@ -150,7 +150,10 @@ meaning "`e` has the type `t`", and ⊢ should be read as
 > If `A` ... `E` are true, then in the context `Δ; Γ`, `e` has the
 > type `t`.
 
-With that in mind here are our typing rules.
+One final piece of notation, `[x/y]z` means "substitute `x` for every
+unbound occurrence of `y` in `z`". This one is more common in the
+Haskell community but still worth mentioning. With that in mind here
+are our typing rules.
 
          v : t ∈ Γ
       ———————————–————
@@ -172,6 +175,8 @@ With that in mind here are our typing rules.
      ———————————————————————–
        Δ; Γ ⊢ e[τ] : [τ/v]t
 
+
+Now that we have a
 
 ## Actual Parametricity
 
