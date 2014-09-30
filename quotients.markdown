@@ -12,7 +12,7 @@ google-fu than I would like to understand what's going on.
 In effort to help my future self, I'm going to jot down a few thoughts
 on quotient types, the subject of some recent google-fu.
 
-## 10,000 foot Overview
+## But Why!
 
 The problem quotient types are aimed at solving is actually a very
 common one. I'm sure at some point or another you've used a piece of
