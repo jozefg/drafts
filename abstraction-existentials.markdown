@@ -13,6 +13,8 @@ The basic idea is that when we have an type with an abstract
 implementation some functions upon it, it's really an existential
 type.
 
+## Some Haskell Code
+
 To exemplify this let's define an abstract type (in Haskell)
 
 ``` haskell
@@ -124,7 +126,7 @@ Existential types to the rescue!
     ops = Pack ...
 ```
 
-The key difference here is `Packed`. It let's us take a type function
+The key difference here is `Packed`. It lets us take a type function
 and instantiate it with some type variable and hide our choice from
 the user. This means that we can even drop the whole `newtype` from
 the implementation of `ops`
