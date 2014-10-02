@@ -2,15 +2,9 @@
 title: Notes on Quotients Types
 ---
 
-Lately I've been reading a lot of type theory literature. One of the
-things that struck me was that a lot of this stuff wasn't complicated,
-it was just hard to find that original, simple introduction. I suppose
-this makes sense, no researcher wants to summarize the last 50 years
-of research for a small result! It mean that I have to apply more
-google-fu than I would like to understand what's going on.
-
-In effort to help my future self, I'm going to jot down a few thoughts
-on quotient types, the subject of some recent google-fu.
+Lately I've been reading a lot of type theory literature. In effort
+to help my future self, I'm going to jot down a few thoughts on
+quotient types, the subject of some recent google-fu.
 
 ## But Why!
 
@@ -90,6 +84,49 @@ quotiented by the relation `(a, b) R (c, d)` iff `a * c = b * d`.
 
 ## More than Handwaving
 
-## Implementations (that I know of)
+Now that I've spent some time essentially waving my hand about
+quotient types what are they? Clearly we need a rule that goes
+something like
+
+     Γ ⊢ A type, E is an equivalence relation on A
+    ———————————————–———————————————————————————————
+            Γ ⊢ A // E type
+
+Along with the typing rule
+
+        Γ ⊢ a : A
+    ——————————————————
+      Γ ⊢ a : A // E
+
+So all members of the original type belong to the quotiented type, and
+finally
+
+      Γ ⊢ a : A, Γ ⊢ b : A, Γ ⊢ a E b
+    –——————————————–——————————————————
+             Γ ⊢ a ≡ b : A // E
+
+Notice something important here, that `≡` is the fancy shmancy
+definitional equality baked right into the language. This calls into
+question decidability. It seems that `a E b` could involve some
+non-trivial proof terms.
+
+More than that, in a constructive, proof relevant setting things can be
+a bit trickier than they seem. We can't just define a quotient to be
+the same type with a different equivalence relation, since that would
+imply some icky things.
+
+Consider some predicate `P` so that `a E b` means `P(a) ↔ P(b)`. Now
+while both `P(a)` and `P(b)` are either occupied or unoccupied, we
+certainly can't conclude they're equal.
+
+However, if we define the quotiented type as a simple redefinition of
+equivalence, then we have `a E b` means `a ≡ b` means `P(a) ≡ P(b)` by
+a simple application of `cong`. Oops.
+
+Clearly some subtler treatment of this is needed. To that end I found
+[this paper][that-paper] discussing some of the handling of NuRPL's
+quotients enlightening.
+
+## How NuPRL Does It
 
 ## Wrap up
