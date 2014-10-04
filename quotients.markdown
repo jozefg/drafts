@@ -1,5 +1,6 @@
 ---
 title: Notes on Quotients Types
+tags: types
 ---
 
 Lately I've been reading a lot of type theory literature. In effort
@@ -82,6 +83,16 @@ operation is sometimes called "quotienting a set".
 For our example above, we really mean that our rational is a type
 quotiented by the relation `(a, b) R (c, d)` iff `a * c = b * d`.
 
+Some other things that could potentially use quotienting
+
+ - Sets
+ - Maps
+ - Integers
+ - Lots of Abstract Types
+
+Basically anything where we want to hide some of the implementation
+details that are irrelevant for their behavior.
+
 ## More than Handwaving
 
 Now that I've spent some time essentially waving my hand about
@@ -115,9 +126,11 @@ a bit trickier than they seem. We can't just define a quotient to be
 the same type with a different equivalence relation, since that would
 imply some icky things.
 
-Consider some predicate `P` so that `a E b` means `P(a) ↔ P(b)`. Now
-while both `P(a)` and `P(b)` are either occupied or unoccupied, we
-certainly can't conclude they're equal.
+Consider some predicate `P` so that `a E b` means
+`P(a) → P(b) ∧ P(b) → P(a)`. Now while both `P(a)` and `P(b)`
+are either occupied or unoccupied, we certainly can't conclude they're
+equal. For example is `P` is a map to `̱Nat`, then naively assuming
+their equal could easily lead us to a situation when `1 ≡ 2`.
 
 However, if we define the quotiented type as a simple redefinition of
 equivalence, then we have `a E b` means `a ≡ b` means `P(a) ≡ P(b)` by
@@ -129,4 +142,83 @@ quotients enlightening.
 
 ## How NuPRL Does It
 
+The paper I linked to is a discussion on how to think about quotients
+in terms of other type theory constructs. In order to do this we need
+a few things first.
+
+The first thing to realize is that NuPRL's type theory is different
+than what you are probably used to. We don't have this single magical
+global equality. Instead, we define equality inductively across the
+type. This notion means that our equality judgment doesn't have to be
+natural in the type it works across. It can do specific things at
+corner cases. Perhaps the most frequent is that we can have functional
+extensionality.
+
+    f = g ↔ ∀ a. f a = g a
+
+Okay, so now that we've tossed aside the notion of a single global
+equality, what else is new? Well something new is the lens through
+which many people look at NuRPLs type theory: PER semantics. Remember
+that PER is a relationship satisfying
+
+  1. `a R b → then b R a`
+  2. `a R b ∧ b R c → a R c`
+
+In other words, a PER is an equivalence relationship that isn't
+necessarily reflexive at all points.
+
+The idea is to view types not as some opaque "thingy" but instead to
+be partial equivalence relations across the set of untyped lambda
+calculus terms. Inductively defined equality falls right out of this
+idea since we can just define `a ≡ b : A` to be equivalent to
+`(a, b) ∈ A`.
+
+Now another problem rears it head, what does `a : A` mean? Well even
+though we're dealing with PERs it's important to maintain reflexivity
+across each type, we still want `1 ≡ 1`! So we can therefore define
+`a : A` to be `(a, a) ∈ A`.
+
+Another important constraint, in order for a type family to be well
+formed, it needs to respect the equality of the type it maps
+across. In other words, for all `B : A → Type`, we have
+`(a, a') ∈ A' ⇒ B a ≡ B a'`. This should seem on par with how we
+defined function equality.
+
+Now with all of that out of the way, I'd like to present two typing
+rules
+
+      Γ ⊢ A ≡ A';  Γ, x : A, y : A ⊢ E[x; y] = E'[x; y]; E and E' are PERS
+      ————————————————————————————————————————————————————————————————————
+                          Γ ⊢ A ‌\\ E ≡ A' \\ E'
+
+In English, two quotients are equal when the types and there quotients
+are equal.
+
+     Γ, u : x ≡ y ∈ (A \\ E), v :  ∥ x E y ∥, Δ[u] ⊢ C [u]
+     ———————————————————————————————————————————————————–
+           Γ, u : x ≡ y ∈ (A \\ E), Δ[u] ⊢ C [u]
+
+There are a few new things here. The first is that we have a new
+`Δ [u]` thing. This is a result of dependent types, can have things in
+our context that depend on `u` and so to indicate that we "split" the
+context, with `Γ, u, Δ` and apply the depend part of the context `Δ`
+to the variable it depends on `u`.
+
+Now the next new thing is that `∥ A ∥` is an "extensional squash
+operator". The idea is that it should be occupied if and only if `A`
+has any inhabitants. The analogy I've sometimes seen is to double
+negation, ie `(A → ⊥) → ⊥`. However there's something special about
+our squash operator, we can "unsquash" it when trying to prove
+equalities.
+
+This is because in Martin Lof type theory (an consequently NuPRL)
+equality proofs only every yield trivial terms. We're not interested
+in how they're constructed just that they are constructed. This means
+that since we're going to throw away the proof term anyways we can
+unbox the other proof terms we've thrown away.
+
+
+
 ## Wrap up
+
+[that-paper]: http://www.nuprl.org/documents/Nogin/QuotientTypes_02.pdf
