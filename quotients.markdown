@@ -189,14 +189,14 @@ rules
 
       Γ ⊢ A ≡ A';  Γ, x : A, y : A ⊢ E[x; y] = E'[x; y]; E and E' are PERS
       ————————————————————————————————————————————————————————————————————
-                          Γ ⊢ A ‌\\ E ≡ A' \\ E'
+                          Γ ⊢ A ‌// E ≡ A' // E'
 
 In English, two quotients are equal when the types and there quotients
 are equal.
 
-     Γ, u : x ≡ y ∈ (A \\ E), v :  ∥ x E y ∥, Δ[u] ⊢ C [u]
+     Γ, u : x ≡ y ∈ (A // E), v :  ∥ x E y ∥, Δ[u] ⊢ C [u]
      ———————————————————————————————————————————————————–
-           Γ, u : x ≡ y ∈ (A \\ E), Δ[u] ⊢ C [u]
+           Γ, u : x ≡ y ∈ (A // E), Δ[u] ⊢ C [u]
 
 There are a few new things here. The first is that we have a new
 `Δ [u]` thing. This is a result of dependent types, can have things in
@@ -217,8 +217,69 @@ in how they're constructed just that they are constructed. This means
 that since we're going to throw away the proof term anyways we can
 unbox the other proof terms we've thrown away.
 
+Now the long and short of this is that when we're of this is that when
+we're trying to use an equivalence between two terms in a quotient, we
+only get the squashed term. This done mean that we only need to
+provide a squash to get equality in the first place though
 
+    Γ ⊢ ∥ x E y  ∥; Γ ⊢ x : A; Γ ⊢ y : A
+    ——————————————————————————————————–
+          Γ ⊢ x ≡ y : A // E
+
+Remember that we can trivially form an `∥ A ∥` from `A`'.
+
+Now there's just one thing left to talk about, using our quotiented
+types. To do this the paper outlines one primitive elimination rule
+and defines several others.
+
+    Γ, x : A, y : A, e : x E y, a : ND, Δ[ndₐ{x;y}] ⊢ |C[ndₐ{x;y}]|
+    ——————————————————————————————————————————————————————————————–
+                   Γ, x : A // E, Δ[x] ⊢ |C[u]|
+
+So this looks a bit weird, let's go over this one part at a time
+
+ - `ND`
+
+     `ND` is a admittedly odd type that's supposed to represent
+     nondeterministic choice. It has two terms, `tt` and `ff` and
+     they're considered "equal" under `ND`. However, `nd` returns its
+     first argument if it's fed `tt` and the second if it is fed
+     `ff`. Hence, nondeterminism.
+
+     Now in our rule we use this to indicate that if we're eliminating
+     some quotiented type we can get *any* value that's considered
+     equal under `E`.
+
+ - `|C[u]|`
+
+    This is the intensional version of the squash operator. It has two
+    basic rules,
+
+          Γ ⊢ A
+         ———————
+         Γ ⊢ [A]
+
+           Γ, x : |A|, Δ[̱•] ⊢ C[̱•]
+         ——————————————————————————
+           Γ, x : |A|, Δ[x] ⊢ C[x]
+
+    Where • is the trivial occupant.
+
+So this says that if we can prove that `C` is occupied for some `y`
+related to `x` by `E`, then it's occupied for `C`.
 
 ## Wrap up
+
+As with my last post, here's some questions for the curious reader to
+pursue
+
+ - What elimination rules can we derive from the above?
+ - If we're of proving equality can we get more expressive rules?
+ - What would an extensional quotient type look like?
+ - Why would we want intensional or extensional?
+ - How can we express quotient types with higher inductive types from
+   HoTT
+
+The last one in particularly interesting.
 
 [that-paper]: http://www.nuprl.org/documents/Nogin/QuotientTypes_02.pdf
