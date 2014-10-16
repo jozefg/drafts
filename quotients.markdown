@@ -29,11 +29,11 @@ number.
 
 Now our implementation has a sticky point, clearly this isn't the case
 on its own! What we really want to say is "`(2, 4) = (1, 2)` up to
-normalization".
+trivial rejiggering".
 
 Haskell's own `Rational` type solves this by not exposing a raw
-tuple. It still essentially exists under the hood, but we only expose
-smart constructors that will reduce our fractions as far as possible.
+tuple. It still exists under the hood, but we only expose smart
+constructors that will reduce our fractions as far as possible.
 
 This is displeasing from a dependently typed setting however, we want
 to be able to formally prove the equality of some things. This
@@ -117,7 +117,7 @@ finally
              Γ ⊢ a ≡ b : A // E
 
 Notice something important here, that `≡` is the fancy shmancy
-definitional equality baked right into the language. This calls into
+judgmental equality baked right into the language. This calls into
 question decidability. It seems that `a E b` could involve some
 non-trivial proof terms.
 
@@ -126,15 +126,11 @@ a bit trickier than they seem. We can't just define a quotient to be
 the same type with a different equivalence relation, since that would
 imply some icky things.
 
-Consider some predicate `P` so that `a E b` means
-`P(a) → P(b) ∧ P(b) → P(a)`. Now while both `P(a)` and `P(b)`
-are either occupied or unoccupied, we certainly can't conclude they're
-equal. For example is `P` is a map to `̱Nat`, then naively assuming
-their equal could easily lead us to a situation when `1 ≡ 2`.
-
-However, if we define the quotiented type as a simple redefinition of
-equivalence, then we have `a E b` means `a ≡ b` means `P(a) ≡ P(b)` by
-a simple application of `cong`. Oops.
+To illustrate this problem, imagine we have a predicate `P` on a type
+`A` where `a E b` implies `P a ⇔ P b`. If we just redefine the
+equivalence relation on quotes, `P` would not be a wellformed
+predicate on `A // E`, since `a ≡ b : A // E` doesn't mean that
+`P a ≡ P b`. This would be unfortunate.
 
 Clearly some subtler treatment of this is needed. To that end I found
 [this paper][that-paper] discussing some of the handling of NuRPL's
@@ -151,14 +147,14 @@ than what you are probably used to. We don't have this single magical
 global equality. Instead, we define equality inductively across the
 type. This notion means that our equality judgment doesn't have to be
 natural in the type it works across. It can do specific things at
-corner cases. Perhaps the most frequent is that we can have functional
+each case. Perhaps the most frequent is that we can have functional
 extensionality.
 
     f = g ↔ ∀ a. f a = g a
 
 Okay, so now that we've tossed aside the notion of a single global
 equality, what else is new? Well something new is the lens through
-which many people look at NuRPLs type theory: PER semantics. Remember
+which many people look at NuRPL's type theory: PER semantics. Remember
 that PER is a relationship satisfying
 
   1. `a R b → then b R a`
@@ -174,15 +170,39 @@ idea since we can just define `a ≡ b : A` to be equivalent to
 `(a, b) ∈ A`.
 
 Now another problem rears it head, what does `a : A` mean? Well even
-though we're dealing with PERs it's important to maintain reflexivity
-across each type, we still want `1 ≡ 1`! So we can therefore define
-`a : A` to be `(a, a) ∈ A`.
+though we're dealing with PERs, but it's quite reasonable to say
+something is a member of a type if it's reflexive. That is to say each
+relation is a full equivalence relation for the things we call members
+of that type. So we can therefore define `a : A` to be `(a, a) ∈ A`.
 
 Another important constraint, in order for a type family to be well
 formed, it needs to respect the equality of the type it maps
-across. In other words, for all `B : A → Type`, we have
-`(a, a') ∈ A' ⇒ B a ≡ B a'`. This should seem on par with how we
-defined function equality.
+across. In other words, for all `B : A → Type`, we have `(a, a') ∈ A'
+⇒ (B a = B a') ∈ U`. This should seem on par with how we defined
+function equality and we call this "type functionality".
+
+Let's all touch on another concept: squashed types. The idea is to
+take a type and throw away all information other than whether or not
+it's occupied. There are two basic types of squashing, extensional or
+intensional. In the intensional we consider two squashed things equal
+if and only if the types they're squashing are equal
+
+         A = B
+      ————————————
+       [A] = [B]
+
+Now we can also consider only the behavior of the squashed type, the
+extensional view. Since the only behavior of a squashed type is simply
+existing, our extensional squash type has the equivalence
+
+       ∥A∥ ⇔ ∥B∥
+       ————————–
+        ∥A∥ = ∥B∥
+
+Now aside from this, the introduction of these types are basically the
+same: if we can prove that a type is occupied, we can grab a squashed
+type. Similarly, when we eliminate a type all we get is the trivial
+occupant of the squashed type, called •.
 
 Now with all of that out of the way, I'd like to present two typing
 rules
@@ -191,8 +211,8 @@ rules
       ————————————————————————————————————————————————————————————————————
                           Γ ⊢ A ‌// E ≡ A' // E'
 
-In English, two quotients are equal when the types and there quotients
-are equal.
+In English, two quotients are equal when the types and their
+quotienting relations are equal.
 
      Γ, u : x ≡ y ∈ (A // E), v :  ∥ x E y ∥, Δ[u] ⊢ C [u]
      ———————————————————————————————————————————————————–
@@ -203,19 +223,6 @@ There are a few new things here. The first is that we have a new
 our context that depend on `u` and so to indicate that we "split" the
 context, with `Γ, u, Δ` and apply the depend part of the context `Δ`
 to the variable it depends on `u`.
-
-Now the next new thing is that `∥ A ∥` is an "extensional squash
-operator". The idea is that it should be occupied if and only if `A`
-has any inhabitants. The analogy I've sometimes seen is to double
-negation, ie `(A → ⊥) → ⊥`. However there's something special about
-our squash operator, we can "unsquash" it when trying to prove
-equalities.
-
-This is because in Martin Lof type theory (an consequently NuPRL)
-equality proofs only every yield trivial terms. We're not interested
-in how they're constructed just that they are constructed. This means
-that since we're going to throw away the proof term anyways we can
-unbox the other proof terms we've thrown away.
 
 Now the long and short of this is that when we're of this is that when
 we're trying to use an equivalence between two terms in a quotient, we
@@ -281,5 +288,7 @@ pursue
    HoTT
 
 The last one in particularly interesting.
+
+*Thanks to Jon Sterling for proof reading*
 
 [that-paper]: http://www.nuprl.org/documents/Nogin/QuotientTypes_02.pdf
