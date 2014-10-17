@@ -150,7 +150,7 @@ natural in the type it works across. It can do specific things at
 each case. Perhaps the most frequent is that we can have functional
 extensionality.
 
-    f = g ↔ ∀ a. f a = g a
+    f = g ⇔ ∀ a. f a = g a
 
 Okay, so now that we've tossed aside the notion of a single global
 equality, what else is new? Well something new is the lens through
@@ -204,8 +204,21 @@ same: if we can prove that a type is occupied, we can grab a squashed
 type. Similarly, when we eliminate a type all we get is the trivial
 occupant of the squashed type, called •.
 
+        Γ ⊢ A
+       ———————
+       Γ ⊢ [A]
+
+        Γ, x : |A|, Δ[̱•] ⊢ C[̱•]
+      ——————————————————————————
+        Γ, x : |A|, Δ[x] ⊢ C[x]
+
+
+What's interesting is that when proving an equality judgment, we can
+unsquash obth of these types. This is only because NuRPL's equality
+proofs computationally trivial.
+
 Now with all of that out of the way, I'd like to present two typing
-rules
+rules. First
 
       Γ ⊢ A ≡ A';  Γ, x : A, y : A ⊢ E[x; y] = E'[x; y]; E and E' are PERS
       ————————————————————————————————————————————————————————————————————
@@ -214,7 +227,7 @@ rules
 In English, two quotients are equal when the types and their
 quotienting relations are equal.
 
-     Γ, u : x ≡ y ∈ (A // E), v :  ∥ x E y ∥, Δ[u] ⊢ C [u]
+     Γ, u : x ≡ y ∈ (A // E), v :  ∥x E y∥, Δ[u] ⊢ C [u]
      ———————————————————————————————————————————————————–
            Γ, u : x ≡ y ∈ (A // E), Δ[u] ⊢ C [u]
 
@@ -241,39 +254,23 @@ and defines several others.
 
     Γ, x : A, y : A, e : x E y, a : ND, Δ[ndₐ{x;y}] ⊢ |C[ndₐ{x;y}]|
     ——————————————————————————————————————————————————————————————–
-                   Γ, x : A // E, Δ[x] ⊢ |C[u]|
+                   Γ, x : A // E, Δ[x] ⊢ |C[x]|
 
-So this looks a bit weird, let's go over this one part at a time
+`ND` is a admittedly odd type that's supposed to represent
+nondeterministic choice. It has two terms, `tt` and `ff` and
+they're considered "equal" under `ND`. However, `nd` returns its
+first argument if it's fed `tt` and the second if it is fed
+`ff`. Hence, nondeterminism.
 
- - `ND`
+Now in our rule we use this to indicate that if we're eliminating
+some quotiented type we can get *any* value that's considered
+equal under `E`. We can only be assured that when we eliminate a
+quotiented type, it will be related by the equivalence relation to
+`x`. This rule captures this notion by allowing us to randomly choose
+some `y : A` so that `x E y`.
 
-     `ND` is a admittedly odd type that's supposed to represent
-     nondeterministic choice. It has two terms, `tt` and `ff` and
-     they're considered "equal" under `ND`. However, `nd` returns its
-     first argument if it's fed `tt` and the second if it is fed
-     `ff`. Hence, nondeterminism.
-
-     Now in our rule we use this to indicate that if we're eliminating
-     some quotiented type we can get *any* value that's considered
-     equal under `E`.
-
- - `|C[u]|`
-
-    This is the intensional version of the squash operator. It has two
-    basic rules,
-
-          Γ ⊢ A
-         ———————
-         Γ ⊢ [A]
-
-           Γ, x : |A|, Δ[̱•] ⊢ C[̱•]
-         ——————————————————————————
-           Γ, x : |A|, Δ[x] ⊢ C[x]
-
-    Where • is the trivial occupant.
-
-So this says that if we can prove that `C` is occupied for some `y`
-related to `x` by `E`, then it's occupied for `C`.
+Overall, this rule simply states that if `C` is occupied for any term
+related to `x`, then it is occupied for `C[x]`.
 
 ## Wrap up
 
