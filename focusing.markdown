@@ -80,3 +80,5 @@ negative. For example we can consider `∧` as positive with
        Γ, A⁺, B⁺ → C
      —————————————————
        Γ, A⁺ ∧ B⁺ → C
+
+In this case since we can't safely
