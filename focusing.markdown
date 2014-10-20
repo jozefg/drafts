@@ -81,4 +81,37 @@ negative. For example we can consider `∧` as positive with
      —————————————————
        Γ, A⁺ ∧ B⁺ → C
 
-In this case since we can't safely
+In this case, the key determiner for the polarity of ∧ comes from its
+subcomponents. We can just treat ∧ as positive along with its
+subcomponents and with an appropriate dual ∧⁻, our proof system will
+still be complete.
+
+As a quick example, implication `⊂` is negative. the right rule
+
+     Γ, A → B
+    ——————————
+    Γ → A ⊃ B
+
+While its left rule isn't
+
+     Γ, A ⊃ B → A  Γ, B, A ⊃ B → C
+     ——————————————————————————————
+             Γ, A ⊃ B → C
+
+Since we could easily have something like `⊥ ⊃ ⊤` but using this rule
+would entail (heh) proving `⊥`! Urk. If our system applied this rules
+remorselessly, we'd quickly end up in a divergent proof search.x
+
+## An Actual Focused System
+
+Now that we've actually seen some examples of invertible rules and
+polarized connectives, let's see how this all fits into a coherent
+system.
+
+Our system is broken up into 3 judgments. The first is `Γ; Ω ⊢ A` in
+which we repeatedly apply invertible rules.
+
+    Γ, A⁻; Q
+## Proving This
+
+## Wrap Up
