@@ -108,10 +108,15 @@ Now that we've actually seen some examples of invertible rules and
 polarized connectives, let's see how this all fits into a coherent
 system.
 
-Our system is broken up into 3 judgments. The first is `Γ; Ω ⊢ A` in
-which we repeatedly apply invertible rules.
+Our system is broken up into 3 judgments. The first is `Γ; Ω ⊢ A`. `Ω`
+is an ordered list of things which we might invert upon. In this
+judgment we basically apply as many invertible rules as many places as
+we can.
 
-    Γ, A⁻; Q
+     Γ, A⁻; Q ⊢ U
+    ——————————————
+    Γ; ↓A⁻, Q ⊢ U
+
 ## Proving This
 
 ## Wrap Up
