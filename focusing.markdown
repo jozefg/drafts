@@ -4,8 +4,10 @@ tags: types
 ---
 
 I've been spending a lot of time whacking my head on focusing
-literature. I'm stuck on this train for a couple hours so have an
-accumulation of my thoughts.
+literature. I'd like to jot down some intuition around what a focused
+system is and how it relates to the rest of the world. I'm going to
+steer clear of actually proving things but I will point out where a
+proof would be needed.
 
 ### What Is Focusing
 
@@ -28,8 +30,8 @@ nonfocused proof into a focused one (focalization) and the reverse
 (de-focalization).
 
 In order to actually carry out these proofs there's a fair amount of
-work and pain. Usually we'll need something like cut elimination and
-identity expansion.
+work and pain. Usually we'll need something like cut elimination
+and/or identity expansion.
 
 ### Groundwork
 
@@ -106,17 +108,27 @@ remorselessly, we'd quickly end up in a divergent proof search.x
 
 Now that we've actually seen some examples of invertible rules and
 polarized connectives, let's see how this all fits into a coherent
-system.
+system. There is one critical change we must make to the sttructure of
+our judgements: an addition to the form `_ → _`. Instead of just an
+unordered multiset on the left, in order to properly do inversion we
+change this to `Γ; Ω → A` where Ω is an ordered list of propositions
+we intend to focus on. More on this momentarily.
 
-Our system is broken up into 3 judgments. The first is `Γ; Ω ⊢ A`. `Ω`
-is an ordered list of things which we might invert upon. In this
-judgment we basically apply as many invertible rules as many places as
-we can.
+Our system is broken up into 3 essentially separate judgments. The
+first is `Γ; Ω ⊢ A`. `Ω` is an ordered list of things which we might
+invert upon. In this judgment we basically apply as many invertible
+rules as many places as we can.
 
      Γ, A⁻; Q ⊢ U
     ——————————————
     Γ; ↓A⁻, Q ⊢ U
 
-## Proving This
-
 ## Wrap Up
+
+That's all I feel comfortable writing about focusing at the
+moment. I'm not entirely happy with my grasp of how the proof are
+implemented so I'll instead just refer you to Rob Simmon's
+[paper][focus] which does I much better job than I ever could.
+
+
+[paper]:
