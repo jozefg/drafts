@@ -242,5 +242,16 @@ from our rules.
 
 ### Wrap Up
 
+I'm going to wrap up the post here. Proving focalization or even
+something like cut elimination is quite fiddly and I have no desire
+at all to try to transcribe it (painfully) into markdown and get it
+wrong in the process.
+
+Instead, now that you have some idea of what focusing is about, go
+read Rob Simmons' [paper][paper]. It provides a clear account of
+proving everything necessary prove a focused system is complete and
+sound with respect to its unfocused counterpart.
+
+Cheers
 
 [paper]: http://www.cs.cmu.edu/~rjsimmon/drafts/focus.pdf
