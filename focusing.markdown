@@ -243,4 +243,4 @@ from our rules.
 ### Wrap Up
 
 
-[paper]:
+[paper]: http://www.cs.cmu.edu/~rjsimmon/drafts/focus.pdf
