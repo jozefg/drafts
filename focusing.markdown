@@ -104,7 +104,7 @@ Since we could easily have something like `⊥ ⊃ ⊤` but using this rule
 would entail (heh) proving `⊥`! Urk. If our system applied this rules
 remorselessly, we'd quickly end up in a divergent proof search.x
 
-## An Actual Focused System
+### An Actual Focused System
 
 Now that we've actually seen some examples of invertible rules and
 polarized connectives, let's see how this all fits into a coherent
@@ -232,14 +232,15 @@ the left of the turnstile and on negative connectives.
     —————————————————
      Γ; [A⁻ ∧ B⁻] ⊢ U
 
-That wraps up our focused system.
+That wraps up our focused system. The idea is now we have this much
+more limited system which can express the same things our original,
+unfocused system could. A computer can be easily programmed to do a
+focused search since there's much less backtracking everywhere leading
+to fewer rules being applicable at each step. I think Pfenning has
+referred to this as removing most of the "don't-care" nondeterminism
+from our rules.
 
-## Wrap Up
-
-That's all I feel comfortable writing about focusing at the
-moment. I'm not entirely happy with my grasp of how the proof are
-implemented so I'll instead just refer you to Rob Simmon's
-[paper][focus] which does I much better job than I ever could.
+### Wrap Up
 
 
 [paper]:
