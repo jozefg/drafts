@@ -109,19 +109,130 @@ remorselessly, we'd quickly end up in a divergent proof search.x
 Now that we've actually seen some examples of invertible rules and
 polarized connectives, let's see how this all fits into a coherent
 system. There is one critical change we must make to the sttructure of
-our judgements: an addition to the form `_ → _`. Instead of just an
+our judgments: an addition to the form `_ → _`. Instead of just an
 unordered multiset on the left, in order to properly do inversion we
 change this to `Γ; Ω → A` where Ω is an ordered list of propositions
 we intend to focus on. More on this momentarily.
 
-Our system is broken up into 3 essentially separate judgments. The
-first is `Γ; Ω ⊢ A`. `Ω` is an ordered list of things which we might
-invert upon. In this judgment we basically apply as many invertible
-rules as many places as we can.
+Furthermore, since we're dealing with a polarized calculus, we
+occasionally want to view positive things as negative and vice
+versa. For this we have shifts, ↓ and ↑. When we're focusing on some
+proposition and we reach a shift, we pop out of the focused portion of
+our judgment.
+
+Our system is broken up into 3 essentially separate judgments. In this
+judgment we basically apply as many invertible rules as many places as
+we can.
 
      Γ, A⁻; Q ⊢ U
     ——————————————
     Γ; ↓A⁻, Q ⊢ U
+
+    Γ; A⁺, Ω ⊢ U  Γ; B+; Ω ⊢ U
+    ———————————————————————————
+        Γ; A⁺ ∨ B⁺, Ω ⊢ U
+
+      Γ; A⁺, B⁺, Ω ⊢ U
+    ————————————————————
+      Γ; A⁺ ∧ B⁺, Ω ⊢ U
+
+    ——————————————
+     Γ; ⊥, Ω ⊢ U
+
+
+
+We first look at how to break down Ω into simpler forms. The idea is
+that we're going to keep doing there's nothing left in Ω. Ω can only
+contain positive propositions so eventually we'll decompose everything
+to shifts (which we move into Γ) ⊤+ (which we just drop on the floor)
+or ⊥ (which means we're done). These are all invertible rules to we
+can safely apply them eagerly and we won't change the provability of
+our goal.
+
+Once we've moved everything out of Ω we can make a choice. If `U` is
+"stable" meaning that we can't break it down further easily, we can
+pick a something negative out of our context and focus on it
+
+       Γ; [A⁻] ⊢ U
+      ————————————–
+      Γ, A⁻; • ⊢ U
+
+This pops us into the next judgment in our calculus. However, if U is
+not stable, then we have to decompose it further as well.
+
+      Γ; • ⊢ A⁺
+    ——————————————
+      Γ; • ⊢ ↑ A⁺
+
+    ———————————
+     Γ; • ⊢ ⊤⁻
+
+      Γ; A⁺ ⊢ B⁻
+    —————————————
+    Γ; • ⊢ A⁺ ⊃ B⁻
+
+    Γ; • ⊢ A⁻   Γ; • ⊢ B⁻
+    —————————————————————
+       Γ; • ⊢ A⁻ ∧ B⁻
+
+If we have a negative connective at the top level we can decompose
+that further, leaving us with a strictly smaller goal. Finally, we may
+reach a positive proposition with nothing in Ω. In this case we focus
+on the right.
+
+      Γ ⊢ [A⁺]
+    ———————————
+     Γ; • ⊢ A⁺
+
+Now we're in a position to discuss these two focused judgments. If we
+focus on the right we decompose positive connectives
+
+    ——————————
+     Γ ⊢ [⊤⁺]
+
+    Γ; • ⊢ A⁻
+    —————————
+    Γ ⊢ ↓ A⁻
+
+       Γ ⊢ [A⁺]
+    —————————————
+     Γ ⊢ [A⁺ ∨ B⁺]
+
+       Γ ⊢ [B⁺]
+    —————————————
+     Γ ⊢ [A⁺ ∨ B⁺]
+
+    Γ ⊢ [A⁺]   Γ ⊢ [B⁺]
+    ———————————————————
+       Γ ⊢ [A⁺ ∧ B⁺]
+
+These judgments follow the ones we've already seen. If we encounter a
+shift, we stop focusing. Otherwise we decompose the topmost positive
+connective. Now looking at these, you should see that sometimes these
+rules we'll lead us to a "mistake". Imagine if we applied the 4th rule
+to `⊤ ∨ ⊥`! This is why these rules are segregated into a separate
+judgment.
+
+In this judgment's dual we essentially apply the exact same rules to
+the left of the turnstile and on negative connectives.
+
+      Γ; A⁺ ⊢ U
+    ————————————
+    Γ; [↑A⁺] ⊢ U
+
+    Γ ⊢ [A⁺]   Γ; [B⁻] ⊢ U
+    ——————————————————————
+      Γ; [A⁺ ⊃ B⁻] ⊢ U
+
+       Γ; [A⁻] ⊢ U
+    —————————————————
+     Γ; [A⁻ ∧ B⁻] ⊢ U
+
+       Γ; [B⁻] ⊢ U
+    —————————————————
+     Γ; [A⁻ ∧ B⁻] ⊢ U
+
+That wraps up our focused system.
 
 ## Wrap Up
 
