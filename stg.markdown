@@ -1,5 +1,5 @@
 ---
-title: The Guts of a Spineless G Machine
+title: The Guts of a Spineless [Tagless] G-Machine
 tags: haskell
 ---
 
@@ -201,7 +201,173 @@ The story is similar for literals
     ReturnInt i as ((...; i -> expr; ...) : rs) us h o
     EVAL (expr, p) as rs us h o
 
-Another phase is how we handle let's and letrec's.
+Another phase is how we handle let's and letrec's. In this phase
+instead of dealing with continuations, we allocate more thunks onto
+the heap.
 
-This is the core idea of the spineless tagless G machine, pattern
-matching is done through continuations
+    EVAL ((let x = {fs} f {xs} -> e; ... in expr), p) as rs us h o
+    EVAL e p' as us h' o
+
+So as we'd expect, evaluating a let expression does indeed go and
+evaluate the body of the let expression, but changes up the
+environment in which we evaluate them. We have
+
+    p' = p[x -> Addr a, ...]
+    h' = h[a -> ({fs} f {xs} -> e) p fs, ...]
+
+In words "the new environment contains a binding for `x` to some
+address `a`. The heap is extended with an address `a` with a closure
+`{fs} f {xs} -> ...` where the free variables come from `p`". The
+definition for letrec is identical except the free variables come from
+`p'` allowing for recursion.
+
+So the STG machine allocates things in lets, adds continuations with
+case, and jumps to continuation on values.
+
+Now we also have to figure out applications.
+
+    EVAL (f xs, p) as rs us h o
+    ENTER a (values of xs ++ as) rs us h o
+
+where the value of `f` is `Addr a`. So we push all the arguments
+(remember they're atoms and therefore trivial to evaluate) on to the
+argument stack and enter the closure of the function.
+
+How do we actually enter a closure? Well we know that our closures are
+of the form
+
+    ({fs} f {vs} -> expr) frees
+
+If we have enough arguments to run the closure (length vs > length of
+argument stack), then we can just `EVAL expr
+[vs -> take (length vs) as, fs -> frees]`. This might not be the case
+in something like Haskell though, we have partial application. So what
+do we do in this case?
+
+What we want is to somehow get something that's our closure but also
+knows about however many arguments we actually supplied it. Something
+like
+
+    ({fs ++ supplied} f {notSupplied} -> expr) frees ++ as
+
+where `supplied ++ notSupplied = vs`. This updating of a closure is
+half of what our update stack `us` is for. The other case is when we
+*do* actually enter the closure, but `f = u` so we're going to want to
+update it. If this is the case we add an update from to the stack
+`(as, rs, a)` where `as` is the argument stack, `rs` is the return
+stack, and `a` is the closure which should be updated. Once we've
+pushed this frame, we promptly empty the argument stack and return
+stack.
+
+We then add the following rules to the definition of `ReturnCon`
+
+    ReturnCon c ws {} {} (as, rs, a) : us h o
+    ReturnCon c ws as rs us h' o
+
+where `h'` is the new heap that's replaced our old closure at `a` with
+our new, spiffy, updated closure
+
+    h' = h[a -> ({vs} n {} -> c vs) ws]
+
+So that's what happens when we go to update an updateable closure. But
+what about partial application?
+
+    Enter a as {} (asU, rs, aU) : us h o
+    Enter a (as ++ asU) rs us h' o
+
+where
+
+    h a = ({vs} n {xs} -> expr) frees
+    h' = h [aU -> ((vs ++ bound) n xs -> e) (frees ++ as)]
+
+This is a simplified rule from what's actually used, but gives some
+intuition to what's happening: we're minting a new closure in which we
+use the arguments we've just bound and that's what the result of our
+update is.
+
+### Compiling This
+
+Now that we have some idea of how this is going to work, what does
+this actually become on the machine?
+
+The original paper by SPJ suggests an "interpreter" approach to
+compilation. In other words, we actually almost directly map the
+semantics to C and call it compiled. There's a catch though, we'd like
+to represent the body of closures as C functions since they're
+well.. functions. However, since all we do is enter closures and jump
+around to things till the cows come home, it had damn well better be
+fast. C function calls aren't built to be that fast. Instead the paper
+advocates a tiny trampolining-esque approach.
+
+When something wants to enter a closure, it merely returns it and our
+main loop becomes
+
+     while(1){cont = (*cont)();}
+
+Which won't stackoverflow. In reality, more underhanded tricks are
+applied to make the performance suck less, but for we'll ignore such
+things.
+
+In our compiled results there will be 2 stacks, not the 3 found in our
+abstract machine. In the first stack (A-stack) there are pointer
+things and the B-stack has non-pointers. This are monitored by two
+variables/registers `SpA` and `SpB`which keep track of the heights of
+the two stacks. Then compilation becomes reasonably straightforward.
+
+An application pushes the arguments onto the appropriate stacks,
+adjusts Sp*, and enters the function A let block allocates each of the
+bound variables, then the body. Entering a closure simply jumps to the
+closures code pointer. This is actually quite nifty. We delegate all
+the work of figuring out exactly what `Enter` will do (updates,
+continuation jiggering) is left to the closure itself.
+
+
+A case expression is a bit more complicated since a continuation's
+representation involves boxing up the local environment for each
+branch. Once that's bundled away, we represent a continuation as a
+simple code pointer. It is in charge of scrutinizing the argument
+stack and selecting an alternative and then running the appropriate
+code. This is a lot of work, and unless I'm crazy will need to types
+of bound variables for each branch (really just ptr/non-ptr). The
+selection of an alternative would be represented as a C switch,
+letting all sorts of trickery with jump tables be done by the C
+compiler.
+
+In order to return a value, we do something clever. We take a
+constructor and point a global variable at its constructor closure,
+containing its values and jump to the continuation. The continuation
+can then peek and poke at this global variable to bind things as
+needed for the alternatives. There is potentially a massive speedup by
+returning through registers, but this is dangerously close to work.
+
+From here, primitive operations can be compiled to
+statements/instructions in whatever environment we're targeting. In C
+for example we'd just use the normal `+` to add our unboxed integers.
+
+The last beast to slay is updates. We represent update frames by
+pointers to argument stacks and a pointer to a closure. That means
+that the act of updating is merely saving `Sp*` in an update from,
+clobbering them, and then jumping into the appropriate closure. We
+push the update from onto stack B and keep on going.
+
+I realize that this is a glancing overview and I'm eliding a lot of
+the tricky details, but hopefully this is sufficient to understand a
+bit about what going on at an intuitive level.
+
+### Wrap Up
+
+So now that you've put all the effort to get through this post, I get
+to tell you it's all lies! In reality GHC has applied all manner of
+tricks and hacks to get fast performance out of an STG model. To be
+honest I'm not sure where I should point to that explains these tricks
+because well... I have no idea what they are.
+
+I can point to
+
+ - [SPJ's original paper][paper]
+ - [The Relevant GHC Wiki Page][wiki]
+
+If you have any suggestions for other links I'd love to add them!
+
+[wiki]: https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/GeneratedCode
+[paper]: http://research.microsoft.com/~simonpj/papers/spineless-tagless-gmachine.ps.gz
