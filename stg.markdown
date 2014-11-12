@@ -33,8 +33,8 @@ In GHC case I understand the pipeline is something like
  7. STG language to C--
  8. C-- to assembly
 
-We're really concerned with with parts 6 and 7 here. First things
-first, let's lay out what's exactly in the STG language. It's a tiny
+We're really concerned with parts 6 and 7 here. First things first,
+let's lay out what's exactly in the STG language. It's a tiny
 functional language that looks a bit like Haskell or Core, with a few
 restrictions. A program is simply a series of bindings, much like
 Haskell. The top levels look something like
@@ -44,7 +44,7 @@ Haskell. The top levels look something like
 You should read this for now as `f = \a b c -> ...`. The first set of
 variables and the flag correspond to some stuff we'll discuss later.
 
-Inside the `...` we can write most o what you would expect form
+Inside the `...` we can write most of what you would expect form
 Haskell. We have let[rec] bindings, case expressions, application,
 constructors, literals, and primitives. There is a caveat though,
 first off all constructor applications must be fully saturated. This
@@ -68,20 +68,19 @@ We'd have to write
      in map f l
 
 The reason for the awkward `l''` series is that we're only allowed to
-apply constructors and functions to atoms (literals and
-variables).
+apply constructors and functions to atoms (literals and variables).
 
 One other noteworthy feature of STG is that we have primitive
 operations. They need to be fully saturated, just like constructors,
-but they work across unboxed things. For example there'd probably be
-something like `+#` which adds to unboxed integers. To work with these
-we also have unboxed literals, `1#`, `2#`, so on and so on.
+but they work across unboxed things. For example there would probably
+be something like `+#` which adds to unboxed integers. To work with
+these we also have unboxed literals, `1#`, `2#`, so on and so on.
 
 No despite all these limitations placed on STG, it's still a pretty
 stinking highlevel language. There's letrec, higher order functions, a
 lot of the normal stuff we'd expect in a functional language. This
 means it's not actually to hard to compile something like Haskell or
-Core to STG (hard is relative).
+Core to STG (I didn't say "compile well").
 
 As an example, let's look at translating factorial into STG
 language. We start with
@@ -140,7 +139,7 @@ updated" and the n flag says the opposite.
 That about wraps up our discussion of the STG language, let's talk
 about how to implement it now.
 
-### Implementation
+### Semantics
 
 This language wouldn't be much good if it didn't lend itself to an
 easy implementation, indeed we find that the restrictions we placed
