@@ -82,7 +82,74 @@ discard the weakening above as well as another called contraction
      Γ, A ⊢ P
 
 This rule allows us to duplicate proofs. Again, for most uses this
-seems completely trivial. By discarding
+seems completely trivial. By discarding these structural rules, we've
+suddenly made the number of occurrences of a hypothesis in a context
+is a paramount importance!
+
+In order to gain some intuition for this, let's go through how a few
+connectives might be defined in this logic.
+
+First, is linear implication, ⊸. Some people pronounce this lollipop.
+
+     Γ₁ ⊢ A ⊸ B    Γ₂ ⊢ A
+     —————————————————————
+           Γ₁, Γ₂ ⊢ B
+
+The first thing we notice is that we're now splitting the context. We
+no longer just use the same Γ everywhere since we don't allow any
+propositions to be duplicated.
+
+To ensure that hypothesis are unused, the "leaves" of our derivations
+can only happen in empty environments.
+
+      —————————
+      X, • ⊢ X
+
+      ——————
+      • ⊢ ⊤
+
+Now this has the interesting effect. Now there's an interesting
+dilemma, whether conjuction and disjunction should be *additive* or
+*multiplicative*. If we split the context when we for `A ∧ B` then we
+have `Γ ⊢ A ∧ B` we know we can use both `A` and `B`. If we don't
+split the context then `Γ ⊢ A ∧ B` can only give us `A` or `B`. We
+call the former multiplicative and notate it with `⊗` and the latter
+additive and notate it with `&`.
+
+The rules for `⊗` are
+
+    Γ₁ ⊢ A   Γ₂ ⊢ B
+    ———————————————
+     Γ₁, Γ₂ ⊢ A ⊗ B
+
+     Γ₁ ⊢ A ⊗ B   Γ₂, A, B ⊢ C
+     —————————————————————————
+           Γ₁, Γ₂ ⊢ C
+
+
+So while we had to split the context to introduce an ⊗, we got both
+`A` and `B` out of the elimination rules. Conversely with &
+
+     Γ ⊢ A   Γ ⊢ B
+     —————————————
+      Γ ⊢ A & B
+
+     Γ₁ ⊢ A & B   Γ₂, A ⊢ C
+     ——————————————————————
+           Γ₁, Γ₂ ⊢ C
+
+     Γ₁ ⊢ A & B   Γ₂, B ⊢ C
+     ——————————————————————
+           Γ₁, Γ₂ ⊢ C
+
+
+Now the introduction rule is a bit laxer, we can use the full context
+for both branches. We do pay the piper with weaker elimination rules
+though.
+
+Now our previous dilemna of the dollar is solved! Without weakening we
+can't reuse the proof (`D`) of the existence of a dollar so we can't
+spend the same money twice.
 
 ### Mixing Linear and Non-linear Hypothesis
 
