@@ -3,10 +3,10 @@ title: Bidirectional Type Checkers for λ→ and λΠ
 tags: haskell, types
 ---
 
-Just yesterday I learned that my clever trick for writing a type
-checker actually has a proper name: bidirectional type checking. In
-this post I'll explain what exactly that is and we'll use it to write
-a few fun type checkers.
+This week I learned that my clever trick for writing a type checker
+actually has a proper name: bidirectional type checking. In this post
+I'll explain what exactly that is and we'll use it to write a few fun
+type checkers.
 
 First of all, let's talk about one of the fundamental conflicts when
 designing a statically typed language: how much information need we
@@ -37,6 +37,11 @@ explicitly separating the type checker into two functions
     inferType :: Expr -> Maybe Type
     checkType :: Type -> Expr -> Maybe ()
 ```
+
+Our type checker thus has two directions, one where we use the type to
+validate the expression (the type flows in) or we
+synthesize the type form the expression (the type flows out). That's
+all that this is!
 
 It turns out that a technique like this is surprisingly robust. It
 handles everything from subtyping to simple dependent types! To see
@@ -133,6 +138,7 @@ resulting in
                | Annot CExpr CExpr
                | ETrue
                | EFalse
+               | Bool
                | Star -- New stuff starts here
                | Pi CExpr CExpr
                | Const String
@@ -368,7 +374,7 @@ just be represented as `VConst (CFree ...)`.
 
 `Pi` checks that we're quantifying over a type first off. From there
 it generates a fresh free variable and updates the environment before
-recursing. We use `csubst` to replace all occurrences of the now
+recursing. We use `cbind` to replace all occurrences of the now
 unbound variable for an explicit `Free`.
 
 `checkType` is pretty trivial after this. `Lam` is almost identical to
