@@ -1,5 +1,5 @@
 ---
-title: Let's Build a Dependently Typed Language
+title: Bidirectional Type Checkers for λ→ and λΠ
 tags: haskell, types
 ---
 
@@ -376,7 +376,7 @@ unbound variable for an explicit `Free`.
 
 ``` haskell
     checkType :: Env -> CExpr -> Val -> GenT Int Maybe ()
-    checkType env (CI e) v = inferType env e >>= guard . (eqTerm v)
+    checkType env (CI e) v = inferType env e >>= guard . eqTerm v
     checkType env (Lam ce) (VPi argTy body) = do
       i <- gen
       let ce' = cbind 0 (Free i) ce
@@ -388,3 +388,13 @@ unbound variable for an explicit `Free`.
 And that's it!
 
 ## Wrap Up
+
+So let's circle back to where we started: bidirectional type checking!
+Hopefully we've seen how structuring a type checker around these two
+core functions yields something quite pleasant.
+
+What makes this really interesting though is how well it scales. You
+can use this style type checker to handle subtyping, [dependent]
+pattern matching, heaps and tons of interesting features.
+
+At 400 lines though, I think I'll stop here :)
