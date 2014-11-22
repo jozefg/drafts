@@ -136,6 +136,7 @@ resulting in
                | Star -- New stuff starts here
                | Pi CExpr CExpr
                | Const String
+               | Free Int
                deriving (Eq, Show, Ord)
 
     data CExpr = Lam CExpr
@@ -143,7 +144,7 @@ resulting in
                deriving (Eq, Show, Ord)
 ```
 
-So you can see we've added 3 new expressions, all inferrable. `Star`
+So you can see we've added 4 new expressions, all inferrable. `Star`
 is just the kind of types as it is in Haskell. `Pi` is the dependent
 function type, it's like `Arr`, except the return type can *depend* on
 the supplied value.
@@ -157,11 +158,11 @@ For example, you can imagine a type like
 Which says something like "give me an integer `n` and a value and I'll
 give you back a list of length `n`".
 
-Finally, we introduce constants. These are necessary simply because
-without them this language is unbelievable boring. Constants would be
-defined in the environment and they represent constant, irreducible
-terms. You should think of them almost like constructors in
-Haskell. For example, one can imagine that 3 constants
+Interestingly, we've introduce constants. These are necessary simply
+because without them this language is unbelievable boring. Constants
+would be defined in the environment and they represent constant,
+irreducible terms. You should think of them almost like constructors
+in Haskell. For example, one can imagine that 3 constants
 
 ``` haskell
     Nat :: Star
@@ -170,6 +171,8 @@ Haskell. For example, one can imagine that 3 constants
 ```
 
 Which serve to define the natural numbers.
+
+Last but not least, we've added "free variables" as an explicit
 
 Now an important piece of a type checker is comparing types for
 equality, in STLC, equivalent types are syntactically equal so that
@@ -190,8 +193,10 @@ the window.
 ``` haskell
     data VConst = CAp VConst Val
                 | CVar String
+                | CFree Int
 
     data Val = VStar
+             | VBool
              | VTrue
              | VFalse
              | VConst VConst
@@ -224,6 +229,7 @@ checker comes to
     eqTerm :: Val -> Val -> Bool
     eqTerm l r = runGen $ go l r
       where go VStar VStar = return True
+            go VBool VBool = return True
             go VTrue VTrue = return True
             go VFalse VFalse = return True
             go (VArr f a) (VArr f' a') = (&&) <$> go f f' <*> go a a'
@@ -246,31 +252,25 @@ map terms into those values. This involves basically writing a little
 interpreter.
 
 ``` haskell
-    data Env = Env { localVar :: [Val]
-                   , constant :: M.Map String Val }
-    getVal :: Either String Int -> Env -> Maybe Val
-    getVal (Left s) (Env _ constant) = M.lookup s constant
-    getVal (Right i) (Env localVar _) =
-      if i < length localVar then Just (localVar !! i) else Nothing
-
-    inf :: Env -> IExpr -> Val
+    inf :: [Val] -> IExpr -> Val
     inf _ ETrue = VTrue
     inf _ EFalse = VFalse
+    inf _ Bool = VBool
     inf _ Star = VStar
+    inf _ (Free i) = VConst (CFree i)
+    inf _ (Const s) = VConst (CVar s)
     inf env (Annot e _) = cnf env e
-    inf env (Var i) = fromJust (getVal (Right i) env)
-    inf env (Const s) = fromJust (getVal (Left s) env)
-    inf env (Pi l r) = VPi (cnf env l)
-                       (\v -> cnf env{localVar = v : localVar env} r)
+    inf env (Var i) = env !! i
+    inf env (Pi l r) = VPi (cnf env l) (\v -> cnf (v : env) r)
     inf env (App l r) =
       case inf env l of
        VLam f -> f (cnf env r)
        VConst c -> VConst . CAp c $ cnf env r
        _ -> error "Impossible: evaluated ill-typed expression"
 
-    cnf :: Env -> CExpr -> Val
+    cnf :: [Val] -> CExpr -> Val
     cnf env (CI e) = inf env e
-    cnf env (Lam c) = VLam $ \v -> cnf env{localVar = v : localVar env} c
+    cnf env (Lam c) = VLam $ \v -> cnf (v : env) c
 ```
 
 This is a big chunk of code, but most of it is quite boring. The
@@ -281,5 +281,110 @@ basically the same, they wrap the evaluation of the body in a function
 and evaluate it based on whatever is fed in. This is critical,
 otherwise `App`'s reductions get much more complicated.
 
+We need one final thing. You may have noticed that all `Val`'s are
+closed, there's no free DeBruijn variables. This means that when we go
+under a binder we can't type check open terms. We're representing
+types as values (for equality checks) and the term we're checking may
+share a variable with its types.
+
+This means that our type checker when it goes under a binder is going
+to substitute the now free variable for a fresh `Free i`. Frankly,
+this kinda sucks. I poked about for a better solution but this is what
+"Simple Easy!" does too..
+
+To do these substitutions we have
+
+``` haskell
+    ibind :: Int -> IExpr -> IExpr -> IExpr
+    ibind i e (Var j) | i == j = e
+    ibind i e (App l r) = App (ibind i e l) (cbind i e r)
+    ibind i e (Annot l r) = Annot (cbind i e l) (cbind i e r)
+    ibind i e (Pi l r) = Pi (cbind i e l) (cbind i e r)
+    ibind _ _ e  = e -- Non recursive cases
+
+    cbind :: Int -> IExpr -> CExpr -> CExpr
+    cbind i e (Lam b) = Lam (cbind (i + 1) e b)
+    cbind i e (CI c) = CI (ibind i e c)
+```
+
 This was a bit more work than I anticipated, but now we're ready to
 actually write the type checker!
+
+Since we're doing bidirectional type checking, we're once again going
+to have two functions, `inferType` and `checkType`. Our environments
+is now a record
+
+``` haskell
+    data Env = Env { localVar :: M.Map Int Val
+                   , constant :: M.Map String Val }
+```
+
+The inferring stage is mostly the same
+
+``` haskell
+    inferType :: Env -> IExpr -> GenT Int Maybe Val
+    inferType _ (Var _) = lift Nothing -- The term is open
+    inferType (Env _ m) (Const s) = lift $ M.lookup s m
+    inferType (Env m _) (Free i) = lift $ M.lookup i m
+    inferType _ ETrue = return VBool
+    inferType _ EFalse = return VBool
+    inferType _ Bool = return VStar
+    inferType _ Star = return VStar
+    inferType env (Annot e ty) = do
+      checkType env ty VStar
+      let v = cnf [] ty
+      checkType env e v >> return v
+    inferType env (App f a) = do
+      ty <- inferType env f
+      case ty of
+       VPi aTy body -> do
+         checkType env a aTy
+         return (body $ cnf [] a)
+       _ -> lift Nothing
+    inferType env (Pi ty body) = do
+      checkType env ty VStar
+      i <- gen
+      let v = cnf [] ty
+          env' = env{locals = M.insert i v (locals env)}
+      checkType env' (cbind 0 (Free i) body) VStar
+      return VStar
+```
+
+The biggest difference is that now we have to compute some types on
+the fly. For example in `Annot` we check that we are in fact
+annotating with a type, then we reduce it to a value. This order is
+critical! Remember that `cnf` requires well typed terms.
+
+Beyond this there are two interesting cases, there's `App` which
+nicely illustrates what a pi type means and `Pi` which demonstrates
+how to deal with a binder.
+
+For `App` we start in the same way, we grab the (function) type of the
+function. We can then check that the argument has the right type. To
+produce the output type however, we have to normalize the argument as
+far as we can and then feed it to `body` which computes the return
+type. Remember that if there's some free variable in `a` then it'll
+just be represented as `VConst (CFree ...)`.
+
+`Pi` checks that we're quantifying over a type first off. From there
+it generates a fresh free variable and updates the environment before
+recursing. We use `csubst` to replace all occurrences of the now
+unbound variable for an explicit `Free`.
+
+`checkType` is pretty trivial after this. `Lam` is almost identical to
+`Pi` and `CI` is just `eqTerm`.
+
+``` haskell
+    checkType :: Env -> CExpr -> Val -> GenT Int Maybe ()
+    checkType env (CI e) v = inferType env e >>= guard . (eqTerm v)
+    checkType env (Lam ce) (VPi argTy body) = do
+      i <- gen
+      let ce' = cbind 0 (Free i) ce
+          env' = env{locals = M.insert i argTy (locals env)}
+      checkType env' ce' (body $ VConst (CFree i))
+    checkType _ _ _ = lift Nothing
+```
+
+And that's it!
+
+## Wrap Up
