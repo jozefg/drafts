@@ -22,6 +22,103 @@ Fair warning, I've never used `unbound` before and I'm probably using
 
 ## `bound`
 
+So my first stab at making this less complicated was with Edward
+Kmett's [bound](http://hackage.haskell.org/package/bound). For those
+who aren't familiar with this library, it centers around the data type
+`Scope`. `Scope b f a` binds variables of type `b` in the structure
+`f` with free variables of type `a`.
+
+Further, `f` must be a monad with the type parameter being type of the
+variables. Then what `Scope` does is instantiate these variables to `B
+b a` which is precisely equivalent to `Either b a`.
+
+What this results in is that each free variable is a different type
+from bound ones. `Scope` provides various functions for instantiating
+bound variables and abstracting over free ones. All of these functions
+use the notion that `>>=` in our terms now corresponds to a
+substitution operator. That's `bound` in a nutshell.
+
+It's a bit easier to grok this by example, here's our calculus ported
+to use `Scope`
+
+``` haskell
+    data Expr a = Var a
+                | App (Expr a) (Expr a)
+                | Annot (Expr a) (Expr a)
+                | ETrue
+                | EFalse
+                | Bool
+                | Star
+                | Pi (Expr a) (Scope () Expr a)
+                | Lam (Scope () Expr a)
+                deriving(Functor, Eq)
+```
+
+So the first major difference is that our polarization between
+inferrable and checkable terms is gone! This wasn't something I was
+happy about, but in order to use `Scope` we need a monad instance and
+we can't define two mutually dependent monad instances without a
+function from `CExpr -> IExpr`, something that clearly doesn't exist.
+
+Now in addition to just this, we also need a bunch of boilerplate to
+define some type class instances for `Scope`'s benefit.
+
+``` haskell
+    instance Eq1 Expr where (==#) = (==)
+    instance Applicative Expr where
+      pure = return
+      (<*>) = ap
+    instance Monad Expr where
+      return = Var
+      Var a >>= f = f a
+      (App l r) >>= f = App (l >>= f) (r >>= f)
+      ETrue >>= _ = ETrue
+      EFalse >>= _ = EFalse
+      Bool >>= _ = Bool
+      Star >>= _ = Star
+      Annot l r >>= f = Annot (l >>= f) (r >>= f)
+      Pi l s >>= f = Pi (l >>= f) (s >>>= f)
+      Lam e >>= f = Lam (e >>>= f)
+```
+
+That weird `>>>=` is just `>>=` that works through `Scope`s. It's a
+little bit frustrating that we need this somewhat boilerplate-y monad
+instance, but I think the results might be worth it.
+
+From here we completely forgo an explicit `Val` type. We're completely
+scrapping that whole HOAS and `VConst` ordeal. Instead we'll just
+trust `Scope`'s clever `Eq` instance to handle alpha conversion. We do
+need to implement normalization though
+
+``` haskell
+    type Val = Expr
+
+    nf :: Expr a -> Val a
+    nf = \case
+      (Annot e t) -> Annot (nf e) (nf t)
+      (Lam e) -> Lam (toScope . nf . fromScope $ e)
+      (Pi l r) -> Pi (nf l) (toScope . nf . fromScope $ r)
+      (App l r) ->
+        case l of
+         Lam f -> nf (instantiate1 r f)
+         l' -> App l' (nf r)
+      e -> e
+```
+
+What's interestingly different is actual work is shifted from within
+the higher order binders we had before into the case expression in
+`App`.
+
+It's also worth mentioning the few bound specifics here. `toScope` and
+`fromScope` expose the underlying `f (V b a)` that a `Scope` is
+hiding. We're then can polymorphically recur (eat your heart out
+sml) over the now unbound variables and continue on our way.
+
+Again, notice that I've defined nothing to do with substitution or
+scoping, this is all being handled by bound.
+
+One
+
 ## `unbound`
 
 ## Screw It How Bad Can Real Names Be
@@ -29,3 +126,6 @@ Fair warning, I've never used `unbound` before and I'm probably using
 ## HOAS
 
 ## Wrap Up
+
+In conclusion, variables suck and that's why all my future software
+will be completely point free.
