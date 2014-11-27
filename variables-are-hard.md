@@ -117,7 +117,56 @@ sml) over the now unbound variables and continue on our way.
 Again, notice that I've defined nothing to do with substitution or
 scoping, this is all being handled by bound.
 
-One
+Now our actual type checker is still essentially identical. We're
+still using `monad-gen` to generate unique variable names, it's just
+that now `bound` handles the messy substitution. The lack of
+distinction between inferrable, checkable, and normalized terms did
+trip me up once our twice though.
+
+``` haskell
+    unbind :: (MonadGen a m, Functor m, Monad f) => Scope () f a -> m (a, f a)
+    unbind scope = (\a -> (a, instantiate1 (return a) scope)) <$> gen
+
+    unbindWith :: Monad f => a -> Scope () f a -> f a
+    unbindWith = instantiate1 . return
+
+    inferType :: Expr Int -> TyM (Val Int)
+    inferType (Var i) = asks (M.lookup i) >>= maybe mzero return
+    inferType ETrue = return Bool
+    inferType EFalse = return Bool
+    inferType Bool = return Star
+    inferType Star = return Star
+    inferType (Lam _) = mzero -- We can only check lambdas
+    inferType (Annot e ty) = do
+      checkType ty Star
+      let v = nf ty
+      v <$ checkType e v
+    inferType (App f a) = do
+      ty <- inferType f
+      case ty of
+       Pi aTy body -> nf (App (Lam body) a) <$ checkType a aTy
+       _ -> mzero
+    inferType (Pi t s) = do
+      checkType t Star
+      (newVar, s') <- unbind s
+      local (M.insert newVar $ nf t) $
+        Star <$ checkType s' Star
+
+    checkType :: Expr Int -> Val Int -> TyM ()
+    checkType (Lam s) (Pi t ts) = do
+      (newVar, s') <- unbind s
+      local (M.insert newVar (nf t)) $
+        checkType s' (nf $ unbindWith newVar ts)
+    checkType e t = inferType e >>= guard . (== t)
+```
+
+I defined two helper functions `unbind` and `unbindWith` which both
+ease the process of opening a scope and introducing a new free
+variable. I actually split these off into a
+[tiny library](http://github.com/jozefg/bound-gen), but I haven't
+uploaded it to hackage yet.
+
+
 
 ## `unbound`
 
