@@ -12,8 +12,7 @@ In the post I explore 5 versions of the same code
  0. The original method
  1. Using `bound` to handle all binding
  2. Using `unbound` to handle all binding
- 3. Giving up and just using explicit names
- 4. Full HOAS
+ 3. Full HOAS
 
 Fair warning, I've never used `unbound` before and I'm probably using
 `bound` in an incredibly backwards way. You've been warned.
@@ -190,13 +189,21 @@ I defined two helper functions `unbind` and `unbindWith` which both
 ease the process of opening a scope and introducing a new free
 variable. I actually split these off into a
 [tiny library](http://github.com/jozefg/bound-gen), but I haven't
-uploaded it to hackage yet.
+uploaded it to hackage yet. I want to consider if there's a nice way
+to mimic "local uniqueness" within the context of `monad-gen`
+first.. Anyways! What were the results?
 
+ 1. Code size decreased by ~50 lines
+ 2. No more explicit substitution
+ 3. All the annoying plumbing is in the monad instance which is pretty
+    mechanical
+ 4. We did lose the really nice separation of terms we had before
+    though :(
 
+I suppose that 4. would be a nonissue for a lot of people who don't
+care about bidirectional type checker.
 
 ## `unbound`
-
-## Screw It How Bad Can Real Names Be
 
 ## HOAS
 
