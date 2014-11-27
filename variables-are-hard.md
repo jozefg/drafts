@@ -1,5 +1,5 @@
 ---
-title: Slicing λΠ 5 ways
+title: Cooking λΠ 4 ways
 tags: haskell, compilers
 ———
 
