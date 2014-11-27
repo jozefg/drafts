@@ -20,11 +20,37 @@ Fair warning, I've never used `unbound` before and I'm probably using
 
 ## The Original
 
+I've already described most of the original method
+[here][original-tc]. To recap
+
+ 1. Values were HOAS
+ 2. Terms were DeBruijn
+ 3. To bridge the gap, we had "free constants" randomly generated
+
+The issue I had with this is we almost got the worst of all 3 words!
+We were constantly bumping a counter to keep up with the free
+constants we needed to generate. We had to muddy up the types of
+values with *another* notion of free constants so we could actually
+inspect variables under HOAS binders! And finally, we had to do the
+painful and tedious substitutions on DeBruijn terms.
+
+On the other hand, if you'd never used any of those binding schemes
+together, you too can go triple or nothing and try to understand that
+code :)
+
+What I really wanted was to unify how I represented values and
+terms. I still wanted a clearly correct notion of equality, but in
+this way I could probably dodge at least two of the above.
+
+The obvious thing to do would be to stick with DeBruijn variables and
+just instantiate free variables with constants. This is ugly, but it's
+moderately less horrible if we use a library to help us with the process.
+
 ## `bound`
 
-So my first stab at making this less complicated was with Edward
-Kmett's [bound](http://hackage.haskell.org/package/bound). For those
-who aren't familiar with this library, it centers around the data type
+So my first stab at this approach was with Edward Kmett's
+[bound](http://hackage.haskell.org/package/bound). For those who
+aren't familiar with this library, it centers around the data type
 `Scope`. `Scope b f a` binds variables of type `b` in the structure
 `f` with free variables of type `a`.
 
@@ -177,4 +203,6 @@ uploaded it to hackage yet.
 ## Wrap Up
 
 In conclusion, variables suck and that's why all my future software
-will be completely point free.
+will be completely point free. I see no downsides.
+
+[original-tc]: /posts/2014-11-22-bidir.md
