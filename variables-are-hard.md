@@ -80,6 +80,7 @@ to use `Scope`
                 | Star
                 | Pi (Expr a) (Scope () Expr a)
                 | Lam (Scope () Expr a)
+                | C String
                 deriving(Functor, Eq)
 ```
 
@@ -105,6 +106,7 @@ define some type class instances for `Scope`'s benefit.
       EFalse >>= _ = EFalse
       Bool >>= _ = Bool
       Star >>= _ = Star
+      C s >>= _ = C s
       Annot l r >>= f = Annot (l >>= f) (r >>= f)
       Pi l s >>= f = Pi (l >>= f) (s >>>= f)
       Lam e >>= f = Lam (e >>>= f)
@@ -124,7 +126,7 @@ need to implement normalization though
 
     nf :: Expr a -> Val a
     nf = \case
-      (Annot e t) -> Annot (nf e) (nf t)
+      (Annot e t) -> nf e -- Important, nf'd data throws away annotations
       (Lam e) -> Lam (toScope . nf . fromScope $ e)
       (Pi l r) -> Pi (nf l) (toScope . nf . fromScope $ r)
       (App l r) ->
@@ -153,14 +155,19 @@ distinction between inferrable, checkable, and normalized terms did
 trip me up once our twice though.
 
 ``` haskell
+    data Env = Env { localVars :: M.Map Int (Val Int)
+                   , constants  :: M.Map String (Val Int) }
+    type TyM = ReaderT Env (GenT Int Maybe)
+
     unbind :: (MonadGen a m, Functor m, Monad f) => Scope () f a -> m (a, f a)
-    unbind scope = (\a -> (a, instantiate1 (return a) scope)) <$> gen
+    unbind scope = ((,) <*> flip instantiate1 scope . return) <$> gen
 
     unbindWith :: Monad f => a -> Scope () f a -> f a
     unbindWith = instantiate1 . return
 
     inferType :: Expr Int -> TyM (Val Int)
-    inferType (Var i) = asks (M.lookup i) >>= maybe mzero return
+    inferType (Var i) = asks (M.lookup i . localVars) >>= maybe mzero return
+    inferType (C s) = asks (M.lookup s . constants) >>= maybe mzero return
     inferType ETrue = return Bool
     inferType EFalse = return Bool
     inferType Bool = return Star
@@ -178,13 +185,13 @@ trip me up once our twice though.
     inferType (Pi t s) = do
       checkType t Star
       (newVar, s') <- unbind s
-      local (M.insert newVar $ nf t) $
+      local (\e -> e{localVars = M.insert newVar (nf t) $ localVars e}) $
         Star <$ checkType s' Star
 
     checkType :: Expr Int -> Val Int -> TyM ()
     checkType (Lam s) (Pi t ts) = do
       (newVar, s') <- unbind s
-      local (M.insert newVar (nf t)) $
+      local (\e -> e{localVars = M.insert newVar (nf t) $ localVars e}) $
         checkType s' (nf $ unbindWith newVar ts)
     checkType e t = inferType e >>= guard . (== t)
 ```
@@ -192,10 +199,8 @@ trip me up once our twice though.
 I defined two helper functions `unbind` and `unbindWith` which both
 ease the process of opening a scope and introducing a new free
 variable. I actually split these off into a
-[tiny library](http://github.com/jozefg/bound-gen), but I haven't
-uploaded it to hackage yet. I want to consider if there's a nice way
-to mimic "local uniqueness" within the context of `monad-gen`
-first.. Anyways! What were the results?
+[tiny library](bound-gen), but I haven't
+uploaded it to hackage yet.
 
  1. Code size decreased by ~50 lines
  2. No more explicit substitution
