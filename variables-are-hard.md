@@ -295,7 +295,34 @@ The only reason for two is that the amazing maintainer of `monad-gen`
 (hi!) rejiggered some the library to not be so `Enum` dependent.
 
 Now from here our type checker is basically what we had before. In the
-interest of saving time, I'll highlight the
+interest of saving time, I'll highlight the interesting bits: the
+constructors that bind variables.
+
+``` haskell
+    data Env = Env { localVars :: M.Map Int NF
+                   , constants :: M.Map String NF }
+    type TyM = GenT Int (ReaderT Env Maybe)
+
+    inferType :: Expr -> TyM NF
+    inferType (Pi t f) = do
+      checkType t Star
+      let t' = nf t
+      i <- gen
+      local (\e -> e{localVars = M.insert i t' $ localVars e}) $
+        Star <$ checkType (f $ IGen i) Star
+
+    checkType :: Expr -> NF -> TyM ()
+    checkType (Lam f) (Pi t g) = do
+      i <- gen
+      let t' = nf t
+          rTy = nf (g $ IGen i)
+      local (\e -> e{localVars = M.insert i t' $ localVars e}) $
+        checkType (f $ IGen i) rTy
+```
+
+At this point you may have started to notice the pattern, the only
+real difference here is that substitution is completely
+free. Otherwise, I don't really have much to say about HOAS.
 
 ## Wrap Up
 
