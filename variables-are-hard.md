@@ -17,6 +17,10 @@ In the post I explore 5 versions of the same code
 Fair warning, I've never used `unbound` before and I'm probably using
 `bound` in an incredibly backwards way. You've been warned.
 
+There's a lot of code in this post, enough that I think it's worth
+hosting the code on its own. You can find it on [github][cooked-pi-github]
+and [bitbucket][cooked-pi-bitbucket].
+
 ## The Original
 
 I've already described most of the original method
@@ -213,3 +217,6 @@ In conclusion, variables suck and that's why all my future software
 will be completely point free. I see no downsides.
 
 [original-tc]: /posts/2014-11-22-bidir.md
+[bound-gen]: http://github.com/jozefg/bound-gen
+[cooked-pi-github]: http://github.com/jozefg/cooked-pi
+[cooked-pi-bitbucket]: http://bitbucket.org/jozefg/cooked-pi
