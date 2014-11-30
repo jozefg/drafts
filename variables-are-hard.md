@@ -216,6 +216,87 @@ care about bidirectional type checker.
 
 ## HOAS
 
+Higher order is a really nifty trick. The idea is that Haskell already
+has a perfectly good notion of variables and substitution lying
+around! Let's just use that. We represent our functions with actual
+`->`s and we don't have a constructor for variables anymore.
+
+The only issue is that Haskell doesn't let us inspect the bodies of
+functions. We need to do this, however, for a type checker! To deal
+with this we dirty our AST a bit and add in `IGen`'s, placeholders for
+where normal Haskell variables would normally go. Our new AST looks
+like this
+
+``` haskell
+    data Expr = App Expr Expr
+              | Annot Expr Expr
+              | ETrue
+              | EFalse
+              | Bool
+              | Star
+              | Pi Expr (Expr -> Expr)
+              | Lam (Expr -> Expr)
+              | C String
+              | IGen Int
+
+    type NF = Expr
+```
+
+Notice how both `Pi` and `Lam` have functions embedded in them. Now
+normalization is actually quite slick because functions are easy to
+work with in Haskell
+
+``` haskell
+    nf :: Expr -> NF
+    nf ETrue = ETrue
+    nf EFalse = EFalse
+    nf Bool = Bool
+    nf Star = Star
+    nf (C s) = C s
+    nf (IGen i) = IGen i
+    nf (Annot l _) = nf l
+    nf (Pi t f) = Pi (nf t) (nf . f)
+    nf (Lam f) = Lam (nf . f)
+    nf (App l r) = case nf l of
+      Lam f -> nf . f $ l
+      l' -> App l' (nf r)
+```
+
+This is actually quite similar to the `Val` type we started with. That
+was also used HOAS and we end up with a similarly structured
+normalization.
+
+For the same reason, the equivalence checking procedure is pretty much
+the same thing
+
+``` haskell
+    eqTerm :: NF -> NF -> Bool
+    eqTerm l r = runGenWith (successor s) (IGen 0) $ go l r
+      where s (IGen i) = IGen (i + 1)
+            s _ = error "Impossible!"
+            go Star Star = return True
+            go Bool Bool = return True
+            go ETrue ETrue = return True
+            go EFalse EFalse = return True
+            go (Annot l r) (Annot l' r') = (&&) <$> go l l' <*> go r r'
+            go (App l r) (App l' r') = (&&) <$> go l l' <*> go r r'
+            go (Pi t f) (Pi t' g) =
+              (&&) <$> go t t' <*> (gen >>= \v -> go (f v) (g v))
+            go (IGen i) (IGen j) = return (i == j)
+            go _ _ = return False
+```
+
+In fact, the only differences are that
+
+ 1. There are a few more cases, even though they won't ever be called
+ 2. We don't need that horrible top level `Enum` instance
+
+The only reason for two is that the amazing maintainer of `monad-gen`
+(hi!) rejiggered some the library to not be so `Enum` dependent.
+
+Now from here our type checker is basically what we had before. In the
+interest of saving time, I'll highlight the
+
 ## Wrap Up
 
 In conclusion, variables suck and that's why all my future software
