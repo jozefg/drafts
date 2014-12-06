@@ -47,6 +47,9 @@ Let's consider a relation `R` with `A R B` if and only if
 
 This definition sets out to capture the notion that two states are
 related if we can't distinguish between them. The fancy term for such
-a relation is a bisimulation. The next time the vending machine in the
-break room is replaced, be sure to inquire if it's bisimilar its
-predecessor. Make new friends!
+a relation is a bisimulation. Now our notion of equivalence is called
+bisimilarity and denoted `~`, it is the union of all bisimulations.
+
+Now how could we prove that `A ~ B`? Since `~` is the union of all
+bisimulations, all we need to is construct a bisimulation so that
+`A R B` and hey presto, they're bisimilar.
