@@ -53,3 +53,18 @@ bisimilarity and denoted `~`, it is the union of all bisimulations.
 Now how could we prove that `A ~ B`? Since `~` is the union of all
 bisimulations, all we need to is construct a bisimulation so that
 `A R B` and hey presto, they're bisimilar.
+
+TODO EXAMPLE PROOFS
+
+## From Vending Machines to Programs
+
+Now it's all very well and good that we can prove the equivalence of
+programs
+
+## A Precise Formulation of Coinduction
+
+## Relation to Induction
+
+## [Finally] Some Code
+
+## Wrap Up
