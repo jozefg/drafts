@@ -32,4 +32,21 @@ other. That is to say, pushing the same buttons on one gives the same
 output and leaves both machines in equivalent states.
 
 To formalize this, we first need to formalize our notion of a vending
-machine (that was a weird sentence to type).
+machine. A vending machine is a comprised set of states. These states
+are connected by arrows labeled with a transition. We'll refer to the
+start of a transition as its domain and its target as the codomain.
+
+Let's consider a relation `R` with `A R B` if and only if
+
+ 1. There exists a function `f` from transitions from A to transitions
+    from B so that `x` and `f(x)` have the same label.
+ 2. Further, if `A R B` and `A` has a transition `x`, then the
+    codomain of `x` is related to the codomain of `f(x)`.
+ 3. There is a `g` satisfying 1. and 2., but from transitions from B
+    to transitions from A.
+
+This definition sets out to capture the notion that two states are
+related if we can't distinguish between them. The fancy term for such
+a relation is a bisimulation. The next time the vending machine in the
+break room is replaced, be sure to inquire if it's bisimilar its
+predecessor. Make new friends!
