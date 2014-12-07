@@ -150,6 +150,15 @@ our usual tricks there, let's formalize this a bit.
 
 ## A More Precise Formulation of Coinduction
 
+First, what exactly is [co]induction? Coinduction is a proof principle
+for proving something about elements of the greatest fixed point of a
+function, `F`. We can prove that the greatest fixed point, `X`, is the
+union of all the elements so that `F(X) ≥ X`.
+
+If we can prove that there exists an `X ≤ F(X)` then we know that
+`X < gfp(F)`. That is the principle of coinduction. It also should
+look very similar to how we proved things about `~`.
+
 ## Dithering about Duality
 
 ## [Finally] Some Code
