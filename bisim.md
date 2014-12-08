@@ -153,15 +153,51 @@ our usual tricks there, let's formalize this a bit.
 First, what exactly is [co]induction? Coinduction is a proof principle
 for proving something about elements of the greatest fixed point of a
 function, `F`. We can prove that the greatest fixed point, `X`, is the
-union of all the elements so that `F(X) ≥ X`.
+union of all the elements so that `X ⊆ F(X)`.
 
-If we can prove that there exists an `X ≤ F(X)` then we know that
-`X < gfp(F)`. That is the principle of coinduction. It also should
-look very similar to how we proved things about `~`.
+If we can prove that there exists an `X ⊆ F(X)` then we know that
+`X ⊆ gfp(F)`. That is the principle of coinduction. Unlike the
+principle of induction we don't get proofs about *all* members of a
+set, rather we get proves that there exists members which satisfy
+this property. It also should look very similar to how we proved
+things about `~`.
+
+So now that we've defined coinduction across a function, what
+functions do we want to actually plop into this? We already now what
+we want for lists,
+
+    List(A) = {nil} ∪ {cons(h, t) | h ∈ X ∧ t ∈ A}
+
+But what about everything else? Well, we do know that each value is
+introduced by a rule. These rules are always of the form
+
+    Some Premises Here
+    ——————————————————
+     conclusion here
+
+So for example, for lists we have
+
+
+    ——————————————
+     nil ∈ List(A)
+
+        h ∈ H   t ∈ A
+    ————————————–————————
+     cons(h, t) ∈ List(A)
+
+
+Now our rules
+
 
 ## Dithering about Duality
 
-## [Finally] Some Code
+I'd like to reel off some pithy dualities between induction and
+coinduction
+
+ - Coinduction is about observation, induction is about construction
+ - Coinduction proves existentials, induction proves universals
+ - Coinduction is proving your property is a subset of a group,
+ induction is about proving a group is a subset of your property
 
 ## Wrap Up
 
