@@ -56,8 +56,6 @@ Now how could we prove that `A ~ B`? Since `~` is the union of all
 bisimulations, all we need to is construct a bisimulation so that
 `A R B` and hey presto, they're bisimilar.
 
-TODO EXAMPLE PROOFS
-
 ## From Vending Machines to Programs
 
 It's all very well and good that we can talk about the equality of
@@ -208,7 +206,7 @@ trees for example
 
 
 Now the most common thing we want to prove is some notion of
-equality. This is harder then it seems because the usual notions of
+equability. This is harder then it seems because the usual notions of
 equality don't work.
 
 Instead we can apply bisimulation. Our approach is the same, we define
@@ -223,11 +221,26 @@ these give you a subtree contained by this node. What should they be
 labeled with? We can follow our intuitions from lists and label them
 both with `a`.
 
-This leaves us with the following bisimulation,
+This leaves us with the following definition, `R` is a bisimulation on
+trees if and only if
 
- - `leaf ~ leaf`
- - `node(a, l, r) ~ node(a', l', r')` if and only if
- `a = a'` ∧ `l ~ l'` and `r ~ r'`
+ - `leaf R leaf`
+ - `node(a, l, r) R node(a', l', r')` if and only if
+ `a = a'` ∧ `l R l'` and `r R r'`
+
+So to prove an equality between trees, all we must do is provide such
+an `R` and then we know `R ⊆ ~`!
+
+This describes how we deal with coinductive things in general
+really. We define what it means for a relation to partially capture
+what we're talking about (like a bisimulation) and then the full thing
+is the union of all of these different views! Sortedness could be
+expressed as a unitary relation `S` where
+
+ - `nil ∈ S`
+ - `cons(_, xs) ∈ S → xs ∈ S`
+
+the `sorted` predicate is the union of all such relations!
 
 ## Dithering about Duality
 
