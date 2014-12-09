@@ -5,16 +5,24 @@ tags: haskell, types
 
 Proving things about programs is quite hard. In order to make it
 simpler, we often lie a bit. We do this quite a lot in Haskell when we
-say things like "ignoring bottom" or "assuming everything
-terminates". Most of the time, this is alright. We sometimes need to
-leave the universe of terminating things, though, whenever we want to
-prove things about streams or other infinite structures.
+say things like "assuming everything terminates" or "for all sane
+values". Most of the time, this is alright. We sometimes need to leave
+the universe of terminating things, though, whenever we want to prove
+things about streams or other infinite structures.
 
 In fact, once we step into the wondrous world of the infinite we can't
-rely on induction anymore. This is quite a serious issue since
-induction was one of our few solid tools for proof. We can replace it
-though with a nifty trick called bisimulation which gives rise to
-coinduction.
+rely on structural induction anymore. Remember that induction relies
+on the "well foundedness" of the thing we're inducting upon, meaning
+that there can only be finitely many things smaller than any
+object. However, there are infinitely many things smaller than an
+infinite data structures! For some intuition here, something like
+`foldr` (which behaves just like structural induction) may not
+terminate on an infinite list.
+
+This is quite a serious issue since induction was one of our few solid
+tools for proof. We can replace it though with a nifty trick called
+coinduction which gives rise to a useful notion of equality with
+bisimulation.
 
 ## Vending Machines
 
