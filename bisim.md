@@ -186,8 +186,48 @@ So for example, for lists we have
      cons(h, t) ∈ List(A)
 
 
-Now our rules
+Now our rules can be converted into a function with a form like
 
+     F(A) = ∪ᵣ {conclusion | premises}
+
+So for lists this gives
+
+    F(A) = {nil} ∪ {cons(h, t) | h ∈ H ∧ t ∈ A}
+
+as expected. We can imagine generalizing this to other things, like
+trees for example
+
+    ————————–—————
+    leaf ∈ Tree(A)
+
+    x ∈ H    l ∈ A    r ∈ A
+    ————————–—————————————–
+     node(h, l, r) ∈ Tree(A)
+
+    Tree(A) = {leaf} ∪ {node(h, l, r) | x ∈ H ∧ l ∈ A ∧ r ∈ A}
+
+
+Now the most common thing we want to prove is some notion of
+equality. This is harder then it seems because the usual notions of
+equality don't work.
+
+Instead we can apply bisimulation. Our approach is the same, we define
+a criteria for what it means to be a bisimulation across a certain
+type and define `~` as the union of all bisimulations. On lists we
+wanted the heads to be equal and the tails to be bisimilar, but what
+about on trees? We can take the same systematic approach we did before
+by considering what an LTS on trees would look like. `leaf` has no
+information contained in it and therefore no transitions.
+`node(a, l, r)` should have two transitions, left or right. Both of
+these give you a subtree contained by this node. What should they be
+labeled with? We can follow our intuitions from lists and label them
+both with `a`.
+
+This leaves us with the following bisimulation,
+
+ - `leaf ~ leaf`
+ - `node(a, l, r) ~ node(a', l', r')` if and only if
+ `a = a'` ∧ `l ~ l'` and `r ~ r'`
 
 ## Dithering about Duality
 
@@ -200,5 +240,10 @@ coinduction
  induction is about proving a group is a subset of your property
 
 ## Wrap Up
+
+So that about wraps up this post. We've seen how infinite structures
+demand a fundamentally different approach to proofs then finite
+ones. Hopefully you've learned a bit about this technique, it's
+awfully underutilized considering how cool it is.
 
 [knaster-tarksi]: https://en.wikipedia.org/wiki/Knaster%E2%80%93Tarski_theorem
