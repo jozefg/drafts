@@ -1,8 +1,8 @@
 Drafts
 ======
 
-This is my repo to keep track of all my draft blog posts.  Some drafts
-will continue to live in here after their published if I forget to
+This is my repo to keep track of all my draft blog posts. Some drafts
+will continue to live in here after they're published if I forget to
 delete them. Nothing in here is polished, most of it is half-baked,
 and some is so poorly spelled you can barely call it English.
 
