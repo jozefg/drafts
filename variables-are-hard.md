@@ -1,5 +1,5 @@
 ---
-title: Cooking λΠ 4 ways
+title: Cooking λΠ 3 ways
 tags: haskell, compilers
 ———
 
@@ -9,13 +9,9 @@ the odd blend of HOAS, GUIDs, and DeBruijn variables was... unique.
 
 In the post I explore 5 versions of the same code
 
- 0. The original method
- 1. Using `bound` to handle all binding
- 2. Using `unbound` to handle all binding
+ 1. The original method
+ 2. Using `bound` to handle all binding
  3. Full HOAS
-
-Fair warning, I've never used `unbound` before and I'm probably using
-`bound` in an incredibly backwards way. You've been warned.
 
 There's a lot of code in this post, enough that I think it's worth
 hosting the code on its own. You can find it on [github][cooked-pi-github]
@@ -212,8 +208,6 @@ uploaded it to hackage yet.
 I suppose that 4. would be a nonissue for a lot of people who don't
 care about bidirectional type checker.
 
-## `unbound`
-
 ## HOAS
 
 Higher order is a really nifty trick. The idea is that Haskell already
@@ -326,8 +320,24 @@ free. Otherwise, I don't really have much to say about HOAS.
 
 ## Wrap Up
 
-In conclusion, variables suck and that's why all my future software
-will be completely point free. I see no downsides.
+In conclusion, I think we can all agree that the original version of
+this type checker was unpleasant to say the least. It did considerably
+improve with `bound` mostly because the normalize-and-compare
+equivalence checking is really easy since `bound` handles alpha
+conversion. On the other hand, actually doing work beneath a binder is
+a bit of a pain since we have to take care to never unwrap a binder
+with a previously bound variable. We handled this with a hacky little
+trick with `monad-gen`, but a permanent and clean solution still seems
+hard.
+
+We can avoid this fully by hitching a ride on Haskell's variables and
+substitution using HOAS, this is wonderful until it's not. The issue
+is that comparing functions for equality is still a pain so we ended
+up with an equivalence check much like what we had in the original
+version.
+
+In the future it'd be interesting to try this with `unbound`, a
+library in the same domain as `bound` with a very different approach.
 
 [original-tc]: /posts/2014-11-22-bidir.md
 [bound-gen]: http://github.com/jozefg/bound-gen
