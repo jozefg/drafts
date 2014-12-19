@@ -46,6 +46,18 @@ start of a transition as its domain and its target as the
 codomain. This group of transitions and states is called a labeled
 transition system (LTS) properly.
 
+To recap how this all relates back to vending machines
+
+ 1. A state is a particular vending machine at a moment in time
+ 2. A transition between `A` and `B` would mean we could push a button
+    on `A` and wind up with `B`
+ 3. The label of such a transition is the delicious sugary drink
+    produced by pushing the button
+
+Notice that this view pays no attention to all the mechanics going on
+behind the scenes of pushing a button, only the end result of the
+button push. We refer to the
+
 Let's consider a relation `R` with `A R B` if and only if
 
  1. There exists a function `f` from transitions from A to transitions
@@ -61,8 +73,12 @@ a relation is a bisimulation. Now our notion of equivalence is called
 bisimilarity and denoted `~`, it is the union of all bisimulations.
 
 Now how could we prove that `A ~ B`? Since `~` is the union of all
-bisimulations, all we need to is construct a bisimulation so that
-`A R B` and hey presto, they're bisimilar.
+bisimulations, all we need to is construct a bisimulation so that `A R
+B` and hey presto, they're bisimilar.
+
+To circle back to vending machine terms, if for every button on
+machine `A` there's a button on `B` that produces the same drink and
+leaves us with related machines then `A` and `B` are the same.
 
 ## From Vending Machines to Programs
 
@@ -97,11 +113,15 @@ prefer to not delve into the math behind this (see TAPL's chapter on
 infinite types) but the gist of it is, if for any function `F`
 
  1. `F` is monotone so that `x ≤ y ⇒ F(x) ≤ F(y)`
- 2. `F` is cocontinuous so that `∩ₓF(x) = F(∩ₓ)`
+ 2. `F` is cocontinuous so that `∩ₓF(x) = F(∩ₓ x)`
 
 Then there exists an `X = F(X)` which is greater or equal to all other
 fixpoints. The proof of this isn't too hard, I encourage the curious
-reader to [go and have a look][knaster-tarksi].
+reader to [go and have a look][knaster-tarksi]. Furthermore, poking
+around why we need cocontinuity is enlightening, it captures the
+notion of "nice" lazy functions. If you've looked at any domain
+theory, it's similar to why we need continuity for least fixed pointed
+(inductive) functions.
 
 This greatest fixed point what we get with Haskell's recursive types
 and that's what we want to model. What's particularly interesting is
@@ -262,9 +282,13 @@ coinduction
 
 ## Wrap Up
 
-So that about wraps up this post. We've seen how infinite structures
-demand a fundamentally different approach to proofs then finite
-ones. Hopefully you've learned a bit about this technique, it's
-awfully underutilized considering how cool it is.
+So that about wraps up this post.
+
+We've seen how infinite structures demand a fundamentally different
+approach to proofs then finite ones. It's not all puppies and rainbows
+though, considering how we managed to spend nearly 300 lines talking
+about it, coinduction is a lot less intuitive. It is however, our only
+choice if we want to have "real proofs" in Haskell (terms and
+conditions may apply).
 
 [knaster-tarksi]: https://en.wikipedia.org/wiki/Knaster%E2%80%93Tarski_theorem
