@@ -109,7 +109,7 @@ can only happen in empty environments.
       • ⊢ ⊤
 
 Now this has the interesting effect. Now there's an interesting
-dilemma, whether conjuction and disjunction should be *additive* or
+dilemma, whether conjunction should be *additive* or
 *multiplicative*. If we split the context when we for `A ∧ B` then we
 have `Γ ⊢ A ∧ B` we know we can use both `A` and `B`. If we don't
 split the context then `Γ ⊢ A ∧ B` can only give us `A` or `B`. We
@@ -152,6 +152,54 @@ can't reuse the proof (`D`) of the existence of a dollar so we can't
 spend the same money twice.
 
 ### Mixing Linear and Non-linear Hypothesis
+
+Just like there are objects that are best modeled linearly, however,
+there are also objects which are clearly "eternal" pieces of
+knowledge. To model these we can change our rules to use two contexts,
+the first is Γ filled with linear hypothesis and Δ filled with
+"eternal" pieces of knowledge. We then add a rule corresponding to a
+weaker form of contraction
+
+     A, Δ; A, Γ ⊢ B
+    —————————————–—
+      A, Δ; Γ ⊢ B
+
+In other words, we can always produce a linear version of a known
+fact. This saves us the trouble of duplicating an identity rule for
+Δ. The next question is how to introduce a proposition into Δ. To do
+this we can opt for a special new "modality" !. ! is applied to other
+propositions so we could have `! (A ∧ B)` for example. We then add the
+rules
+
+      Δ; • ⊢ A
+      —————————
+      Δ; Γ ⊢ !A
+
+       A, Δ; Γ ⊢ B
+      —————————————
+      Δ; !A, Γ ⊢ B
+
+! is a lot like `valid` from modal logic: it indicates a proposition
+can be proved without any dependence on linear hypotheses.
+
+Using ! and Δ, we can introduce quite a few different connectives that
+use them. For example
+
+
+      A, Δ; Γ ⊢ B
+     —————————————
+     Δ; Γ ⊢ A ⇒ B
+
+     Δ; Γ ⊢ !A     Δ; B, Γ ⊢ C
+    ——————————————————————————
+        Δ; A ⇒ B, Γ ⊢ C
+
+Notice how we didn't to split the context upon eliminating a ⇒ because
+we proved `A` independent of any linear hypotheses.
+
+This wraps up our discussion of *pure* linear logic, from now on we'll
+focus on what interesting programming languages we can Curry-Howard
+this into.
 
 ### Linear Lambda Calculus
 
