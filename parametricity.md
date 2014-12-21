@@ -159,17 +159,20 @@ saying "running everything produces the same result". It turns out
 it's really really hard to prove things that aren't syntactically
 equivalent will always produce the same result!
 
-Our logical equivalence `~` is defined in a context `δ`. The reason
-for this is that our terms may have free type variables and we need to
-know how to deal with them. δ is just a map from a type variable to a
-relation between terms. Put less scarily, `̣δ` is a set of rules that
-say how to compare two terms when the have both are of type `v`. This
-is an important part of our logical relation: it deals with open
-terms, terms with free variables.
+Our logical equivalence `~` is defined in a context `η : δ ↔ δ'`. The
+reason for this is that our terms may have free type variables and we
+need to know how to deal with them. Each δ maps the free types in the
+types of our terms to a concrete types and η is a relationship for
+comparing `δ(v)` with `δ'(v)`.
 
-Now this can't be just any relationship between terms can't been just
-any relation, it has to be "admissible". Admissibility means that for
-some relation R, two conditions hold
+Put less scarily, `η` is a set of rules that say how to compare two
+terms when the have both are of type `v`. This is an important part of
+our logical relation: it deals with open terms, terms with free
+variables.
+
+Now η isn't composed of just any relationship between terms, it has to
+be "admissible". Admissibility means that for some relation R, two
+conditions hold
 
  1. If `e R e'` and `d ⇒ e` and `d' ⇒ e'`, then `d R d'`
  2. If `e R e'` and `d ≅ e` and `d' ≅ e'`, then `d R d'`
@@ -179,14 +182,14 @@ second says that `R` respects observational equivalence.
 
 Now we define our logical equivalence in some context δ to be
 
- 1. When `e, e' : τ`, `e ~ e' [δ]`
+ 1. When `e, e' : τ`, `e ~ e' [η]`
     if `e δ(t) e'`
- 2. When `e, e' : Bool`, `e ~₂ e' [δ]`
+ 2. When `e, e' : Bool`, `e ~₂ e' [η]`
     if `e ⇓ v` and `e' ⇓ v`
- 3. When `f, g : a → b`, `f ~ g [δ]`
-    if for all `a b : a`, when `a ~ b [δ]`, `f a ~ g b [δ]`
- 4. When `e e' : forall v. t`, `e ~ e' [δ]`
-    if for all R between any p and p', `e [p] ~ e'[p'] \[δ[v ↦ R]\]`
+ 3. When `f, g : a → b`, `f ~ g [η]`
+    if for all `a b : a`, when `a ~ b [η]`, `f a ~ g b [η]`
+ 4. When `e e' : forall v. t`, `e ~ e' [η]`
+    if for all `R : p ↔ p'`, `e[p] ~ e'[p'] \[η[v ↦ R]\]`
 
 Now this rule has 4 cases, one for each type. That's the first
 critical bit of this relation, we're talking about things by the
@@ -200,11 +203,31 @@ That's it! Now this is only really useful when we're talking about
 polymorphic type, then parametricity states that for any admissible
 relation `R`, two different instantiations are related.
 
+While I won't go into how to prove it, another important results we'll
+use for proofs with parametricity is that `(∀η. e ~ e' [η]) ⇔ e ≅ e'`.
+
 ## Applying Parametricity
 
 Now that I've said exactly what parametricity is, I'd like to step
 through a few proofs. The goal here is to illustrate how we can use
 this to prove some interesting properties.
+
+First we just have to prove the classic result that any
+`f : forall a. a -> a` is equivalent to `id = Λa. λx : a. x`.
+
+To prove this we need to show `f ~ id [δ]`. For this we need to show
+that for any admissible relation `R` between `τ` and `τ'`, then
+`f[τ] ~ λx : τ'. x [δ + R]`. Stepping this one more time we end up
+with the goal that `e R e'` then `f[τ] e ~ e' ⇔ f[τ] e R e'`
+
+Now this is where things get tricky and where we can apply
+parametricity. We know by definition that `f ~ f [δ]`. We then choose
+a new relation `S : τ' ↔ τ'` where `d S d'` if and only `d ≅ e'` and
+`d' ≅ e'`. Exercise to the reader: show admissibility.
+
+From here we know that `f[τ] ~ f[τ] \[η[a ↦ R]\]` and since `e S e`
+then `f[τ] e ~ f[τ] e`. This means that `f[τ] e ≅ e`.  From our note
+above, `f[τ] e ~ e` and by transitivity we have `f[τ] e R e'`.
 
 ## A Note on Free Theorems
 
