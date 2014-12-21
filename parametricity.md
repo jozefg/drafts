@@ -226,8 +226,16 @@ a new relation `S : τ' ↔ τ'` where `d S d'` if and only `d ≅ e'` and
 `d' ≅ e'`. Exercise to the reader: show admissibility.
 
 From here we know that `f[τ] ~ f[τ] \[η[a ↦ R]\]` and since `e S e`
-then `f[τ] e ~ f[τ] e`. This means that `f[τ] e ≅ e`.  From our note
-above, `f[τ] e ~ e` and by transitivity we have `f[τ] e R e'`.
+then `f[τ] e ~ f[τ] e` which implies `f[τ] e S f[τ] e`. This means
+that `f[τ] e ≅ e`.  From our note above, `f[τ] e ~ e` and by
+transitivity we have `f[τ] e R e'`.
+
+Now notice how we applied parametricity here, we took advantage of the
+fact that `~` is reflexive across all relationships to force `f[τ] e`
+into something useful. This is the general idea of most parametricity
+proofs.
+
+Now for something a bit more challenging,
 
 ## A Note on Free Theorems
 
