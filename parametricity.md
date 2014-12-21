@@ -115,19 +115,19 @@ F.
     exp ::= v               [Variables]
             exp exp         [Application]
             \v : ty -> exp  [Abstraction]
-            /\v -> exp      [Type Abstraction]
+            Λv -> exp      [Type Abstraction]
             exp[ty]         [Type Application]
             true            [Boolean]
             false           [Boolean]
 
 The only real notable feature of our language is that all polymorphism
 is explicit. In order to have a full polymorphic type we have to use a
-"big lambda" /\. This acts just like a normal lambda except instead of
+"big lambda" Λ. This acts just like a normal lambda except instead of
 abstracting over a term this abstracts over a type.
 
 For example the full term for the identity function is
 
-    id = /\ A -> \x : A -> x
+    id = Λ A -> \x : A -> x
 
 From here we can explicitly specialize a polymorphic type with type
 application.
@@ -148,7 +148,7 @@ in proving. Our basic goal is to show that two expressions `e1` and
 equality. We really mean that they can't be distinguished by our
 programs. That for all programs with a "hole", filling that hole with
 `e1` or `e2` will produce identical results. This is called
-"observational equivalence" usually.
+"observational equivalence" usually and notated with `≅`.
 
 This is a bit more general than just `==`, for example it let's us say
 that `flip const () ≅ id`. Now let's define another notion of
@@ -163,19 +163,21 @@ Our logical equivalence `~` is defined in a context `δ`. The reason
 for this is that our terms may have free type variables and we need to
 know how to deal with them. δ is just a map from a type variable to a
 relation between terms. Put less scarily, `̣δ` is a set of rules that
-say how to compare two terms with
+say how to compare two terms when the have both are of type `v`. This
+is an important part of our logical relation: it deals with open
+terms, terms with free variables.
 
-Now this can't be just any relationship, it
-has to be "admissible". Admissibility means that for some relation R,
-two conditions hold
+Now this can't be just any relationship between terms can't been just
+any relation, it has to be "admissible". Admissibility means that for
+some relation R, two conditions hold
 
  1. If `e R e'` and `d ⇒ e` and `d' ⇒ e'`, then `d R d'`
  2. If `e R e'` and `d ≅ e` and `d' ≅ e'`, then `d R d'`
 
-Notice that R can be between two types or the same types.
+The first rule means that `R` is closed under evaluation and the
+second says that `R` respects observational equivalence.
 
 Now we define our logical equivalence in some context δ to be
-
 
  1. When `e, e' : τ`, `e ~ e' [δ]`
     if `e δ(t) e'`
@@ -184,7 +186,7 @@ Now we define our logical equivalence in some context δ to be
  3. When `f, g : a → b`, `f ~ g [δ]`
     if for all `a b : a`, when `a ~ b [δ]`, `f a ~ g b [δ]`
  4. When `e e' : forall v. t`, `e ~ e' [δ]`
-    if for all R between any p and p', `e [p] ~ e'[p']δ + R]`
+    if for all R between any p and p', `e [p] ~ e'[p']_[δ[v ↦ R]]`
 
 Now this rule has 4 cases, one for each type. That's the first
 critical bit of this relation, we're talking about things by the
