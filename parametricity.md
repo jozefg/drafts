@@ -1,5 +1,6 @@
 ---
 title: Some Thoughts on Parametricity
+tags: types
 ----
 
 I like types. If you haven't figured this out from my blog I really
@@ -119,11 +120,10 @@ F.
             true            [Boolean]
             false           [Boolean]
 
-The only real notable
-feature of our language is that all polymorphism is explicit. In order
-to have a full polymorphic type we have to use a "big lambda" /\. This
-acts just like a normal lambda except instead of abstracting over a
-term this abstracts over a type.
+The only real notable feature of our language is that all polymorphism
+is explicit. In order to have a full polymorphic type we have to use a
+"big lambda" /\. This acts just like a normal lambda except instead of
+abstracting over a term this abstracts over a type.
 
 For example the full term for the identity function is
 
@@ -134,62 +134,21 @@ application.
 
     id[Bool] true
 
-The next thing we need to discuss how we actually determine the type
-of an expression. Now the way that we actually determine the type is
-by "natural deduction", to describe this process I'm using the
-standard
+Aside from this, the typing rules for this language are pretty much
+identical to Haskell's. In the interest of brevity I'll elide them.
 
-       A B C D E
-     —————————————–
-      Δ; Γ ⊢ e : t
-
-Δ is a list of bound type variables, Γ is a list of pairs `e : t`,
-meaning "`e` has the type `t`", and ⊢ should be read as
-"implies". That means the whole judgment above should be read as
-
-> If `A` ... `E` are true, then in the context `Δ; Γ`, `e` has the
-> type `t`.
-
-One final piece of notation, `[x/y]z` means "substitute `x` for every
-unbound occurrence of `y` in `z`". This one is more common in the
-Haskell community but still worth mentioning. With that in mind here
-are our typing rules.
-
-         v : t ∈ Γ
-      ———————————–————
-       Δ; Γ ⊢ v : t
-
-       Δ; v : t, Γ ⊢ e : t'
-     ———————————————————————–
-      Δ; Γ ⊢ λv. e : t → t'
-
-      Δ; Γ ⊢ f : a → b,  Δ; Γ ⊢ x : a
-    ———————————————————————–—————————–
-             Δ; Γ ⊢ f x : b
-
-       v, Δ; Γ ⊢ e : t
-    ——————————————————————–
-       Δ; Γ ⊢ e : Λv. t
-
-         Δ; Γ ⊢ e : Λv. t
-     ———————————————————————–
-       Δ; Γ ⊢ e[τ] : [τ/v]t
-
-
-Now that we have a
+Now that we have a reasonable framework to go from, we can discuss a
+more precise formulation of parametricity.
 
 ## Actual Parametricity
 
-To begin with, we'll specify what exactly is the language we're
-working with.
-
-This language is commonly called "System F".
 Now that we have our language, let's talk about what we're interested
 in proving. Our basic goal is to show that two expressions `e1` and
-`e2` are equal, `e1 ≅ e2`. However, we don't want to use a `==` sort
-of equality. We really mean that they can't be distinguished by our
-programs. That for all programs with a "hole", filling that whole with
-`e1` or `e2` will produce identical results.
+`e2` are equal. However, we don't want to use a `==` sort of
+equality. We really mean that they can't be distinguished by our
+programs. That for all programs with a "hole", filling that hole with
+`e1` or `e2` will produce identical results. This is called
+"observational equivalence" usually.
 
 This is a bit more general than just `==`, for example it let's us say
 that `flip const () ≅ id`. Now let's define another notion of
@@ -203,7 +162,10 @@ equivalent will always produce the same result!
 Our logical equivalence `~` is defined in a context `δ`. The reason
 for this is that our terms may have free type variables and we need to
 know how to deal with them. δ is just a map from a type variable to a
-relation between terms. Now this can't be just any relationship, it
+relation between terms. Put less scarily, `̣δ` is a set of rules that
+say how to compare two terms with
+
+Now this can't be just any relationship, it
 has to be "admissible". Admissibility means that for some relation R,
 two conditions hold
 
