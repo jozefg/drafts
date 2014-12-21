@@ -186,7 +186,7 @@ Now we define our logical equivalence in some context δ to be
  3. When `f, g : a → b`, `f ~ g [δ]`
     if for all `a b : a`, when `a ~ b [δ]`, `f a ~ g b [δ]`
  4. When `e e' : forall v. t`, `e ~ e' [δ]`
-    if for all R between any p and p', `e [p] ~ e'[p']_[δ[v ↦ R]]`
+    if for all R between any p and p', `e [p] ~ e'[p'] \[δ[v ↦ R]\]`
 
 Now this rule has 4 cases, one for each type. That's the first
 critical bit of this relation, we're talking about things by the
@@ -201,3 +201,11 @@ polymorphic type, then parametricity states that for any admissible
 relation `R`, two different instantiations are related.
 
 ## Applying Parametricity
+
+Now that I've said exactly what parametricity is, I'd like to step
+through a few proofs. The goal here is to illustrate how we can use
+this to prove some interesting properties.
+
+## A Note on Free Theorems
+
+## Wrap Up
