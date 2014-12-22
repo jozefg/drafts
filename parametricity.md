@@ -235,7 +235,7 @@ fact that `~` is reflexive across all relationships to force `f[τ] e`
 into something useful. This is the general idea of most parametricity
 proofs.
 
-Now for something a bit more challenging,
+Now for something a bit more challenging, equivalence in the
 
 ## A Note on Free Theorems
 
