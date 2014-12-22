@@ -259,6 +259,44 @@ this means that `f a b ≅ a` and completes our proofs. Hopefully this
 reinforces the idea of using parametricity and admissible
 relationships to produces our properties.
 
+Now for something a bit trickier. Church numerals are a classic idea
+from lambda calculus where
+
+     0 ≡ λs. λz. z
+     1 ≡ λs. λz. s z
+     2 ≡ λs. λz. s (s z)
+
+And so on. In terms of types,
+
+``` haskell
+    type Nat = forall c. (c → c) → c → c
+```
+
+Now intuitively from this type it seems obvious that this only allows
+us to apply the first argument `n` types to the second, like a church
+numeral. Because of this we want to claim that we can compose the
+first argument with itself `n` times before applying it to the second
+or for all `c : Nat`, there exists an `n` so that `compose n ≡ c`.
+
+To prove this we proceed as before and we end up with
+
+
+     compose[τ] s z ~ c[τ'] s' z' [η[c ↦ R]]
+
+Now we define a new relation `S` where
+
+  1. `a S b` if `a ≅ z' ≅ b`
+  2. `a S b` if `n S n'` and `a ≅ s' n` and `b ≅ s' n'`
+
+Now we know that `c[τ'] s' z' S c[τ'] s' z'` so by inversion on this
+we can determine that `n` applications of `s'` followed by `z'`.
+
+Set the `n` for compose to this new `n`. From here our result follows
+by induction on `n`.
+
+This proof means there's a mapping from `c` to `n`. The curious reader
+is encouraged to show this is an invertible mapping and complete the
+proof of isomorphism.
 
 ## A Note on Free Theorems
 
