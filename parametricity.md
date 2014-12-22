@@ -215,13 +215,13 @@ this to prove some interesting properties.
 First we just have to prove the classic result that any
 `f : forall a. a -> a` is equivalent to `id = Λa. λx : a. x`.
 
-To prove this we need to show `f ~ id [δ]`. For this we need to show
+To prove this we need to show `f ~ id [η]`. For this we need to show
 that for any admissible relation `R` between `τ` and `τ'`, then
-`f[τ] ~ λx : τ'. x [δ + R]`. Stepping this one more time we end up
+`f[τ] ~ λx : τ'. x [η[a ↦ R]`. Stepping this one more time we end up
 with the goal that `e R e'` then `f[τ] e ~ e' ⇔ f[τ] e R e'`
 
 Now this is where things get tricky and where we can apply
-parametricity. We know by definition that `f ~ f [δ]`. We then choose
+parametricity. We know by definition that `f ~ f [η]`. We then choose
 a new relation `S : τ' ↔ τ'` where `d S d'` if and only `d ≅ e'` and
 `d' ≅ e'`. Exercise to the reader: show admissibility.
 
@@ -235,7 +235,30 @@ fact that `~` is reflexive across all relationships to force `f[τ] e`
 into something useful. This is the general idea of most parametricity
 proofs.
 
-Now for something a bit more challenging, equivalence in the
+Now we can prove something similar, that
+`(f : a → b → a) ≅ const`. The proof is very similar,
+
+     f ~ const [η]
+     f[τ]\[ν\] ~ const[τ']\[ν'\] \[η[a ↦ R]\[b ↦ S\]\]
+     f[τ]\[ν\] a b ~ a' [η[a ↦ R]\[b ↦ S\]] where a R a'
+
+Now we need to show that `f a b ≅ a`. For this we define `T` to be an
+admissible relationship where `d T d'` if and only if
+`d ≅ a ≅ d'`. From here we also define `U` to be an admissible
+relation where `a U b` if and only if `a ≅ b`.
+
+Now we know that `f ~ f [η]` and so
+
+    f[τ]\[ν\] ~ f[τ']\[ν'\] \[η[a ↦ T]\[b ↦ U\]\]`
+
+And since `a T a` and `b U b`, we know that
+
+    f[τ]\[ν\] a b ~ f[τ']\[ν'\] a b [η[a ↦ T]\[b ↦ U\]]
+
+this means that `f a b ≅ a` and completes our proofs. Hopefully this
+reinforces the idea of using parametricity and admissible
+relationships to produces our properties.
+
 
 ## A Note on Free Theorems
 
