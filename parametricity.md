@@ -300,4 +300,33 @@ proof of isomorphism.
 
 ## A Note on Free Theorems
 
+Now most people in the Haskell community have heard the term "free
+theorem", what they may not realize is that free theorems are a direct
+result of parametricity.
+
+In fact, if you read Wadler's original paper sections 5 and onwards
+establish parametricity. What's interesting here is that Wadler opts
+to establish it in a similar way to how Reynolds did. He first defines
+a mathematical structure called a "type frame".
+
+This structure lets us map a program in something like System F or
+Haskell into pure math functions. From there it defines relationships
+in a similar way to our logical relation and shows it's reflexive.
+
+I didn't opt for this route because
+
+ 1. Denotational semantics scare me a bit
+ 2. Type frames need more math to make sense
+
+It's still definitely worth [reading][wadler] for the curious though.
+
 ## Wrap Up
+
+Now that we've defined parametricity and established a few theorems
+for it, I hope you can start to see the advantage of types to guide
+our programs. General enough types can give us assurances without
+every even looking at the code in question.
+
+Aren't types cool?
+
+[wadler]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.38.9875
