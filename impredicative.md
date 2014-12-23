@@ -59,9 +59,35 @@ appeared within a structure.
 ## Why No One Uses It
 
 Now that we've seen how amazing impredicative polymorphism, let's talk
-about how no one uses it. There are two
+about how no one uses it. There are two main reasons
+
+ 1. GHC's support for impredicative types is fragile at best and
+    broken at worst
+ 2. Avoiding the need for impredicative types is very straightforward
+
+Reason 1 isn't exactly a secret. In fact, SPJ has stated a number of
+times that he'd like to deprecate the extension since it's very hard
+to maintain with everything else going on.
+
+As it stands right now, our only choice is more or less to type check
+a program and add type signatures when GHC decides to instantiate our
+beautiful polymorphic type with fresh monomorphic type variables.
+
+For this reason alone, impredicative types aren't really the most
+useful thing. The final nail in the coffin is that we can easily make
+things more reliable by using newtypes. In lens for example we avoid
+impredicativity with
+
+``` haskell
+    newtype ScopedLens s t a b = ScopedLens {getScopedLens :: Lens s t a b}
+```
+
+This means that instead of impredicative types we just eed rank N
+types, which are much more polished.
 
 ## Wrap Up
 
+Well, I'm sorry to be the bearer of bad news for those who filled out
+`-XImpredicativeTypes` on the poll, but there you are.
 
 [poll]: http://www.stephendiehl.com/posts/poll.html
