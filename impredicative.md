@@ -90,4 +90,12 @@ types, which are much more polished.
 Well, I'm sorry to be the bearer of bad news for those who filled out
 `-XImpredicativeTypes` on the poll, but there you are.
 
+To end on a positive note however, I do know of two example of where
+impredicative types did save the day. I've used impredicative type
+[exactly once][gist] to handle church lists properly. Lennart
+Augustson's [Python DSL][dsl] makes heavy use of them to present a
+unified face for variables.
+
 [poll]: http://www.stephendiehl.com/posts/poll.html
+[gist]: https://gist.github.com/jozefg/d790c0cd09714cc55a5c
+[dsl]:
