@@ -8,22 +8,15 @@ don't know where you've been looking :) If you've ever talked to me in
 real life about why I like types, chances are I mentioned ease of
 reasoning and correctness.
 
-In this post I'd like to talk about one of the more powerful tools we
-have for reasoning about typed programs: parametricity. Parametricity
-is the workhorse behind Wadler's free theorems, why PHOAS always
-generates closed terms, and a whole bunch of other cool stuff.
-
-Actually proving that parametricity is quite subtle. To do it from the
-ground up we'd have to formalize a lot of niggly details about
-static and dynamic semantics and then lots of induction. Instead I'd
-like to show how to rigorously apply parametricity. So we'll be a step
-above handwaving and a step below actually proving everything correct.
+Instead of showing how to prove parametricity I'd like to show how to
+rigorously apply parametricity. So we'll be a step above handwaving
+and a step below actually proving everything correct.
 
 ## What is Parametricity
 
 At a high level parametricity is about the behavior of well typed
-terms. Since the type is polymorphic, we know that it can do only a
-limited amount of things. For example, the type
+terms. It basically says that when we have more polymorphic types,
+there are fewer programs that type check. For example, the type
 
 ``` haskell
     const :: a -> b -> a
@@ -42,19 +35,8 @@ be used to prove that the type
 
 Is completely isomorphic to `[a]`!
 
-We can use parametricity to prove free theorems, like
-
-if
-
-``` haskell
-    map id = id
-```
-
-then
-
-``` haskell
-    map f . map g = map (f . g)
-```
+We can use parametricity to prove free theorems, like if `map id = id`
+then `map f . map g = map (f . g)`.
 
 These are non-obvious properties and yet parametricity gives us the
 power to prove all of them without even looking at the implementation
@@ -77,7 +59,8 @@ value is the one we fed it.
 
 In fact, we can kinda see that this is the *only* thing it could
 do. If it didn't, then somehow it'd have to create a value of type
-`a`, but we know that that's impossible!
+`a`, but we know that that's impossible! (Yeah, yeah, I know,
+bottom. Look the other way for now)
 
 Similarly, if `map id` is just `id`, then we know that `map` isn't
 randomly dropping some elements of our list. Since `map` isn't
@@ -97,9 +80,6 @@ matter how we instantiate a type variable, the behaviour we get is
 related. Instantiating something to `Bool` or `Int` doesn't change the
 fundamental behaviour about what we're instantiated.
 
-We can now set out to define rigorously define what we're really
-talking about.
-
 ## Background
 
 Before we can formally define parametricity we need to flesh out a few
@@ -108,17 +88,17 @@ we're working in. For our purposes, we'll just deal with pure System
 F.
 
     ty ::= v                [Type Variables]
-           ty -> ty         [Function Types]
-           forall v. ty     [Universal Quantification]
-           Bool             [Booleans]
+         | ty -> ty         [Function Types]
+         | forall v. ty     [Universal Quantification]
+         | Bool             [Booleans]
 
     exp ::= v               [Variables]
-            exp exp         [Application]
-            \v : ty -> exp  [Abstraction]
-            Λv -> exp      [Type Abstraction]
-            exp[ty]         [Type Application]
-            true            [Boolean]
-            false           [Boolean]
+          | exp exp         [Application]
+          | λv : ty -> exp  [Abstraction]
+          | Λv -> exp       [Type Abstraction]
+          | exp[ty]         [Type Application]
+          | true            [Boolean]
+          | false           [Boolean]
 
 The only real notable feature of our language is that all polymorphism
 is explicit. In order to have a full polymorphic type we have to use a
@@ -136,9 +116,6 @@ application.
 
 Aside from this, the typing rules for this language are pretty much
 identical to Haskell's. In the interest of brevity I'll elide them.
-
-Now that we have a reasonable framework to go from, we can discuss a
-more precise formulation of parametricity.
 
 ## Actual Parametricity
 
