@@ -180,4 +180,34 @@ the program into these two cases. All in all, not too shabby.
 
 ## Surprise, There Were Docs The Whole Time!
 
+Now I assume that most people didn't actually download the source to
+operational, but you really should! Inside you'll find a whole
+directory, `doc`. It contains a few markdown files with explanations
+and references to the appropriate papers as well as a couple examples
+of actually building things with `operational`.
+
+Now that you understand how the current implementation works, you
+should be able to understand most of what is being said there.
+
+## Wrap Up
+
+So `operational` illustrates a neat trick I rather like: using
+modularity to provide an `O(1)` implementation of `>>=` and hide its
+rule breaking with a view.
+
+This package also drops the positivity requirement that `Free` implies
+with its functor constraint. Which I suppose means you could have
+
+``` haskell
+    data Foo a where
+      Bar :: (a -> ...) -> Bar a
+```
+
+Which is potentially useful.
+
+Last but not least, `operational` really exemplifies having a decent
+amount of documentation even though there's only ~100 lines of code. I
+think the ratio of documentation : code is something like 3 : 1 which
+I at least, really appreciate.
+
 [you-could-have]: http://www.haskellforall.com/2012/06/you-could-have-invented-free-monads.html
