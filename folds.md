@@ -172,4 +172,83 @@ mystery will become clearer as we go.
 
 ## Class
 
+Going in order of the module DAG gives us `Data.Fold.Class.hs`. This
+exports two type classes and one function
+
+``` haskell
+    module Data.Fold.Class
+      ( Scan(..)
+      , Folding(..)
+      , beneath
+      ) where
+```
+
+One thing that worries me a little is that this imports `Control.Lens`
+which I don't understand nearly as well as I'd like to.. We'll see how
+this turns out.
+
+Our first class is
+
+``` haskell
+    class Choice p => Scan p where
+      prefix1 :: a -> p a b -> p a b
+      postfix1 :: p a b -> a -> p a b
+      -- | Apply a 'Folding' to a single element of input
+      run1 :: a -> p a b -> b
+      interspersing :: a -> p a b -> p a b
+```
+
+So right away we notice this is a subclass of `Choice` which is in
+turn a subclass of [`Profunctor`][profunctors]. `Choice` captures the
+ability to pull an `Either` through our profunctor.
+
+``` haskell
+    left' :: p a b -> p (Either a c) (Either b c)
+    right' :: p a b -> p (Either c a) (Either c b)
+```
+
+Note that we can't do this with ordinary profunctors since we'd need a
+function from `Either a c -> a` which isn't complete.
+
+Back to `Scan p`. `Scan p` takes a profunctor which apparently
+represents our folds. We then can prefix the input we supply, postfix
+the input we supply, and run our fold on a single element of
+input. This is a bit weird to me, I'm not sure if the intention is to
+write something like
+
+``` haskell
+    foldList :: Scan p => [a] -> p a b -> b
+    foldList [x] = run1 x
+    foldList (x : xs) = foldList xs . prefix1 x
+```
+
+or something else entirely. Additionally this doesn't really conform
+to my intuition of what a scan is. I'd expect a scan to produce all
+of the intermediate output involved in folding. At this point, with no
+instances in scope, it's a little tricky to see what's supposed to be
+happening here.
+
+Additionally, there are a bunch of default-signature based
+implementations of these methods if your type implements
+`Foldable`. Since this is the next type class in the module let's look
+at that and then skip back to the defaults.
+
+
+
+``` haskell
+    default prefix1 :: Folding p => a -> p a b -> p a b
+    prefix1 = prefix . An
+```
+
+``` haskell
+    default postfix1 :: Folding p => p a b -> a -> p a b
+    postfix1 p = postfix p . An
+```
+
+``` haskell
+    default run1 :: Folding p => a -> p a b -> b
+    run1 = run . An
+    {-# INLINE run1 #-}
+```
 [thoughtpolice]: https://www.fpcomplete.com/user/thoughtpolice/using-reflection
+[profunctors]: https://www.fpcomplete.com/user/liyang/profunctors
