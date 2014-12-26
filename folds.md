@@ -233,22 +233,74 @@ implementations of these methods if your type implements
 `Foldable`. Since this is the next type class in the module let's look
 at that and then skip back to the defaults.
 
-
-
 ``` haskell
-    default prefix1 :: Folding p => a -> p a b -> p a b
-    prefix1 = prefix . An
+    class Scan p => Folding p where
+      prefix :: Foldable t => t a -> p a b -> p a b
+      prefixOf :: Fold s a -> s -> p a b -> p a b
+      postfix :: Foldable t => p a b -> t a -> p a b
+      postfixOf :: Fold s a -> p a b -> s -> p a b
+      run :: Foldable t => t a -> p a b -> b
+      runOf :: Fold s a -> s -> p a b -> b
+      filtering :: (a -> Bool) -> p a b -> p a b
 ```
 
+At this point I looked at a few of the types and my first thought was
+"Oh dammit lens.." but it's actually not so bad! The first thing to do
+is ignore the `*Of` functions which work across lens's `Fold`
+type. There seems to be a nice pair for each "running" function where
+it can work across a `Foldable` container or lens's notion of a fold.
+
 ``` haskell
-    default postfix1 :: Folding p => p a b -> a -> p a b
+      prefix :: Foldable t => t a -> p a b -> p a b
+      postfix :: Foldable t => p a b -> t a -> p a b
+      run :: Foldable t => t a -> p a b -> b
+```
+
+The first two functions let us create a new fold that will accept some
+input and supplement it with a bunch of other inputs. `prefix` gives
+the supplemental input followed by the new input and `postfix` does
+the reverse. We can actually supply input and run the whole thing with
+`run`.
+
+All of these are defined with `folded` from lens which reifies a
+foldable container into a `Fold`. so `foo = fooOf folded` is the
+default implementation for all of these. Now for the corresponding
+fold functions I'm reading them as "If you give me a lens to treat `s`
+as a container that I can get elements from and a fold, I'll feed the
+elements of `s` into the fold."
+
+The types are tricky, but this type class seems to capture what it
+means to run a fold across some type of structure.
+
+Now that we've seen how `An` comes in handy. It's used as a single
+object `Foldable` container. Since it's newtyped, this should
+basically run the same as just passing a single element in.
+
+``` haskell
+    prefix1 = prefix . An
+    run1 = run . An
     postfix1 p = postfix p . An
 ```
 
+So a `Scan` here apparently means a fold over a single element at a
+time. Still not sure why this is deserving of the name `Scan` but
+there you are.
+
+Last but not least we have a notion of dragging a fold through an
+optic with `beneath`.
+
 ``` haskell
-    default run1 :: Folding p => a -> p a b -> b
-    run1 = run . An
-    {-# INLINE run1 #-}
+    beneath :: Profunctor p => Optic p Identity s t a b -> p a b -> p s t
+    beneath l f = runIdentity #. l (Identity #. f)
 ```
+
+Those `#.`'s are like `lmap`s but only work when the function we apply
+is a "runtime identity". Basically this means we should be able to
+tell whether or not we applied the function or just used
+`unsafeCoerce` when running the code. Otherwise all we do is set up
+our fold `f` to work across `Identity` and feed it into the optic.
+
+## Concrete Implementations
+
 [thoughtpolice]: https://www.fpcomplete.com/user/thoughtpolice/using-reflection
 [profunctors]: https://www.fpcomplete.com/user/liyang/profunctors
