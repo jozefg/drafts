@@ -302,5 +302,46 @@ our fold `f` to work across `Identity` and feed it into the optic.
 
 ## Concrete Implementations
 
+Now a lot of the rest of the code is implementing those two type
+classes we went over. To figure out where all these implementations
+are I just ran
+
+    ~$ cabal repl
+      > :info Scan
+      ....
+      instance Scan R1 -- Defined at src/Data/Fold/R1.hs:25:10
+      instance Scan R -- Defined at src/Data/Fold/R.hs:27:10
+      instance Scan M1 -- Defined at src/Data/Fold/M1.hs:25:10
+      instance Scan M -- Defined at src/Data/Fold/M.hs:33:10
+      instance Scan L1' -- Defined at src/Data/Fold/L1'.hs:24:10
+      instance Scan L1 -- Defined at src/Data/Fold/L1.hs:25:10
+      instance Scan L' -- Defined at src/Data/Fold/L'.hs:33:10
+      instance Scan L -- Defined at src/Data/Fold/L.hs:33:10
+
+Looking at the names, I really don't want to go through each of these
+with this much detail. Instead I'll skip all the `*1`'s and go over
+`R`, `L'`, and `M` to get a nice sampling of the sort of folds we
+provide.
+
+### R.hs
+
+Up first is `R.hs`. This defines the first type for a fold we've seen.
+
+``` haskell
+    data R a b = forall r. R (r -> b) (a -> r -> r) r
+```
+
+Reading this as "a right fold from `a` to `b`" we notice a few parts
+here. It looks like that existential `r` encodes our fold's inner
+state and `r -> b` maps the current state into the result of the
+fold. That leaves `a -> r -> r` as the stepping function. All in all
+this doesn't look *too* different from
+
+``` haskell
+    foldAndPresent :: (a -> r -> r) -> r -> (r -> b) -> [a] -> b
+    foldAndPresent f z p = p . foldr f z
+```
+
+
 [thoughtpolice]: https://www.fpcomplete.com/user/thoughtpolice/using-reflection
 [profunctors]: https://www.fpcomplete.com/user/liyang/profunctors
