@@ -5,10 +5,14 @@ tags: haskell
 
 I'd like to go through the `folds` package today. To be honest, I
 hadn't actually heard of this one until someone mentioned it to me on
-/r/haskell but it looks pretty cool.
+/r/haskell but it looks pretty cool. It also has the word "comonadic"
+in the description, how can I resist?
 
 It's similar to Gabriel's `foldl` library, but it also seems to
-provide a wider suite of folds.
+provide a wider suite of types folds. In retrospect, folds has a
+general framework for talking about types of folds and composing them
+where as `foldl` defines only 2 types of folds, but defines a whole
+heap of prebuilt (left) folds.
 
 ## Poking Around
 
@@ -746,11 +750,11 @@ monoidal or right fold to a left one.
 This means that the `AsL'` is a fairly boring class,
 
 ``` haskell
-class (AsRM p, AsL1' p) => AsL' p where
-  asL' :: p a b -> L' a b
+    class (AsRM p, AsL1' p) => AsL' p where
+      asL' :: p a b -> L' a b
 
-instance AsL' L where
-  asL' (L k h z) = L' (\(Box r) -> k r) (\(Box r) a -> Box (h r a)) (Box z)
+    instance AsL' L where
+      asL' (L k h z) = L' (\(Box r) -> k r) (\(Box r) a -> Box (h r a)) (Box z)
 ```
 
 Now we finally see the point of `Box`, it's designed to stubbornly
@@ -769,7 +773,8 @@ quite surprised at how effectively comonadic operations can capture
 compositional folds.
 
 I'm certainly going to make an effort to use this package or Gabriel's
-[foldl][foldl] a bit more.
+[foldl][foldl] a bit more in my random "tiny Haskell utility
+programs".
 
 If you're as entranced by these nice little folding libraries as I am,
 I'd recommend
