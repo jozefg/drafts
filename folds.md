@@ -397,7 +397,7 @@ and `Comonad` instance here.
     instance Monad (R a) where
       return b = R (\() -> b) (\_ () -> ()) ()
       m >>= f = R (\xs a -> run xs (f a)) (:) [] <*> m
-````
+````nn
 
 So nesting a fold within a fold doesn't change the accumulator, only
 the presentation. A nested fold is one that runs and returns a *new*
@@ -458,6 +458,49 @@ One thing that surprised me here was that our state `r` isn't stored
 strictly! That's a bit odd but presumably there's a good reason for
 this.
 
+Now all the instances for `L'` are the same as those for `R` up to
+isomorphism because the types are well.. isomorphic.
+
+The real difference comes in the instances for `Scan` and
+`Fold`. Remember how `Folding R` used `foldr`, well here we just use
+`foldl'`. This has the upshot that all the strictness and whatnot is
+handled entirely by the foldable instance!
+
+``` haskell
+    instance Folding L' where
+      run t (L' k h z)     = k $! foldl' h z t
+      prefix s             = run s . duplicate
+      postfix t s          = extend (run s) t
+
+      runOf l s (L' k h z) = k $! foldlOf' l h z s
+      prefixOf l s         = runOf l s . duplicate
+      postfixOf l t s      = extend (runOf l s) t
+      filtering p (L' k h z) = L' k (\r a -> if p a then h r a else r) z
+```
+
+So everywhere we had `foldr` we have `foldl'`. The other interesting
+switch is that our definitions of `prefix` and `postfix` are almost
+perfectly swapped! This actually makes perfect sense when you think
+about it. In a left fold the state is propagating from the beginning
+to the end versus a right fold where it propagates from the end to the
+beginning! So to prefix something when folding to the left we add it
+to the initial state and when postfixing we use the presentation
+function to take our final state and continue to fold with it.
+
+If you check above, you'll find this to be precisely the opposite of
+what we had for right folds and since they both have the same comonad
+instance, we can swap the two implementations.
+
+In fact, having read the implementation for right folds I'm noticing
+that almost everything in this file is *so* close to what we had
+before. It really seems like there is a clever abstraction just
+waiting to break out.
+
+## M.hs
+
+
+
+## Wrap Up
 
 [reflection]: https://www.fpcomplete.com/user/thoughtpolice/using-reflection
 [profunctors]: https://www.fpcomplete.com/user/liyang/profunctors
