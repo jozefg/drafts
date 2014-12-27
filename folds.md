@@ -521,6 +521,138 @@ waiting to break out.
 
 ## M.hs
 
+Now that we've seen how left and right folds are more or less the
+same, let's try something completely different! `M.hs` captures the
+notion of a `foldMap` and looks pretty different than what we've seen
+before.
+
+First things first, here's the type in question.
+
+``` haskell
+    data M a b = forall m. M (m -> b) (a -> m) (m -> m -> m) m
+```
+
+We still have a presentation function `m -> b`, and we still have an
+internal state `m`. However, we also have a conversion function to map
+our inputted values onto the values we know how to fold together and
+we have a tensor operation `m -> m -> m`.
+
+Now as before we have a profunctor instance
+
+``` haskell
+    instance Profunctor M where
+      dimap f g (M k h m e) = M (g.k) (h.f) m e
+      rmap g (M k h m e) = M (g.k) h m e
+      lmap f (M k h m e) = M k (h.f) m e
+```
+
+Which might start to look familiar from what we've seen so far. Next
+we have a `Choice` instance which is still a little intimidating.
+
+``` haskell
+    instance Choice M where
+      left' (M k h m z) = M (_Left %~ k) (_Left %~ h) step (Left z) where
+        step (Left x) (Left y) = Left (m x y)
+        step (Right c) _ = Right c
+        step _ (Right c) = Right c
+
+      right' (M k h m z) = M (_Right %~ k) (_Right %~ h) step (Right z) where
+        step (Right x) (Right y) = Right (m x y)
+        step (Left c) _ = Left c
+        step _ (Left c) = Left c
+```
+
+As before we use prisms and `%~` to drag our presentation and
+conversion functions into `Either`, similarly our starting state is
+wrapped in the appropriate constructor and we define a new stepping
+function with similar characteristics to what we've seen before.
+
+As before, we've got a wonderful world of monads and comonads to dive
+into now. We'll start with monads here to mix it up.
+
+``` haskell
+    instance Applicative (M a) where
+      pure b = M (\() -> b) (\_ -> ()) (\() () -> ()) ()
+      M xf bx xx xz <*> M ya by yy yz = M
+        (\(Pair' x y) -> xf x $ ya y)
+        (\b -> Pair' (bx b) (by b))
+        (\(Pair' x1 y1) (Pair' x2 y2) -> Pair' (xx x1 x2) (yy y1 y2))
+        (Pair' xz yz)
+
+    instance Monad (M a) where
+      return = pure
+      m >>= f = M (\xs a -> run xs (f a)) One Two Zero <*> m
+```
+
+Our `return`/`pure` just instantiates a trivial fold that consumes
+`()`s and outputs the value we gave it. For `<*>` we run both machines
+strictly next to each other and apply the final result of one to the
+final result of the other.
+
+Bind creates a new fold that creates a tree. This tree contains every
+input fed to it as it's folding and stores each merge a node in the
+tree. While we run this, we also run the original `m` we were
+given. Finally, when we reach the end, we apply `f` to the result of
+`m` and run this over the tree we've created which is foldable.
+
+
+Now for comonad.
+
+``` haskell
+    instance Comonad (M a) where
+      extract (M k _ _ z) = k z
+      duplicate (M k h m z) = M (\n -> M (k . m n) h m z) h m z
+```
+
+We can be pleasantly surprised that most of this code is the
+same. Extraction grabs our current state and presents it. Duplication
+creates a fold which will run and return a new fold. This new fold has
+the same initial state as the original fold, but when it goes to
+present its results it will merge it with the final state of the outer
+fold. This is very different from before and I suspect it will
+significantly impact our `Folding` instance.
+
+``` haskell
+    instance Folding M where
+      run s (M k h m (z :: m)) = reify (m, z) $
+        \ (_ :: Proxy s) -> k $ runN (foldMap (N #. h) s :: N m s)
+      prefix s (M k h m (z :: m)) = reify (m, z) $
+        \ (_ :: Proxy s) -> case runN (foldMap (N #. h) s :: N m s) of
+          x -> M (\y -> k (m x y)) h m z
+      postfix (M k h m (z :: m)) s = reify (m, z) $
+        \ (_ :: Proxy s) -> case runN (foldMap (N #. h) s :: N m s) of
+          y -> M (\x -> k (m x y)) h m z
+      filtering p (M k h m z) = M k (\a -> if p a then h a else z) m z
+```
+
+This was a little intimidating so I took the liberty of ignoring `*Of`
+functions which are pretty much the same as what we have here.
+
+To run a fold we use `foldMap`, but `foldMap` wants to work over
+monoids and we only have `z` and `m`. To promote this to a type class
+we use `reify` and `N`. Remember `N` from way back when? It's the
+data type that uses reflection to yank a tuple out of our context and
+treat it as a monoid instance. In all of this code we use `reify` to
+introduce a tuple to our environment and `N` as a pseudo-monoid that
+uses `m` and `z`.
+
+with this in mind, this code uses `N #. h` which uses the normal
+conversion function to introduce something into the `N` monoid. Then
+`foldMap` takes care of the rest and all we need do is call `runN` to
+extract the results.
+
+`prefix` and `postfix` are actually markedly similar. They both start
+by running the fold over the supplied structure which reduces it to an
+`m`. From there, we create a new fold which is identical in all
+respects except the presentation function. The new presentation
+function uses `m` to combine the pre/post-fixed result with the new
+result. If we're postfixing, the postfixed result is on the right, if
+we're prefixing, the left.
+
+What's particularly stunning is that neither of these leak! We don't
+need to hold onto the structure in our new fold so we can prefix and
+postfix still in constant memory.
+
 
 
 ## Wrap Up
