@@ -565,7 +565,7 @@ we have a `Choice` instance which is still a little intimidating.
 As before we use prisms and `%~` to drag our presentation and
 conversion functions into `Either`, similarly our starting state is
 wrapped in the appropriate constructor and we define a new stepping
-function with similar characteristics to what we've seen before.
+function with similar characteristic's to what we've seen before.
 
 As before, we've got a wonderful world of monads and comonads to dive
 into now. We'll start with monads here to mix it up.
@@ -653,9 +653,35 @@ What's particularly stunning is that neither of these leak! We don't
 need to hold onto the structure in our new fold so we can prefix and
 postfix still in constant memory.
 
+## Fold.hs
 
+Now that we've gone through a bunch of instances of `Folding` and
+`Scanning`, we're in a position to actually look at what `Data.Fold`
+exports.
 
 ## Wrap Up
 
+Now that we've gone through a few concrete implementations and the
+overall structures hopefully this makes sense. I must say, I'm really
+quite surprised at how effectively comonadic operations can capture
+compositional folds.
+
+I'm certainly going to make an effort to use this package or Gabriel's
+[foldl][foldl] a bit more.
+
+If you're as entranced by these nice little folding libraries as I am,
+I'd recommend
+
+ - [Gabriel's post][haskellforall]
+ - [Ed Kmett's post][ekmett]
+ - [Max Rabkin's post][quiz]
+
+Trivia fact: this is the longest article out of all 52 posts on Code &
+Co.
+
 [reflection]: https://www.fpcomplete.com/user/thoughtpolice/using-reflection
 [profunctors]: https://www.fpcomplete.com/user/liyang/profunctors
+[foldl]: http://hackage.haskell.org/package/foldl
+[haskellforall]: http://www.haskellforall.com/2013/08/composable-streaming-folds.html
+[ekmett]: https://www.fpcomplete.com/user/edwardk/cellular-automata/part-2
+[quiz]: http://squing.blogspot.com/2008/11/beautiful-folding.html
