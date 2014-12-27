@@ -735,6 +735,32 @@ associative and apply it at the end. We can't just use `.` though for
 composition because we need to force intermediate results. That's why
 you see `\b g x -> g $! h x b`, it's just strict composition.
 
+It makes sense that we'd bundle right and middle folds together
+because every right fold can be converted to a middle and every middle
+fold to a right. That means that every time we can satisfy one of
+these functions we can build the second.
+
+This isn't the case for left folds where we apparently can't convert a
+monoidal or right fold to a left one.
+
+This means that the `AsL'` is a fairly boring class,
+
+``` haskell
+class (AsRM p, AsL1' p) => AsL' p where
+  asL' :: p a b -> L' a b
+
+instance AsL' L where
+  asL' (L k h z) = L' (\(Box r) -> k r) (\(Box r) a -> Box (h r a)) (Box z)
+```
+
+Now we finally see the point of `Box`, it's designed to stubbornly
+block attempts at making its contents strict. You can see this because
+all the instance for `L` does is wrap everything in `Box`es! Since
+`L'` is the same as `L` with some extra `seq`s, we can use `Box` to
+nullify those attempts at strictness and give us a normal left fold.
+
+That's it! We're done!
+
 ## Wrap Up
 
 Now that we've gone through a few concrete implementations and the
