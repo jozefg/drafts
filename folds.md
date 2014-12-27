@@ -131,7 +131,7 @@ As you'd expect, this implements the same type classes as `Tree`.
 Now is where things get a bit weird. First up is a type for reifying
 monoids using `reflection`. I actually was thinking about doing a post
 on it and then I discovered Austin Seipp has done an
-[outstanding one][thoughtpolice]. So we have this `N` type with the
+[outstanding one][reflection]. So we have this `N` type with the
 definition
 
 ``` haskell
@@ -193,7 +193,6 @@ Our first class is
     class Choice p => Scan p where
       prefix1 :: a -> p a b -> p a b
       postfix1 :: p a b -> a -> p a b
-      -- | Apply a 'Folding' to a single element of input
       run1 :: a -> p a b -> b
       interspersing :: a -> p a b -> p a b
 ```
@@ -342,6 +341,123 @@ this doesn't look *too* different from
     foldAndPresent f z p = p . foldr f z
 ```
 
+The rest of this module is devoted to making a *lot* of instances for
+`R`. Some of these are really uninteresting like `Bind`, but quite a
+few are enlightening. To start with, `Profunctor`.
 
-[thoughtpolice]: https://www.fpcomplete.com/user/thoughtpolice/using-reflection
+``` haskell
+    instance Profunctor R where
+      dimap f g (R k h z) = R (g . k) (h . f) z
+      rmap g (R k h z) = R (g . k) h z
+      lmap f (R k h z) = R k (h . f) z
+```
+
+This should more or less by what you expect since it's really the only
+the way to get the types to fit together. We fit the map from `b -> d`
+onto the presentation piece of the fold and stick the map from
+`a -> c` onto the stepper so it can take the new pieces of input.
+
+Next we have the instance for `Choice`.
+
+``` haskell
+    instance Choice R where
+      left' (R k h z) = R (_Left %~ k) step (Left z) where
+        step (Left x) (Left y) = Left (h x y)
+        step (Right c) _ = Right c
+        step _ (Right c) = Right c
+
+      right' (R k h z) = R (_Right %~ k) step (Right z) where
+        step (Right x) (Right y) = Right (h x y)
+        step (Left c) _ = Left c
+        step _ (Left c) = Left c
+```
+
+This was slightly harder for me to read, but it helps to remember that
+here `_Left %~` and `_Right %~` are just mapping over the left and
+right sides of an `Either`. That clears up the presentation bit. For
+the initial state, when we're pulling our computation through the left
+side we wrap it in a `Left`, when we're pulling it through the right,
+we wrap it in `Right`.
+
+The interesting bit is the new `step` function. It short circuits if
+either our state or our new value is the wrong side of an `Either`
+otherwise it just applies our stepping function and wraps it back up
+as an `Either`.
+
+In addition to being a profunctor, `R` is also a monad and
+comonad. Both of these instances are actually pretty mundane because
+they only affect the presenter: `r -> b`. I'll just show the `Monad`
+and `Comonad` instance here.
+
+``` haskell
+    instance Comonad (R a) where
+      extract (R k _ z) = k z
+      duplicate (R k h z) = R (R k h) h z
+
+    instance Monad (R a) where
+      return b = R (\() -> b) (\_ () -> ()) ()
+      m >>= f = R (\xs a -> run xs (f a)) (:) [] <*> m
+````
+
+So nesting a fold within a fold doesn't change the accumulator, only
+the presentation. A nested fold is one that runs and returns a *new*
+fold which is identical except the starting state is the result of the
+old fold.
+
+So now that we've also got a whole swath of other instances I won't go
+through since they're almost completely determined by these two.
+
+Now we're finally in a position to define our `Scan` and `Folding`
+instances. Since the `Scan` instance can be determined from the
+`Folding` one I'll show `Folding`.
+
+``` haskell
+    instance Folding R where
+      run t (R k h z)     = k (foldr h z t)
+      prefix s            = extend (run s)
+      postfix t s         = run s (duplicate t)
+
+      runOf l s (R k h z) = k (foldrOf l h z s)
+      prefixOf l s        = extend (runOf l s)
+      postfixOf l t s     = runOf l s (duplicate t)
+      filtering p (R k h z) = R k (\a r -> if p a then h a r else r) z
+```
+
+It took some time, but I understand how this works! The first thing to
+notice is that actually running a fold just relies on the `foldr` we
+have from `Foldable`. Postfixing a fold is particularly slick with
+right folds. Remember that `z` represents the accumulated state for
+the remainder of the items in our sequence.
+
+Therefore, to postfix a number of elements all we need do is run the
+fold on the container we're given and store the results as the new
+initial state. This is precisely what happens with
+`run s (duplicate t)`.
+
+Now `prefix` is the inefficient one here. To prefix an element we want
+to change how presentation works. Instead of just using the default
+presentation function, we actually want to take the final state we get
+and run the fold *again* using this prefixing sequence and then
+presenting the result. For this we have another helpful comonandic
+function, `extend`. This leaks because it holds on to the sequence a
+lot longer than it needs to.
+
+The rest of these functions are basically the same thing except maybe
+postfixing (ha) a function with `Of` here and there.
+
+## L'.hs
+
+Next up is (strict) left folds. As with right folds this module
+is just a data type and a bunch of instances for it.
+
+``` haskell
+    forall r. L' (r -> b) (r -> a -> r) r
+```
+
+One thing that surprised me here was that our state `r` isn't stored
+strictly! That's a bit odd but presumably there's a good reason for
+this.
+
+
+[reflection]: https://www.fpcomplete.com/user/thoughtpolice/using-reflection
 [profunctors]: https://www.fpcomplete.com/user/liyang/profunctors
