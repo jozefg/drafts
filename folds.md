@@ -659,6 +659,82 @@ Now that we've gone through a bunch of instances of `Folding` and
 `Scanning`, we're in a position to actually look at what `Data.Fold`
 exports.
 
+``` haskell
+    module Data.Fold
+      ( Scan(..)
+      , Folding(..)
+      , beneath
+      , L1(..)  -- lazy Mealy machine
+      , L1'(..) -- strict Mealy machine
+      , M1(..) -- semigroup reducer
+      , R1(..) -- reversed lazy Mealy machine
+      , L(..) -- lazy Moore machine
+      , L'(..) -- strict Moore machine
+      , M(..) -- monoidal reducer
+      , R(..) -- reversed lazy Moore machine
+      , AsRM1(..)
+      , AsL1'(..)
+      , AsRM(..)
+      , AsL'(..)
+      ) where
+```
+
+So aside from the folds we've examined before, there are 4 new
+classes, `AsRM[1]`, and `AsL[1]'`. We'll look at the non-1 versions.
+
+``` haskell
+    class AsRM1 p => AsRM p where
+      asM :: p a b -> M a b
+      asR :: p a b -> R a b
+```
+
+So this class covers the class of `p`'s that know how to convert
+themselves to middle and right folds. Most of these instances are
+what you'd expect if you've ever done the "write `foldl` as `foldr`"
+trick or similar shenanigan's.
+
+For `M`
+
+``` haskell
+    instance AsRM M where
+      asR (M k h m z) = R k (m.h) z
+      asM = id
+```
+
+`asM` is trivially identity and since `m` is expected to be
+associative we don't really care that `R` is going to associate it
+strictly to the right. We just glue `h` onto the front to map the next
+piece of input into something we know how to merge.
+
+Next is `R`
+
+``` haskell
+    instance AsRM R where
+      asM (R k h z) = M (\f -> k (f z)) h (.) id
+      asR = id
+```
+
+For right folds we do something a bit different. We transform each
+value into a function of type `m -> m` which is the back half of a
+folding function. We can compose these associatively with `.` since
+they are just functions. Finally, when we need to present this, we
+apply this giant pipeline to the initial state and present the
+result. Notice here how we took a nonassociative function and
+bludgeoned it into associativity by partially applying it.
+
+For `L'` we do something similar
+
+``` haskell
+    instance AsRM L' where
+      asR (L' k h z) = R (\f -> k (f z)) (\b g x -> g $! h x b) id
+      asM = asM . asR
+```
+
+We once again build up a pipeline of functions to make everything
+associative and apply it at the end. We can't just use `.` though for
+composition because we need to force intermediate results. That's why
+you see `\b g x -> g $! h x b`, it's just strict composition.
+
 ## Wrap Up
 
 Now that we've gone through a few concrete implementations and the
