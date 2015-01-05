@@ -131,9 +131,9 @@ and the body.
 
 Saturation traverses our AST and expands the application of primitive
 operations so that everything is fully applied. In order to do this it
-occasionally must eta-expand things.
-
-The critical portion of the code is
+occasionally must eta-expand things. In order to do this we recurse
+across the AST. In most places we just proceed on subterms and leave
+everything alone. Indeed, the only interesting part of the code is 3 cases.
 
 ``` haskell
     App (App p@PrimOp{} l) r -> App (App p $ go l) (go r)
@@ -153,6 +153,101 @@ everything by 1.
 I leave `succExpr`s (tedious) implementation to the curious reader.
 
 ## Lifting
+
+The next pass is the biggest simplification of AST. We "flatten" out
+expressions so that rather than having a deeply nested set of
+applications and lambdas, we have a mess of letrecs.
+
+This transformation is captured by traversing the AST and making two
+modifications
+
+     App f e -> LetRec [Bind Nothing $ succExpr 1 e] $ App (succExpr 1 f) (Var 0)
+     Lam c f -> LetRec [Bind c $ Lam c f] (Var 0)
+
+From here we need to propagate all these letrecs up through
+expressions. To do this `Lift.hs` defines a bunch of `merge*`
+functions. These exist to propagate letrecs through a nonbinding
+constructs.
+
+To give an idea of how these works, here's how we propagate things
+through an `App`.
+
+``` haskell
+    mergeApp :: Expr -> Expr -> Expr
+    mergeApp l@(LetRec lbs _) r@(LetRec rbs _) =
+      let LetRec lbs' e  = succExpr (length rbs) l
+          LetRec rbs' e' = succExprFrom (negate $ length rbs) (length lbs) r
+      in LetRec (lbs' ++ rbs') (App e e')
+    mergeApp (LetRec bs e) r =
+      LetRec bs $ App e (succExpr (length bs) r)
+    mergeApp l (LetRec bs e) =
+      LetRec bs $ App (succExpr (length bs) l) e
+    mergeApp l r = App l r
+```
+
+The most complicated case occurs when both the left and the right have
+letrecs. We need to merge these together, but we have to carefully
+escape all the bound variables that occur on both the left and the
+right side.
+
+Now we intend to stick the right bindings later. That means that
+they'll be bound as `length lbs, length lbs + 1, ...`. We want to bump
+all variables on the right side then by `length rbs`. To do this we
+use `succExprFrom`. This is just like `succExpr` but let's us bump all
+variables later than a specific threshold. We set this to
+`- length rbs` as an awful hack to ensure we bump the variables bound
+in that letrec as well.
+
+On the left side the variables bound in the new letrec will have the
+same indice as before. We just need to make sure that all free
+variables outside of it are incremented to dodge the new bindings we
+introduce. To achieve this we `succExpr (length rbs)` everything on
+the left hand side.
+
+After all of this all we need do is combine everything with `++` and
+`App`. It is around this time I lost faith in type systems and began
+worshipping Cthulu. Do you see what DeBruijn indices do to people?
+
+Now we can actually discuss how lambda lifting and argument flattening
+work. Since they actually are quite similar I'll just show lambda
+lifting.
+
+``` haskell
+    lambdaLift :: Expr -> Expr
+    lambdaLift = \case
+      Var i -> Var i
+      Global n -> Global n
+      Lit l -> Lit l
+      Con t es -> mergeCon t (map lambdaLift es)
+      PrimOp p -> PrimOp p
+      Record rs -> mergeRecord (map (fmap lambdaLift) rs)
+      Proj e n -> case lambdaLift e of
+                   LetRec bs e' -> LetRec bs (Proj e' n)
+                   e' -> Proj e' n
+      LetRec bs e -> LetRec (map liftB bs) (lambdaLift e)
+      App l r -> mergeApp (lambdaLift l) (lambdaLift r)
+      Case e alts -> Case (lambdaLift e) (map (fmap lambdaLift) alts)
+      Lam c e -> LetRec [Bind c . Lam c $ skipLambdas e] (Var 0)
+      where liftB (Bind c e) = Bind c (skipLambdas e)
+            skipLambdas (Lam c e) = Lam c (skipLambdas e)
+            skipLambdas e = lambdaLift e
+```
+
+The first few cases just recurse. Occasionally we need to merge the
+letrecs we generate together with the `merge` functions we just
+discussed.
+
+Things start to be interesting with `Lam`. When we get a lambda we
+lift it into a letrec and recur on our bound term. The really
+interesting bit is how we recur. In particular, it's okay to have a
+lambda immediately following another. For this we have
+`skipLambdas`. It cheerfully recurses over all lambdas until we
+finally get something that isn't one. Then we go back to using
+`lambdaLift`.
+
+We're very close to the host language for an STG machine. All we that
+we need now is a few annotations.
+
 ## Closure Annotations
 ## STGify
 ## Code Generation
