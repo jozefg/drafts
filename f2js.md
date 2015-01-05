@@ -305,6 +305,11 @@ After this pass we're ready for conversion into STG land.
 
 ## STGify
 
+Before we get started, we're starting to go into how f2js implements
+it's peculiar little spineless tagless G-machine. It'd be helpful if
+you knew what that meant. I [did write about them earlier][stg] if
+you're not familiar.
+
 Now with our foray into this brave new world we get a new AST.
 
 ``` haskell
@@ -351,36 +356,82 @@ had all these nice DB variable names we now have actual `Name`s. To
 help with generating them we once again enlist
 [`monad-gen`][monad-gen].
 
-I've elided q
+I'll elided a lot of the boring bits of conversion and wanted to focus
+on two cases, `LetRec` and `App`. For `App` we have a function called
+`appChain` who's job it is to try to find a chain of `f a b c`. It
+looks like this.
 
 ``` haskell
-    expr2sexpr :: [Name] -> A.Expr -> Gen Name S.SExpr
-    expr2sexpr ns = \case
-      A.Var i -> return $ S.Var (ns !! i)
-      A.Global n -> return $ S.Var n
-      e | Just (op, atoms) <- appChain ns e ->
-            return $ case op of
-            Right p -> S.Prim p atoms
-            Left n -> S.App n atoms
-      A.Lit l -> return $ S.Lit (lit2slit l)
+    appChain :: [Name] -> A.Expr -> Maybe (Either Name PrimOp, [S.Atom])
+    appChain ns = go []
+      where go as (A.App l r) = go (expr2atom ns r : as) l
+            go as (A.Var i) = Just (Left $ ns !! i, as)
+            go as (A.Global n) = Just (Left n, as)
+            go as (A.PrimOp p) = Just (Right p, as)
+            go _ _ = Nothing
+```
+
+App chain folds left across the expression gather up arguments until
+it either reaches a name or a primop. If we find anything that *not* a
+name or a primop we know we're not at an app chain so we return
+nothing. Additionally, to unroll names we have a list of names where
+the name at indice `i` is the name for `Var i`.
+
+Now we plug this into our conversion function `expr2sexpr` with
+
+``` haskell
+    e | Just (op, atoms) <- appChain ns e ->
+                return $ case op of
+                Right p -> S.Prim p atoms
+                Left n -> S.App n atoms
+```
+
+Notice how the pattern guards automatically handle the process of
+figuring out whether some is or isn't a pattern. It's a useful
+extension.
+
+Next up is letrec. For this we have a function that takes a `Bind` and
+gives us back a closure. Here it is
+
+``` haskell
+    bind2clos ns (A.Bind (Just c) e, i) = do
+                  (body, args) <- unwrapLambdas e
+                  body' <- expr2sexpr (args ++ ns) body
+                  let flag = if null args then S.Update else S.NoUpdate
+                  return S.Decl { S.declName = ns !! i
+                                , S.declClos =
+                                  S.Closure { S.closFlag = flag
+                                            , S.closClos = map (ns !!) c
+                                            , S.closArgs = args
+                                            , S.closBody = Right body' }}
+```
+
+Here `ns` is once again our collection of free variables. In order to
+keep track of where we are in the `letrec` each `Bind` comes annotated
+with `i`, it's position from the start of the list.
+
+Next we unwrap any lambdas contained inside the bind expression. This
+function generates fresh variables so it needs to be inside the `Gen`
+monad. It's very similar to `appChain`.
+
+Next we need to figure out whether or not we can update a closure. For
+now the simple rule that function closures cannot be updated,
+everything else can be suffices. This means that `\x -> x + 1`
+wouldn't ever be updated, but `(\x -> x + 1) 1` would be.
+
+Finally, we recurse on the body and construct the appropriate
+`S.Decl`. For now we just use `!!` to grab the appropriate
+variables. This should be fixed soon.
+
+With `bind2clos` letrec is pleasantly straightforward.
+
+``` haskell
       A.LetRec bs e -> do
         ns' <- (++ ns) <$> replicateM (length bs) gen
         S.Let <$> mapM (bind2clos ns') (zip bs [0..]) <*> expr2sexpr ns' e
-      A.Con t es -> return $ S.Con t (map (expr2atom ns) es)
-      A.Proj e n -> S.Proj <$> expr2sexpr ns e <*> pure n
-      A.Case e alts -> S.Case <$> expr2sexpr ns e <*> mapM (alt2salt ns) alts
-      A.Record rs -> return . S.Lit . S.Record $ map (fmap $ expr2atom ns) rs
-      where bind2clos ns (A.Bind (Just c) e, i) = do
-              (body, args) <- unwrapLambdas e
-              body' <- expr2sexpr (args ++ ns) body
-              let flag = if null args then S.Update else S.NoUpdate
-              return S.Decl { S.declName = ns !! i
-                            , S.declClos =
-                              S.Closure { S.closFlag = flag
-                                        , S.closClos = map (ns !!) c
-                                        , S.closArgs = args
-                                        , S.closBody = Right body' }}
 ```
+
+We generate or fresh stack of variables and recur essentially.
 
 ## Code Generation
 ## The Runtime System
@@ -390,3 +441,4 @@ I've elided q
 [github]: http://github.com/jozefg/f2js
 [db-style]: http://www.wikiwand.com/en/De_Bruijn_index
 [monad-gen]: http://hackage.haskell.org/package/monad-gen
+[stg]: /posts/2014-10-28-stg.html
