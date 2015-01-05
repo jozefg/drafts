@@ -304,6 +304,84 @@ calling `freeVars` to produce annotations.
 After this pass we're ready for conversion into STG land.
 
 ## STGify
+
+Now with our foray into this brave new world we get a new AST.
+
+``` haskell
+    data UpdateFlag = Update | NoUpdate
+
+    data Decl = Decl { declName :: Name
+                     , declClos :: Closure }
+
+    data Closure = Closure { closFlag :: UpdateFlag
+                           , closClos :: [Name]
+                           , closArgs :: [Name]
+                           , closBody :: Either String SExpr }
+
+    data Lit = String String | Double Double | Record [(Name, Atom)] | Bool Bool
+    data Atom = NameAtom Name | LitAtom Lit
+
+    data Pat = LitPat Lit
+             | WildPat
+             | ConPat Tag [Name]
+
+    data SExpr = Let [Decl] SExpr
+               | App Name [Atom]
+               | Con Tag [Atom]
+               | Prim PrimOp [Atom]
+               | Case SExpr [(Pat, SExpr)]
+               | Lit Lit
+               | Var Name
+               | Proj SExpr Name
+```
+
+Sorry to drop all this code on you. But most of it should be at least
+familiar. The biggest difference is everything is closure oriented
+now. Functions are represented as closures. Bindings are represented
+with closures. Even declarations are just closures. Additionally, this
+AST is a bit simpler. Application, primops, and constructors can only
+be applied to literals and variables, atoms.
+
+These two factors combined make this AST excellent for code
+generation, but first we need to actually map the AST we have into the
+AST we want.
+
+Another thing we have to what out for is the names. Where before we
+had all these nice DB variable names we now have actual `Name`s. To
+help with generating them we once again enlist
+[`monad-gen`][monad-gen].
+
+I've elided q
+
+``` haskell
+    expr2sexpr :: [Name] -> A.Expr -> Gen Name S.SExpr
+    expr2sexpr ns = \case
+      A.Var i -> return $ S.Var (ns !! i)
+      A.Global n -> return $ S.Var n
+      e | Just (op, atoms) <- appChain ns e ->
+            return $ case op of
+            Right p -> S.Prim p atoms
+            Left n -> S.App n atoms
+      A.Lit l -> return $ S.Lit (lit2slit l)
+      A.LetRec bs e -> do
+        ns' <- (++ ns) <$> replicateM (length bs) gen
+        S.Let <$> mapM (bind2clos ns') (zip bs [0..]) <*> expr2sexpr ns' e
+      A.Con t es -> return $ S.Con t (map (expr2atom ns) es)
+      A.Proj e n -> S.Proj <$> expr2sexpr ns e <*> pure n
+      A.Case e alts -> S.Case <$> expr2sexpr ns e <*> mapM (alt2salt ns) alts
+      A.Record rs -> return . S.Lit . S.Record $ map (fmap $ expr2atom ns) rs
+      where bind2clos ns (A.Bind (Just c) e, i) = do
+              (body, args) <- unwrapLambdas e
+              body' <- expr2sexpr (args ++ ns) body
+              let flag = if null args then S.Update else S.NoUpdate
+              return S.Decl { S.declName = ns !! i
+                            , S.declClos =
+                              S.Closure { S.closFlag = flag
+                                        , S.closClos = map (ns !!) c
+                                        , S.closArgs = args
+                                        , S.closBody = Right body' }}
+```
+
 ## Code Generation
 ## The Runtime System
 ## Future Work
@@ -311,3 +389,4 @@ After this pass we're ready for conversion into STG land.
 
 [github]: http://github.com/jozefg/f2js
 [db-style]: http://www.wikiwand.com/en/De_Bruijn_index
+[monad-gen]: http://hackage.haskell.org/package/monad-gen
