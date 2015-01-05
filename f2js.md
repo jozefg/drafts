@@ -402,7 +402,7 @@ gives us back a closure. Here it is
                                 , S.declClos =
                                   S.Closure { S.closFlag = flag
                                             , S.closClos = map (ns !!) c
-                                            , S.closArgs = args
+                                            , SannotatedArgs = args
                                             , S.closBody = Right body' }}
 ```
 
@@ -434,6 +434,42 @@ With `bind2clos` letrec is pleasantly straightforward.
 We generate or fresh stack of variables and recur essentially.
 
 ## Code Generation
+
+Unfortunately `CodeGen.hs` is a reasonably large file (~300 lines)
+which hints I really ought to split this out into an abstract machine
+represented with a normal AST and *then* codegen, but things are still
+passable at the moment.
+
+This is where we actually start spitting JS. In order to do this with
+use [js-good-parts][js]. The basic idea is the same as outlined in the
+STG post I linked to above. We push arguments onto the argument stack,
+push continuations onto the continuation stack, and push evaluated
+results onto the evaluated stack. In actuality we could cleverly turn
+this into one structure, but I haven't done this yet.
+
+It's easiest to handle this code top down, so here's the driver for
+the whole thing
+
+``` haskell
+    expr :: SExpr -> [J.Stmt]
+    expr = \case
+      Var n -> [enter (J.ExprName $ jvar n)]
+      App n as -> app (jvar n) (map atom as)
+      Prim p [l, r] -> primOp p (atom l) (atom r)
+      Proj e n -> pushCont (projCont $ jvar n) : expr e
+      Lit l -> [enter . mkLit $ lit l]
+      Con t as -> [enter $ con t (map atom as)]
+      Let ds e -> [letrec (map compileClos ds) (expr e)]
+      Case e alts -> (pushCont . matchCont $ map (fmap fnBody) alts) : expr e
+```
+
+Going through this branch by branch, when we get a variable we convert
+it to it's JS equivalent and enter its closure. When we have an
+application we call `app` which pushes all the atoms onto the arg
+stack and jump into the variable's closure.
+
+The story is a bit different for primops since we need to evaluate them.
+
 ## The Runtime System
 ## Future Work
 ## Wrap Up
@@ -442,3 +478,4 @@ We generate or fresh stack of variables and recur essentially.
 [db-style]: http://www.wikiwand.com/en/De_Bruijn_index
 [monad-gen]: http://hackage.haskell.org/package/monad-gen
 [stg]: /posts/2014-10-28-stg.html
+[js]: http://hackage.haskell.org/package/js-good-parts
