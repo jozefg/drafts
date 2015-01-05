@@ -249,6 +249,60 @@ We're very close to the host language for an STG machine. All we that
 we need now is a few annotations.
 
 ## Closure Annotations
+
+Next up is closure annotating. The basic idea is as we go through the
+expression we look at each binder and annotate it with the free
+variables it closes over.
+
+First things first, we need to figure out what those free variables are.
+
+``` haskell
+    freeVars :: Expr -> S.Set Int
+    freeVars = \case
+      Var i -> S.singleton i
+      Record rs -> foldMap freeVars (fmap snd rs)
+      Proj e _ -> freeVars e
+      LetRec binds b -> prune (length binds)
+                        $ foldMap freeVars (b : map body binds)
+      Lam _ e -> prune 1 $ freeVars e
+      App l r -> freeVars l `S.union` freeVars r
+      Case e alts -> freeVars e `S.union` foldMap freePat alts
+      Con _ es -> foldMap freeVars es
+      _ -> S.empty
+      where prune n = S.map (subtract n) . S.filter (>= n)
+            freePat (LitPat _, e) = freeVars e
+            freePat (WildPat, e) = freeVars e
+            freePat (ConPat _ i, e) = prune i $ freeVars e
+```
+
+For this we have `freeVars`. We traverse the expression and `S.union`
+free variables together at recurrences. What's particularly fun is
+when we get to a binder. We reduce all the free variables under it by
+the amount of free variables bound. Since negative DB variables don't
+make sense, we filter all those out.
+
+Now with this in hand closure annotation is quite straightforward.
+
+``` haskell
+    annClos :: Expr -> Expr
+    annClos = \case
+      Record ns -> Record (map (fmap annClos) ns)
+      Proj e n -> Proj (annClos e) n
+      LetRec binds e -> LetRec (map annB binds) (annClos e)
+      l@(Lam _ e) -> Lam (clos l) (annClos e)
+      App l r -> App (annClos l) (annClos r)
+      Case e bs -> Case (annClos e) (map (fmap annClos) bs)
+      Con t es -> Con t (map annClos es)
+      e -> e
+      where clos = Just . S.toList . freeVars
+            annB (Bind _ e) = Bind (clos e) (annClos e)
+```
+
+This proceeds much as you would expect, recursing and occasionally
+calling `freeVars` to produce annotations.
+
+After this pass we're ready for conversion into STG land.
+
 ## STGify
 ## Code Generation
 ## The Runtime System
