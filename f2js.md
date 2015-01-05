@@ -86,11 +86,26 @@ Also at the leaves our AST we have variables. There are two
 types. Global variables are tagged with the abstract `Name`. Local
 variables are stored [DeBruijn style][db-style]. Aside from this our
 expression language is pretty much what you'd expect from a Haskell or
-ML. We have tagged unions with `Con`. In Haskell were we'd say
-`Just x`, in this language we'd say `Con tagForJust [x]`.
+ML. We have application with `App`, lambda expressions (using DB
+indices) and letrec.
 
-Since JavaScript has records lying around we incorporate them into our
-language as well. We can project fields out of record with `Proj`.
+In addition to the staples, we have tagged unions with `Con`. In
+Haskell were we'd say `Just x`, in this language we'd say
+`Con tagForJust [x]`. Since JavaScript has records lying around we
+incorporate them into our language as well. We can project fields out
+of record with `Proj`.
+
+Like any good functional language we have pattern matching. We can
+match literals as hinted before. Additionally we can pattern match on
+tagged constructors. Since we're using DB variables rather than actual
+names we annotate the pattern match with arity of the constructor. A
+clever person would bake this arity right into the `Tag`, but I am not
+them.
+
+The observant reader will have noted the `Maybe Closure` decorating a
+lambda. Indeed this will become relevant later. A closure supposed to
+represent the set of free variables our term contains. Since are our
+local variables are DB, our closure is just a list of integers.
 
 ``` haskell
     type Closure = [Int]
@@ -98,7 +113,16 @@ language as well. We can project fields out of record with `Proj`.
     data Bind = Bind { closure :: Maybe Closure
                      , body    :: Expr }
               deriving Show
+```
 
+With this in mind the binding for our letrec's should make sense as
+well. They'll need to be closured later on so they also have an
+optional annotation.
+
+Finally, each top level is a name, the number of arguments it expects,
+and the body.
+
+``` haskell
     data Decl = TopLevel Name Int Expr
               deriving Show
 ```
@@ -117,12 +141,23 @@ The critical portion of the code is
     p@PrimOp{} -> Lam Nothing . Lam Nothing $ App (App p $ Var 1) (Var 0)
 ```
 
+If we see a primop applied twice, we can leave it alone, otherwise we
+have to saturate it by adding the appropriate amount of lambdas to eta
+expand it. One interesting thing here is that in the process of eta
+expanding we introduce a new binder. This could potentially mess up
+the `r` when we're dealing with a primop applied to one argument. In
+order to fix this we call `succExpr`. This bumps all free DB variables
+by a certain amount. In this case we introduce one binder so we bump
+everything by 1.
+
+I leave `succExpr`s (tedious) implementation to the curious reader.
+
 ## Lifting
 ## Closure Annotations
 ## STGify
 ## Code Generation
 ## The Runtime System
-## Things I Dislike About `f2js`
+## Future Work
 ## Wrap Up
 
 [github]: http://github.com/jozefg/f2js
