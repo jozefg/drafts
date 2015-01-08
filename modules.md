@@ -5,13 +5,13 @@ tags: sml, haskell
 
 I was having lunch with a couple of Haskell programmers the other day
 and the subject of the ML family came up. I've been writing a lot of
-ML lately and mentioned that I thought SML was well worth learning for
+ML lately and mentioned that I thought *ML was well worth learning for
 the average Haskeller. When pressed why the best answer I could come
 up with was "Well.. clean language, Oh! And an awesome module system"
-which wasn't my most compelling response.
+which wasn't my exactly most compelling response.
 
 I'd like to outline a bit of SML module system here to help
-substantiate why looking at SML is a Good Thing. All the code here
+substantiate why looking at an ML is A Good Thing. All the code here
 should be translatable to OCaml if that's more your taste.
 
 ## Concepts
@@ -20,19 +20,23 @@ In ML languages modules are a well thought out portion of the
 language. They aren't just "Oh we need to separate these
 names... modules should work". Like any good language they have
 methods for abstraction and composition. Additionally, like any good
-part of an ML language, modules have an expressive type language.
+part of an ML language, modules have an expressive type language for
+mediating how composition and abstraction works.
 
 So to explain how this module system functions as a whole, we'll cover
-3 parts
+3 subjects
 
  1. Structures
  2. Signatures
  3. Functors
 
+Giving a cursory overview of what each thing is and how it might be
+used.
+
 ## Structures
 
 Structures are the values in the module language. They are how we
-actually create a module. They look like this.
+actually create a module. The syntax for them is
 
 ``` sml
     struct
@@ -113,7 +117,7 @@ language of structures.
 ## Signatures
 
 Now for the same reason we love types in the term language (safety,
-readability, programming-by-holes) they're useful in the module
+readability, insert-semireligious-rant) we'd like them in the module
 language. Happily ML comes equipped with a feature called
 signatures. Signature values look a lot like structures
 
@@ -125,11 +129,10 @@ signatures. Signature values look a lot like structures
 ```
 
 So a signature is a list of declarations *without* any
-implementations. We can list data types, other modules, and even
-functions and values but we won't provide any actual code to run
+implementations. We can list algebraic data types, other modules, and
+even functions and values but we won't provide any actual code to run
 them. I like to think of signatures as what most documentation
-rendering tools show for a module. This is especially true when a
-kindly soul actually remembers to document the signature.
+rendering tools show for a module.
 
 As we had with structures, signatures can be given names.
 
@@ -137,7 +140,7 @@ As we had with structures, signatures can be given names.
     signature MSIG = sig val x : int end
 ```
 
-On there own signatures are a bit useless, the whole point is that we
+On their own signatures are quite useless, the whole point is that we
 can apply them to modules after all! To do this we use `:` just like
 in the term language.
 
@@ -154,7 +157,7 @@ to both module variables and structure values themselves.
 ```
 
 One interesting feature of signatures is the ability to leave certain
-types abstract. For example, when implementing a hashmap the actual
+types abstract. For example, when implementing a map the actual
 implementation of the core data type doesn't belong in the signature.
 
 ``` sml
@@ -170,11 +173,11 @@ implementation of the core data type doesn't belong in the signature.
 ```
 
 Notice that the type of keys and tables are left abstract. When
-implementers implement'ssignature they can do so in two ways, weak or
-strong ascription. Weak ascription (`:`) means that the constructors of
-abstract types are still accessible, but the signature *does* hide all
-unrelated declarations in the module. Strong ascription (`:>`) makes the
-abstract types actually abstract.
+someone applies a signature they can do so in two ways, weak or
+strong ascription. Weak ascription (`:`) means that the constructors
+of abstract types are still accessible, but the signature *does* hide
+all unrelated declarations in the module. Strong ascription (`:>`)
+makes the abstract types actually abstract.
 
 Every once in a while we need to modify a signature. We can do this
 with the keywords `where type`. For example, we might implement a
@@ -200,7 +203,10 @@ certain signature to functions of a different signature.
 
 Jumping back to our earlier example of maps, the equivalent in Haskell
 land is `Data.Map`. The big difference is that Haskell gives us maps
-for all keys that implement `Ord`. We can represent this in SML with
+for all keys that implement `Ord`. Our signature doesn't give us a
+clear way to associate all these different modules, one for each
+`Ord`erable key, that are really the same thing. We can represent this
+relationship in SML with
 
 ``` sml
     signature ORD =
