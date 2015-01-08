@@ -42,6 +42,10 @@ actually create a module. They look like this.
     end
 ```
 
+*A quick note to Haskellers, in ML types are lower case and type
+ variables are written with 's. Type constructors are applied
+ "backwards" so `List a` is `'a list`.*
+
 So they're just a bunch of a declarations stuffed in between a
 `struct` and `end`. This is a bit useless if we can't bind it to a
 name. For that there's
