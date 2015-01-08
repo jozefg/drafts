@@ -98,17 +98,11 @@ So a program with the type `(a, b)` is really a proof that `a ∧ b` is
 true. Here the truthfulness of a proposition really means that the
 corresponding type can be occupied by a program!
 
-I don't want to spend the rest of this post discussing just this idea
-of types-as-props, so I refer you to these blog posts if you're not
-already familiar
+Now, onto why this logic we get is constructive. Recall our two
+conditions for a logic being constructive, first is that if `∃x. A(x)`
+is provable then there's a specific `t` where `A(t)` is provable.
 
- - TODO FILL OUT LINKS
-
-Now, onto why this logic is constructive. Recall our two conditions
-for a logic being constructive, first is that if `∃x. A(x)` is provable
-then there's a specific `t` where `A(t)` is provable.
-
-Under the Curry Howard isomorphism, ∃ is mapped to existantial types
+Under the Curry Howard isomorphism, ∃ is mapped to existential types
 (I wonder how that got its name :). That means that a proof of
 `∃x. A(x)` is something like
 
