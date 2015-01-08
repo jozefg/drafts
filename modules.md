@@ -166,7 +166,7 @@ implementation of the core data type doesn't belong in the signature.
 ```
 
 Notice that the type of keys and tables are left abstract. When
-implementers apply the signature they can do so in two ways, weak or
+implementers implement'ssignature they can do so in two ways, weak or
 strong ascription. Weak ascription (`:`) means that the constructors of
 abstract types are still accessible, but the signature *does* hide all
 unrelated declarations in the module. Strong ascription (`:>`) makes the
@@ -188,5 +188,77 @@ the keys to an int.
 Last but not least, let's talk about abstraction in module land.
 
 ## Functors
+
+Last but not least let's talk about the "killer feature" of ML module
+systems: functors. Functors are the "lifting" of functions into the
+module language. A functor is a function that maps modules with a
+certain signature to functions of a different signature.
+
+Jumping back to our earlier example of maps, the equivalent in Haskell
+land is `Data.Map`. The big difference is that Haskell gives us maps
+for all keys that implement `Ord`. We can represent this in SML with
+
+``` sml
+    signature ORD =
+      sig
+        type t
+        val compare : t * t -> order
+      end
+
+    functor RBTree (O : ORD) : MAP where type key = O.t =
+      struct
+        open O
+        ....
+      end
+```
+
+Which reads as "For any module implementing `Ord`, I can give you a
+module implementing `MAP` which keys of type `O.t`". We can then
+instantiate these
+
+``` sml
+    structure IntOrd =
+      struct
+        type t = int
+        val compare = Int.compare end
+      end
+    structure IntMap = RBTree(IntOrd)
+```
+
+Sadly SML's module language isn't higher order. This means we can't
+assign functors a type (there isn't an equivalent of `->`) and we
+can't pass functors to functors. Even with this restriction functors
+are tremendously useful.
+
+One interesting difference between SML and OCaml is how functors
+handle abstract types. Specifically, is it the case that
+
+    F(M).t = F(M).t
+
+In SML the answer is (surprisingly) no! Applying a functor generates
+brand new abstract types. This is actually beneficial when you
+remember SML and OCaml aren't pure. For example you might write a
+functor for handling symbol tables and internally use a mutable symbol
+table. One nifty trick would be to keep of type of symbols
+abstract. If you only give back a symbol upon registering something in
+the table, this would mean that all symbols a user can supply are
+guaranteed to correspond to some entry.
+
+This falls apart however if functors are extensional. Consider the
+following REPL session
+
+``` sml
+    > structure S1 = SymbolTable(WhateverParameters)
+    > structure S2 = SymbolTable(WhateverParameters)
+    > val key = S1.register "I'm an entry"
+    > S2.lookup key
+    Error: no such key!
+```
+
+This will not work if `S1` and `S2` have separate key types.
+
+To my knowledge, the general conclusion is that generative functors
+(ala SML) are good for impure code, but applicative functors (ala
+OCaml and BackPack) really shine with pure code.
 
 ## Wrap Up
