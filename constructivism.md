@@ -179,4 +179,21 @@ or `Right ...` since it cannot inspect the `a` it's quantifying
 over. However, since we have at least one type that's occupied and one
 that's not, `lem` would have to return the wrong answer in some
 cases. In fact, with fancier types we can show that a constructive
-proof of `lem` would function as an oracle to the halting problem.
+proof of `lem` would function as an oracle to the halting problem
+(left as an exercise to the reader).
+
+## Wrap Up
+
+Hopefully this helps clarify what exactly people mean when they say
+Haskell corresponds to a constructive logic or programs are
+proofs. Indeed this idea gives rise to a really cool thing called
+"proof relevant mathematics". This is mathematics done purely with
+constructive proofs. One of the latest ideas to trickle from
+mathematics to computers is homotopy type theory where we take a proof
+relevant look at identity types.
+
+Before I wrap up I wanted to share one little joke heard. Constructive
+mathematics has found a home in automated proof systems. Imagine
+Brouwer's horror at hearing we do "intuitionist" proofs that no one
+will ever look at or try to understand beyond some random mechanical
+proof assistant!
