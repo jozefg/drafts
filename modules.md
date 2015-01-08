@@ -37,7 +37,7 @@ actually create a module. They look like this.
 ``` sml
     struct
       fun flip f x y = f y x
-      datatype 'a list = Con ('a * 'a list) | Nil
+      datatype 'a list = Con of ('a * 'a list) | Nil
       ...
     end
 ```
@@ -107,3 +107,86 @@ Up next is a look at what sort of type system we can impose on our
 language of structures.
 
 ## Signatures
+
+Now for the same reason we love types in the term language (safety,
+readability, programming-by-holes) they're useful in the module
+language. Happily ML comes equipped with a feature called
+signatures. Signature values look a lot like structures
+
+``` sml
+    sig
+      val x : int
+      datatype 'a list = Cons of ('a * 'a list) | Nil
+    end
+```
+
+So a signature is a list of declarations *without* any
+implementations. We can list data types, other modules, and even
+functions and values but we won't provide any actual code to run
+them. I like to think of signatures as what most documentation
+rendering tools show for a module. This is especially true when a
+kindly soul actually remembers to document the signature.
+
+As we had with structures, signatures can be given names.
+
+``` sml
+    signature MSIG = sig val x : int end
+```
+
+On there own signatures are a bit useless, the whole point is that we
+can apply them to modules after all! To do this we use `:` just like
+in the term language.
+
+``` sml
+    structure M : MSIG = struct val x = 1 end
+```
+
+When compiled, this will check that `M` has at least the field
+`x : int` inside its structure. We can apply signatures retroactively
+to both module variables and structure values themselves.
+
+``` sml
+    structure M : MSIG = struct val x = 1 end : MSIG
+```
+
+One interesting feature of signatures is the ability to leave certain
+types abstract. For example, when implementing a hashmap the actual
+implementation of the core data type doesn't belong in the signature.
+
+``` sml
+    signature MAP =
+      sig
+        type key
+        type 'a table
+
+        val empty : 'a table
+        val insert : key -> 'a -> 'a table -> 'a table
+        val lookup : key -> 'a table -> 'a option
+      end
+```
+
+Notice that the type of keys and tables are left abstract. When
+implementers apply the signature they can do so in two ways, weak or
+strong ascription. Weak ascription (`:`) means that the constructors of
+abstract types are still accessible, but the signature *does* hide all
+unrelated declarations in the module. Strong ascription (`:>`) makes the
+abstract types actually abstract.
+
+Every once in a while we need to modify a signature. We can do this
+with the keywords `where type`. For example, we might implement a
+specialization of `MAP` for integer keys and want our signature to
+express this
+
+``` sml
+    structure IntMap :> MAP where type key = int =
+      struct ... end
+```
+
+This incantation leaves the type of the table abstract but specializes
+the keys to an int.
+
+Last but not least, let's talk about abstraction in module land.
+
+## Functors
+
+## Wrap Up
