@@ -262,3 +262,19 @@ To my knowledge, the general conclusion is that generative functors
 OCaml and BackPack) really shine with pure code.
 
 ## Wrap Up
+
+We've covered a lot of ground in this post. This wasn't an exhaustive
+tour of every feature of ML module systems, but hopefully I got the
+jist across.
+
+If there's one point to take home: In a lot of languages modules are
+clearly a bolted on construction. They're something added on later to
+fix "that library problem" and generally consist of the same "module
+<-> file" and "A module imports others to bring them into scope". In
+ML that's simply not the case. The module language is a rich, well
+thought out thing with it's own methods of abstraction, composition,
+and even a notion of types!
+
+I wholeheartedly recommend messing around a bit with OCaml or SML to
+see how having these things impacts your thought process. I think
+you'll be pleasantly surprised.
