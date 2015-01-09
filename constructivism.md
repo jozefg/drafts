@@ -182,14 +182,14 @@ proof of `lem` would function as an oracle to the halting problem
 
 Hopefully this helps clarify what exactly people mean when they say
 Haskell corresponds to a constructive logic or programs are
-proofs. Indeed this idea gives rise to a really cool thing called
-"proof relevant mathematics". This is mathematics done purely with
-constructive proofs. One of the latest ideas to trickle from
+proofs. Indeed this constructivism gives rise to a really cool thing
+called "proof relevant mathematics". This is mathematics done purely
+with constructive proofs. One of the latest ideas to trickle from
 mathematics to computers is homotopy type theory where we take a proof
 relevant look at identity types.
 
-Before I wrap up I wanted to share one little joke heard. Constructive
-mathematics has found a home in automated proof systems. Imagine
-Brouwer's horror at hearing we do "intuitionist" proofs that no one
-will ever look at or try to understand beyond some random mechanical
-proof assistant!
+Before I wrap up I wanted to share one funny little thought I
+heard. Constructive mathematics has found a home in automated proof
+systems. Imagine Brouwer's horror at hearing we do "intuitionist"
+proofs that no one will ever look at or try to understand beyond some
+random mechanical proof assistant!
