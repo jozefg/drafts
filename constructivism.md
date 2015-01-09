@@ -27,13 +27,13 @@ defined as a mathematical proposition.
 He settled on the idea of proof being a sort of subjective and
 personal thing. I know something is true if and only if I can
 formulate some intuitive proof of it. When viewed this way, the proof
-I scribble down on paper doesn't actually validate its truth
-fullness. It's merely a serialization of my thought process for
+I scribble down on paper doesn't actually validate something's
+truthfulness. It's merely a serialization of my thought process for
 validating its truthfulness.
 
 Notice that this line of reasoning doesn't actually specify a precise
 definition of what verifying something intuitively means. I interprets
-this idea as something slightly more meta then a single formal
+this idea as something slightly more meta then any single formal
 system. Rather, when looking a formal system, you ought to verify that
 its axioms are admissible by your own intuition and then you may go on
 to accept proofs built off of these axioms.
@@ -69,7 +69,8 @@ If you want to think about this negatively, we lose
 
 I carefully chose the words "being provable" because we can easily
 introduce these as a hypothesis to a proof and still have a sound
-system. They're just not a readily available tool.
+system. Indeed this is not uncommon when working in Coq or
+Agda. They're just not a readily available tool.
 
 There are a lot of different incarnations of constructive logic, in
 fact pretty much every logic has a constructive cousin. They all share
@@ -77,10 +78,10 @@ this notion of "We need a direct proof to be true" however.
 
 ## Who on Earth Cares?
 
-Now constructive logic probably sounds reasonable, if weird, it
+Now while constructive logic probably sounds reasonable, if weird, it
 doesn't immediately strike me as particularly useful! Indeed, the main
 reason why computer science cares about constructivism is because we
-all use it already!
+all use it already.
 
 To better understand this, let's talk about the Curry-Howard
 isomorphism. It states that there's a mapping from a type to a logical
@@ -88,15 +89,17 @@ proposition and from a program to a proof.
 
 To show some of the mappings for types
 
+``` haskell
     CH(Either a b) = CH(a) ∨ CH(b)
     CH((a, b))     = CH(a) ∧ CH(b)
-    CH( () )       = ⊤
-    CH(Void)       = ⊥
+    CH( () )       = ⊤ -- True
+    CH(Void)       = ⊥ -- False
     CH(a -> b)     = CH(a) → CH(b)
+```
 
 So a program with the type `(a, b)` is really a proof that `a ∧ b` is
 true. Here the truthfulness of a proposition really means that the
-corresponding type can be occupied by a program!
+corresponding type can be occupied by a program.
 
 Now, onto why this logic we get is constructive. Recall our two
 conditions for a logic being constructive, first is that if `∃x. A(x)`
@@ -105,7 +108,6 @@ is provable then there's a specific `t` where `A(t)` is provable.
 Under the Curry Howard isomorphism, ∃ is mapped to existential types
 (I wonder how that got its name :). That means that a proof of
 `∃x. A(x)` is something like
-
 
 ``` haskell
     data Exists f = forall x. Exists f x
@@ -137,9 +139,9 @@ construct but we're not sure which since we have to be able to
 actually run this program! If we evaluate a program with the type
 `Either a b` we're guaranteed to get either `Left a` or `Right b`.
 
-What about the more negative consequences of constructivism? We threw
-out double negation and LEM. In programming terms saying we're
-constructivist means we can't write these two functions.
+What about the more negative consequences of constructivism? We
+supposed to through out double negation and LEM. In programming terms
+saying we're constructivist means we can't write these two functions.
 
 ``` haskell
     data Void
