@@ -24,6 +24,85 @@ Modal logic provides a framework for us to discuss these
 interdependent worlds and make statements and proofs in them.
 
 ## Rules for A Simple Logic
+
+To start with let's describe how the modal logic we described above
+(with □ and ◇) would look.
+
+First we have the syntax
+
+    A ::= □ A
+       |  ◇ A
+       |    ⊤
+       |    ⊥
+       |  A ∧ B
+       |  A ∨ B
+       |  A ⇒ B
+    Γ ::= • | Γ, A true | Γ, A valid
+    Δ ::= • | Γ, A valid
+
+So we have ◇ and □ as "modalities" that modify propositions and then a
+normal logical connectives. Let's define the rules for the judgments
+
+     Δ; Γ ⊢ A true
+     Δ; Γ ⊢ A valid
+     Δ; Γ ⊢ A lax
+
+simultaneously. I'll shorten `A true` to `A`.
+
+    ————————                  Δ; • ⊢ A
+    Δ; Γ ⊢ ⊤               ——————————————
+                           Δ; Γ ⊢ A valid
+    Δ; Γ ⊢ A    Δ; Γ ⊢ B
+    ————————————————–——–     Δ; Γ ⊢ A
+       Δ; Γ ⊢ A ∧ B        —————————————
+                           Δ; Γ ⊢ A poss
+      Δ; Γ ⊢ A
+    ————————————           Δ; Γ ⊢ A valid
+    Δ; Γ ⊢ A ∨ B           ——————————————
+                             Δ; Γ ⊢ □ A
+      Δ; Γ ⊢ B
+    ————————————           Δ; Γ ⊢ A poss
+    Δ; Γ ⊢ A ∨ B           —————————————
+                             Δ; Γ ⊢ ◇ A
+     Δ; Γ, A ⊢ B
+    ————————————
+    Δ; Γ ⊢ A ⇒ B
+
+The only interesting introduction rules are the four on the right, a
+valid proposition can be introduced if and only if it doesn't depend
+no the context of `true` and `poss` things. A possible thing can be
+introduced by a true thing. Finally, □ and ◇ are just reflections of
+the `poss` and `valid` judgments into the `true` one.
+
+For elimination rules
+
+    ———————————
+    Δ; Γ, ⊥ ⊢ C
+
+    Δ; Γ, A ⊢ C    Δ; Γ, B ⊢ C
+    ————————————————–——–——————
+         Δ; A ∨ B, Γ ⊢ C
+
+    Δ; Γ, A, B ⊢ C
+    ———————————————
+    Δ; Γ, A ∧ B ⊢ C
+
+       Δ; • ⊢ A
+    ——————————————
+    Δ; Γ ⊢ A valid
+
+       Δ; Γ ⊢ A
+     —————————————
+     Δ; Γ ⊢ A poss
+
+     Δ; Γ ⊢ A valid
+     ——————————————
+       Δ; Γ ⊢ □ A
+
+     Δ; Γ ⊢ A poss
+     —————————————
+     Δ; Γ ⊢ ◇ A
+
 ## Kripke Semantics
 ## Adjoint Logic
 ## Wrap Up
