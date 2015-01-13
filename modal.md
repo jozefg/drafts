@@ -26,12 +26,12 @@ interdependent worlds and make statements and proofs in them.
 ## Rules for A Simple Logic
 
 To start with let's describe how the modal logic we described above
-(with □ and ◇) would look.
+(with □ and ◯) would look.
 
 First we have the syntax
 
     A ::= □ A
-       |  ◇ A
+       |  ◯ A
        |    ⊤
        |    ⊥
        |  A ∧ B
@@ -40,7 +40,7 @@ First we have the syntax
     Γ ::= • | Γ, A true | Γ, A valid
     Δ ::= • | Γ, A valid
 
-So we have ◇ and □ as "modalities" that modify propositions and then a
+So we have ◯ and □ as "modalities" that modify propositions and then a
 normal logical connectives. Let's define the rules for the judgments
 
      Δ; Γ ⊢ A true
@@ -63,7 +63,7 @@ simultaneously. I'll shorten `A true` to `A`.
       Δ; Γ ⊢ B
     ————————————           Δ; Γ ⊢ A poss
     Δ; Γ ⊢ A ∨ B           —————————————
-                             Δ; Γ ⊢ ◇ A
+                             Δ; Γ ⊢ ◯ A
      Δ; Γ, A ⊢ B
     ————————————
     Δ; Γ ⊢ A ⇒ B
@@ -71,37 +71,32 @@ simultaneously. I'll shorten `A true` to `A`.
 The only interesting introduction rules are the four on the right, a
 valid proposition can be introduced if and only if it doesn't depend
 no the context of `true` and `poss` things. A possible thing can be
-introduced by a true thing. Finally, □ and ◇ are just reflections of
+introduced by a true thing. Finally, □ and ◯ are just reflections of
 the `poss` and `valid` judgments into the `true` one.
 
 For elimination rules
 
-    ———————————
-    Δ; Γ, ⊥ ⊢ C
+                                 Δ, A valid; Γ ⊢ C
+    ———————————                  —————————————————
+    Δ; Γ, ⊥ ⊢ C                    Δ; Γ, □ A ⊢ C
 
-    Δ; Γ, A ⊢ C    Δ; Γ, B ⊢ C
-    ————————————————–——–——————
-         Δ; A ∨ B, Γ ⊢ C
+    Δ; Γ, A ⊢ C    Δ; Γ, B ⊢ C       Δ; Γ ⊢ A
+    ————————————————–——–——————   ——————————————
+         Δ; A ∨ B, Γ ⊢ C          Δ; Γ ⊢ A poss
 
-    Δ; Γ, A, B ⊢ C
-    ———————————————
-    Δ; Γ, A ∧ B ⊢ C
+    Δ; Γ, A, B ⊢ C                 Δ; Γ, A ⊢ A poss
+    ———————————————              ———————————————————
+    Δ; Γ, A ∧ B ⊢ C               Δ; Γ, ◯ A ⊢ A poss
 
-       Δ; • ⊢ A
-    ——————————————
-    Δ; Γ ⊢ A valid
+      Δ; Γ, □ A ⊢ C              Δ; Γ ⊢ A poss
+    —————————————————            —————————————
+    Δ, A valid; Γ ⊢ C              Δ; Γ ⊢ ◯ A
 
-       Δ; Γ ⊢ A
-     —————————————
-     Δ; Γ ⊢ A poss
 
-     Δ; Γ ⊢ A valid
-     ——————————————
-       Δ; Γ ⊢ □ A
-
-     Δ; Γ ⊢ A poss
-     —————————————
-     Δ; Γ ⊢ ◇ A
+Once again pay attention to the right column and the one on the bottom
+left. First off we can freely convert between the truth of the
+`□ A` and `A valid`. Possibility is a bit odd, when trying to prove
+something is possible we may freely convert `◯ A` to just `A`! This
 
 ## Kripke Semantics
 ## Adjoint Logic
