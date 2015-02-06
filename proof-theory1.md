@@ -161,14 +161,51 @@ For `∧` this proof looks like this
 
       D  E
       –  –
-      A  B                D
-     —————— ∧I       => —————
-      A ∧ B               A
+      A  B            D
+     —————— ∧I   ⇒  ————
+      A ∧ B           A
      —————— ∧E 1
-       A
+        A
 
 So whenever we introduce a ∧ and then eliminate it with `∧ E1` we can
 always rewrite our proof to not use the elimination rules. Here notice
 that D and E range over *derivations* in this proof. They represent a
 chain of rule applications that let us produce an `A` or `B` in the
 end.
+
+The proof for `∧E2` is similar.
+
+      D  E
+      –  –
+      A  B            E
+     —————— ∧I   ⇒  ————
+      A ∧ B           B
+     —————— ∧E 2
+       B
+
+Given this we say that the elimination rules for ∧ are "locally
+sound". That is, when used immediately after an elimination rule they
+don't let us produce anything truly new.
+
+Next we want to show that if we have a proof of `A ∧ B`, the
+elimination rules give us enough informatin that we can pick the proof
+apart and produce a reassembled `A ∧ B`.
+
+
+               D           D
+             ————–       ————–
+      D      A ∧ B       A ∧ B
+    ————— ⇒ —————∧E1   ——————∧E2
+    A ∧ B      A           B
+             ———————————————— ∧I
+                   A ∧ B
+
+This somewhat confusion derivation takes our original proof of `A ∧ B`
+and pulls it apart into proof of `A` and `B` and uses these to
+assemble a new proof of `A ∧ B`. This means that our elimination rules
+give us all the information we put in so we say their locally
+complete.
+
+The two of these properties combined, local soundness and completeness
+are how we show that an elimination rule is balanced with its
+introduction rule.
