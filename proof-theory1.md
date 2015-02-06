@@ -126,3 +126,49 @@ proof-theoretic thing we've done here is said that the meaning of
 something is what we use to prove it. This is sometimes called the
 "verificationist perspective". Finally, note that I annotated this
 rule with the name `∧ I` simply for convenience to refer it.
+
+Now that we know what `A ∧ B` means, what does have a proof of it
+imply? Well we should be able to "get out what we put in" which would
+mean we'd have two inference rules
+
+    A ∧ B true    A ∧ B true
+    ——————————    ——————————
+      A true        B true
+
+We'll refer to these rules as `∧ E1` and `∧ E2` respectively.
+
+Now for a bit of terminology, rules that let us "introduce" new proofs
+of propositions are introduction rules. Once we have a proof, we can
+use it to construct other proofs. The rules for how we do that are
+called elimination rules. That's why I've been adding I's and E's to
+the ends of our rule names.
+
+How do we convince ourselves that these rules are correct with
+respect to our understanding of `∧`? This question leads us to our
+first sort of proofs-about-proofs we'll make.
+
+## Local Soundness and Completeness
+
+What we want to say is that the introduction and elimination rules
+match up. This should mean that anytime we prove something with an by
+an introduction rule followed by an elimination rule, we should be
+able to rewrite to avoid this duplication. This also hints that the
+rules aren't too powerful: we can't prove anything with the
+elimination rules that we didn't have a proof for at some point
+already.
+
+For `∧` this proof looks like this
+
+      D  E
+      –  –
+      A  B                D
+     —————— ∧I       => —————
+      A ∧ B               A
+     —————— ∧E 1
+       A
+
+So whenever we introduce a ∧ and then eliminate it with `∧ E1` we can
+always rewrite our proof to not use the elimination rules. Here notice
+that D and E range over *derivations* in this proof. They represent a
+chain of rule applications that let us produce an `A` or `B` in the
+end.
