@@ -209,3 +209,21 @@ complete.
 The two of these properties combined, local soundness and completeness
 are how we show that an elimination rule is balanced with its
 introduction rule.
+
+If you're more comfortable with programming languages (I am) our local
+soundness property is equivalent to stating that
+
+    fst (a, b) ≡ a
+    snd (a, b) ≡ b
+
+And local completeness is that
+
+    a ≡ (fst a, snd a)
+
+The first equations are reductions and the second is expansion. These
+actually correspond the eta and beta rules we expect a programming
+language to have! This is a nice little example of why proof theory is
+useful, it gives a systematic way to define some parts of the behavior
+of a program. Given the logic a programming language gives rise to we
+can double check that all rules are locally sound and complete which
+gives us confidence our language isn't horribly broken.
