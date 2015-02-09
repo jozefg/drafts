@@ -75,7 +75,8 @@ fancier though: we might have a whole bunch of judgments like
 
 These judgments act across various syntactic objects. In particular,
 from our point of view we'll understand the meaning of a proposition
-by the ways we can prove it, that is the proofs that `A true`.
+by the ways we can prove it, that is the proofs that `A true` is
+evident.
 
 We prove a judgment `J` through inference rules. An inference rule
 takes the form
@@ -111,10 +112,32 @@ one premise to show, `S(S(0)) even`. For this we repeat the process
 and end up with the new premise that `0 even`. For this we can apply
 the first inference rule which has no premises completing our proof.
 
-Now we want to define logical systems with these inference rules. For
-example, we might want to give meaning to the proposition `A ∧ B` (A
-and B). To do this we define its meaning through the inference rules
-for proving that `A ∧ B true`. In this case, we have the rule
+One judgment we'll often see is `A prop`. It simply says that `A` is a
+well formed proposition, not necessarily true but syntactically well
+formed. This judgment is defined inductively over the structure of
+`A`. An example judgment would be
+
+    A prop  B prop
+    ——————————————
+      A ∧ B prop
+
+Which says that `A ∧ B` (A and B) is a well formed proposition if and
+only if `A` and `B` are! We can imagine a whole bunch of these rules
+
+                    A prop B prop
+    ——————  ——————  ————————————— ...
+    ⊤ prop  ⊥ prop    A ∨ B prop
+
+that lay out the propositions of our logic. This doesn't yet tell us
+how prove any of these propositions to be true, but it's a
+start. After we formally specify what sentences are propositions in
+our logic we need to discuss how to prove that one is true. We do this
+with a different judgment `A true` which is once again defined
+inductively.
+
+For example, we might want to give meaning to the proposition `A ∧ B`.
+To do this we define its meaning through the inference rules for
+proving that `A ∧ B true`. In this case, we have the rule
 
     A true  B true
     —————————————— (∧ I)
@@ -171,24 +194,25 @@ So whenever we introduce a ∧ and then eliminate it with `∧ E1` we can
 always rewrite our proof to not use the elimination rules. Here notice
 that D and E range over *derivations* in this proof. They represent a
 chain of rule applications that let us produce an `A` or `B` in the
-end.
+end. Note I got a bit lazy and started omitting the `true` judgments,
+this is something I'll do a lot since it's mostly unambiguous.
 
 The proof for `∧E2` is similar.
 
       D  E
       –  –
       A  B            E
-     —————— ∧I   ⇒  ————
+      ————— ∧I   ⇒  ————
       A ∧ B           B
-     —————— ∧E 2
-       B
+      ————— ∧E 2
+        B
 
 Given this we say that the elimination rules for ∧ are "locally
 sound". That is, when used immediately after an elimination rule they
 don't let us produce anything truly new.
 
 Next we want to show that if we have a proof of `A ∧ B`, the
-elimination rules give us enough informatin that we can pick the proof
+elimination rules give us enough information that we can pick the proof
 apart and produce a reassembled `A ∧ B`.
 
 
@@ -227,3 +251,106 @@ useful, it gives a systematic way to define some parts of the behavior
 of a program. Given the logic a programming language gives rise to we
 can double check that all rules are locally sound and complete which
 gives us confidence our language isn't horribly broken.
+
+## Hypothetical Judgments
+
+Before I wrap up this post I wanted to talk about one last important
+concept in proof theory: judgments with hypotheses. This is best
+illustrated by trying to write the introduction and elimination rules
+for "implies" or "entailment", written `A ⊃ B`.
+
+Clearly `A ⊃ B` is supposed to mean we can prove `B true` assume `A true` to
+be provable. In other words, we can construct a derivation of the form
+
+     A true
+     ——————
+       .
+       .
+       .
+     ——————
+     B true
+
+We can notate our rules then as
+
+
+     ——————
+     A true
+     ——————
+       .
+       .
+       .
+     ——————
+     B true         A ⊃ B    A
+     ——————————     ——————————
+     A ⊃ B true       B true
+
+This notation is a bit clunky, so we'll opt for a new one: `Γ ⊢ J`. In
+this notation `Γ` is some list of judgments we assume to hold and `J`
+is the thing we want to know holds. Generally we'll end up with the rule
+
+    J ∈ Γ
+    —————
+    Γ ⊢ J
+
+Which captures the fact that Γ contains assumptions we may or may not
+use to prove our goal. This specific rule may vary depending on how we
+want express how assumptions work in our logic. For our purposes, this
+is the most straightforward characterization of how this ought to
+work.
+
+Our hypothetical judgments come with a few rules which we call
+"structural rules". They modify the structure of judgment, rather than
+any particular proposition we're trying to prove.
+
+
+    Weakening
+      Γ ⊢ J
+    —————————
+    Γ, Γ' ⊢ J
+
+    Contraction
+    Γ, A, A, Γ' ⊢ J
+    ———————————————
+     Γ, A, Γ' ⊢ J
+
+    Exchange
+    Γ' = permute(Γ)   Γ' ⊢ A
+    ————————————————————————
+            Γ ⊢ A
+
+Finally, we get a substitution principle. This allows us to eliminate
+some of the assumptions we made to prove a theorem.
+
+    Γ ⊢ A   Γ, A ⊢ B
+    ————————————————
+         Γ ⊢ B
+
+These 4 rules give meaning to our hypothetical judgments. We can
+restate our formulation of entailment with less clunky notation then
+as
+
+    A prop  B prop
+    ——————————————
+      A ⊃ B prop
+
+    Γ, A ⊢ B      Γ ⊢ A ⊃ B    Γ ⊢ A
+    —————————     ——————————————————
+    Γ ⊢ A ⊃ B           Γ ⊢ B
+
+
+## Conclusion
+
+In this post we've layed out a bunch of rules and I've hinted that a
+bunch more are possible. When put together these rules define a logic
+using "natural deduction", a particular way of specifying proofs that
+uses inference rules rather than axioms or something entirely
+different.
+
+Hopefully I've inspired you to poke a bit further into proof theory,
+in that case I heartily recommend
+[Frank Pfenning's lectures][lectures] at the Oregon Summer School for
+Programming Languages.
+
+Cheers,
+
+[lectures]: https://www.cs.uoregon.edu/research/summerschool/summer12/curriculum.html
