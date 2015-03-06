@@ -45,9 +45,10 @@ More than this, we want to be sums unique up to isomorphism. This
 means that we want `A + B` to some how by the canonical object for
 this diagram. To express this we say that there is some `D` that could
 be used in place of `A + B` here then there is a unique
-`h : A + B → D`
-that makes this diagram commute. That is, if we have a type `D` and
-some functions `f :: A -> D`, `g :: B -> D`, and `h :: D -> C`, then
+`h : A + B → D` that makes this diagram commute. That is, if we have a
+type `D` and some functions `f :: A -> D`, `g :: B -> D`, and `h :: D
+-> C`, then we should be able to construct a map from `Either A B` to
+`D`. To do this we just use `either f g`.
 
 ## Domain Theory
 
