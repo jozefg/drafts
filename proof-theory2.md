@@ -15,6 +15,31 @@ a global scale, we first need to figure out what the equivalent of a
 "reduced" and "expanded" proofs are.
 
 ## Verifications
+
+We want to talk about proofs that are "just applications of
+introduction rules". The picture isn't quite as simple but that's the
+idea.
+
+To this end we define a new judgment `A ↑` meaning that "`A` has a
+verification". For most connectives these are just the introduction
+rules
+
+```
+     A ↑  B ↑
+    —————————— ∧ I
+      A ∧ B ↑
+
+     A ↑  B ↑
+    —————————— ∧ I
+      A ∧ B ↑
+
+     A ↑  B ↑
+    —————————— ∧ I
+      A ∧ B ↑
+
+```
+
+
 ## Usages
 ## A Calculus of Verifications and Uses
 ## Global Soundness and Completeness

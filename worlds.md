@@ -133,6 +133,130 @@ adding `b` to other stuff. Let's supplement our block
 ```
 
 Such a context is pretty idiotic though since there isn't a natural
-number that can satisfy it.
+number that can satisfy it. It is however enough to sate the totality
+checker.
+
+``` twelf
+    %total (T) (plus T _ _).
+```
+
+For a non contrived for example let's discuss where interesting worlds
+come into play: with higher order abstract syntax. When we use HOAS we
+end up embedding the LF function space in our terms. This is important
+because it means as we go to prove theorems about it we end up
+recursing on a term *under* an honest to goodness LF lambda. This
+means we extend the context at some points in our proof and we can't
+just prove theorems in the empty context!
+
+To see this in action here's an embedding of the untyped lambda
+calculus in LF
+
+``` twelf
+    term : type.
+    lam  : (term -> term) -> term.
+    app  : term -> term -> term.
+```
+
+Now let's say we want to determine how many binders are in a lambda
+term. We start by defining our relation
+
+``` twelf
+    nbinds : term -> nat -> type.
+    %mode nbinds +T -N.
+```
+
+We set this type family up so that it has one input (the term) and one
+output (a nat representing the number of binders). We have two cases
+to deal with here
+
+``` twelf
+    nbinds/lam : nbinds (lam F) (s N)
+                  <- ({x : term} nbinds (F x) N).
+    nbinds/app : nbinds (app F A) O
+                  <- nbinds F N1
+                  <- nbinds A N2
+                  <- plus N1 N2 O.
+```
+
+In the `lam` case we recurse under the binder. This is the interesting
+thing here, we stick the recurse call under a pi binder. This gives us
+access to some term `x` which we apply the LF function two. This code
+in effect says "If for all terms `F` has `N` binders then `lam F` has
+`N + 1` binders. The `app` case just sums the two binders.
+
+We can try to world check this in only the empty context but this
+fails with
+
+    Error:
+    While checking constant nbinds/lam:
+    World violation for family nbinds: {x:term} </: 1
+
+This says that even though we promised never to extend the LF context
+we did just that! To fix this we must have a fancier world. We create
+a block which just talks about adding a term to the context.
+
+``` twelf
+    %block nbinds_block : block {x : term}.
+    %worlds (nbinds_block) (nbinds _ _).
+```
+
+This world checks but there's another issue lurking about. Let's try
+to ask Twelf to prove totality.
+
+``` Twelf
+    %total (T) (nbinds T _).
+```
+
+This spits out the error message
+
+    Coverage error --- missing cases:
+    {#nbinds_block:{x:term}} {X1:nat} |- nbinds #nbinds_block_x X1.
+
+This is the same error as before! Now that we've extended our context
+with a term we need to somehow be able to tell Twelf the height of
+that term. This smacks of the slightly fishy type of `nbinds/lam`:
+it's meaning is that `F x` has the height `N` for *any* term `x`. This
+seems a little odd, why doesn't the height of a functions body depend
+on its argument? We really ought to be specifying that whatever this
+`x` is, we know its height is `z`. This makes our new code
+
+``` twelf
+    nbinds/lam : nbinds (lam F) (s N)
+                 <- ({x : term}{_ : nbinds x z} nbinds (F x) N).
+```
+
+Now we specify that the height of `x` is zero. This means we have to
+change our block to
+
+``` twelf
+    %block nbinds_block : block {x : term}{_ : nbinds x z}.
+```
+
+With this modification else everything goes through unmodified. For
+fun, we can ask Twelf to actually compute some toy examples.
+
+``` twelf
+    %solve deriv : nbinds (lam ([x] (lam [y] x))) N.
+```
+
+This gives back that `deriv : nbinds (lam ([x] lam ([y] x))) (s (s
+z))` as we'd hope. It's always fun to run our proofs.
 
 ## Conclusion
+
+Hopefully that clears up some of the mystery of worlds in
+Twelf. Happily this doesn't come up for a lot of simple uses of
+Twelf. As far as I know the entire constructive logic course at CMU
+sidesteps the issue with a quick "Stick `%worlds () (...)` before each
+totality check".
+
+It is completely invaluable if you're doing anything under binders
+which turns out to be necessary for most interesting proofs about
+languages with binders. If nothing else, the more you know..
+
+Those who enjoyed this post might profit from Dan Licata and Bob
+Harper's paper on [mechanizing metatheory][paper].
+
+Cheers,
+
+[paper]: http://www.cs.cmu.edu/~drl/pubs/hl07mechanizing/hl07mechanizing.pdf
