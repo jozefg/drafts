@@ -522,29 +522,94 @@ With this done our language is now 80% of the way to C!
 
 ### Converting To SSA-ish C
 
-``` haskell
-    type RealCM = WriterT [CBlockItem] (Gen Integer)
+Converting our faux-C language to actual C has one complication: C
+doesn't have `let` expressions. Given this, we have to flatten out a
+faux-C expression so we can turn a let expression into a normal C
+declaration. This conversion is *almost* a conversion to single static
+assignment form, SSA. I say almost because there's precisely one place
+where we break the single assignment discipline. This is just because
+it seemed rather pointless to me to introduce an SSA IL with φ just so
+I could compile it to C. YMMV.
 
+This is what LLVM uses for its intermediate language and because of
+this I strongly suspect regearing this compiler to target LLVM should
+be pretty trivial.
+
+Now we're using a library called [c-dsl][c-dsl] to make generating the
+C less painful, but there's still a couple of things we'd like to
+add. First of all, all our names our integers so we have `i2e` and
+`i2d` for converting an integer into a C declaration or an expression.
+
+``` haskell
     i2d :: Integer -> CDeclr
     i2d = fromString . ('_':) . show
 
     i2e :: Integer -> CExpr
     i2e = var . fromString . ('_':) . show
+```
 
+We also have a shorthand for the type of all expression in our
+generated C code.
+
+``` haskell
     taggedTy :: CDeclSpec
     taggedTy = CTypeSpec "tagged_ptr"
+```
+
+Finally, we have our writer monad and helper function for implementing
+the SSA conversion. We write C99 block items and use `tellDecl`
+binding an expression to a fresh variable and then we return this
+variable.
+
+``` haskell
+    type RealCM = WriterT [CBlockItem] (Gen Integer)
 
     tellDecl :: CExpr -> RealCM CExpr
     tellDecl e = do
       i <- gen
       tell [CBlockDecl $ decl taggedTy (i2d i) $ Just e]
       return (i2e i)
+```
 
+Next we have the conversion procedure. Most of this is pretty
+straightforward because we shell out to calls in the runtime system
+for all the hardwork. We have the following RTS functions
+
+ - `mkZero`
+ - `inc`
+ - `dec`
+ - `apply`
+ - `mkClos`
+ - `EMPTY`
+ - `isZero`
+ - `fixedPoint`
+ - `INT_SIZE`
+ - `CLOS_SIZE`
+
+Most of this code is therefore just converting the expression to SSA
+form and using the RTS functions to shell do the appropriate
+computation at each step. Note that c-dsl provides a few overloaded
+string instances and so to generate the C code to apply a function we
+just use `"foo"#[1, "these", "are", "arguments"]`.
+
+The first few cases for conversion are nice and straightforward.
+
+``` haskell
     realc :: FauxC CExpr -> RealCM CExpr
     realc (VFC e) = return e
     realc (AppFC f a) = ("apply" #) <$> mapM realc [f, a] >>= tellDecl
     realc ZeroFC = tellDecl $ "mkZero" # []
     realc (SucFC e) = realc e >>= tellDecl . ("inc"#) . (:[])
+```
+
+We take advantage of the fact that `realc` returns it's result and we
+can almost make this look like the applicative cases we had
+before. One particularly slick case is how `Suc` works. We compute the
+value of `e` and apply the result to `suc`. We then feed this
+expression into `tellDecl` which binds it to a fresh variable and
+returns the variable. Haskell is pretty slick.
+
+``` haskell
     realc (IfzFC i t e) = do
       outi <- realc i
       deci <- tellDecl ("dec" # [outi])
@@ -558,6 +623,11 @@ With this done our language is now 80% of the way to C!
             cifElse ("isZero"#[outi]) (branch blockt outt) (branch blocke oute)
       tell [CBlockStmt ifStat]
       return out
+```
+
+
+
+``` haskell
     realc (LetFC binds bind) = do
       bindings <- mapM goBind binds
       realc $ instantiate (VFC . (bindings !!)) bind
@@ -572,7 +642,13 @@ With this done our language is now 80% of the way to C!
                                 <$> mapM realc cs
                                 >>= tellDecl
               tellDecl ("fixedPoint"#[f, sizeOf t])
+```
 
+Finally, we have a function for converting a faux C function into an
+actual function definition. This is the function that we use `realc`
+in.
+
+```haskel
     topc :: FauxCTop CExpr -> Gen Integer CFunDef
     topc (FauxCTop i numArgs body) = do
       binds <- gen
