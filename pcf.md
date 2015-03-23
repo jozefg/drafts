@@ -213,7 +213,7 @@ one is the "argument". Closure conversion is thus just the process of
 converting an `Exp` to an `ExpC`.
 
 ``` haskell
-    closConv :: (Show a, Eq a, Ord a, Enum a) => Exp a -> Gen a (ExpC a)
+    closConv :: Ord a => Exp a -> Gen a (ExpC a)
     closConv (V a) = return (VC a)
     closConv Zero = return ZeroC
     closConv (Suc e) = SucC <$> closConv e
@@ -295,9 +295,211 @@ Here's our new language.
                 deriving (Eq, Functor, Foldable, Traversable)
 ```
 
+Much here is the same except we've romved both lambdas and fixpoints
+and replaced them with `LetL`. `LetL` works over bindings which are
+either recursive (`Fix`) or nonrecursive (`Lam`). Lambda lifting in
+this compiler is rather simplistic in how it lifts lambdas: we just
+boost everything one level up and turn
+
+``` haskell
+    λ (x : τ). ...
+```
+
+into
+
+``` haskell
+    let foo = λ (x : τ). ...
+    in foo
+```
+
+Just like before, this procedure is captured by transforming an `ExpC`
+into an `ExpL`.
+
+``` haskell
+    llift :: Eq a => ExpC a -> Gen a (ExpL a)
+    llift (VC a) = return (VL a)
+    llift ZeroC = return ZeroL
+    llift (SucC e) = SucL <$> llift e
+    llift (AppC f a) = AppL <$> llift f <*> llift a
+    llift (IfzC i t e) = do
+      v <- gen
+      e' <- abstract1 v <$> llift (instantiate1 (VC v) e)
+      IfzL <$> llift i <*> llift t <*> return e'
+```
+
+Just like in `closConv` we start with a lot of very boring and trivial
+"recurse and build back up" cases. These handle everything but the
+cases where we actually convert constructs into a `LetL`.
+
+Once again, the interesting cases are pretty much identical. Let's
+look at the case for `LamC` for variety.
+
+``` haskell
+    llift (LamC t clos bind) = do
+      vs <- replicateM (length clos + 1) gen
+      body <- llift $ instantiate (VC . (!!) vs) bind
+      clos' <- mapM llift clos
+      let bind' = abstract (flip elemIndex vs) body
+      return (LetL [NRecL t clos' bind'] trivLetBody)
+```
+
+Here we first generate a bunch of fresh variables and unbind the body
+of our lambda. We then recurse on it. We also have to recurse across
+all of our closed over arguments but since those are variables we know
+that should be pretty trivial (why do we know this?). Once we've
+straightened out the body and the closure all we do is transform the
+lambda into a trivial let expression as shown above. Here
+`trivLetBody` is.
+
+``` haskell
+    trivLetBody :: Scope Int ExpL a
+    trivLetBody = fromJust . closed . abstract (const $ Just 0) $ VL ()
+```
+
+Which is just a body that returns the first thing bound in the
+let. With this done, we've pretty much transformed our expression
+language to C. In order to get rid of the nesting, we want to make one
+more simplification before we actually generate C.
+
 ### C-With-Expression
+
+``` haskell
+    -- Invariant: the Integer part of a FauxCTop is a globally unique
+    -- identifier that will be used as a name for that binding.
+    type NumArgs = Int
+    data BindTy = Int | Clos deriving Eq
+
+    data FauxCTop a = FauxCTop Integer NumArgs (Scope Int FauxC a)
+                    deriving (Eq, Functor, Foldable, Traversable)
+    data BindFC a = NRecFC Integer [FauxC a]
+                  | RecFC BindTy Integer [FauxC a]
+                  deriving (Eq, Functor, Foldable, Traversable)
+    data FauxC a = VFC a
+                 | AppFC (FauxC a) (FauxC a)
+                 | IfzFC (FauxC a) (FauxC a) (Scope () FauxC a)
+                 | LetFC [BindFC a] (Scope Int FauxC a)
+                 | SucFC (FauxC a)
+                 | ZeroFC
+                 deriving (Eq, Functor, Foldable, Traversable)
+
+    type FauxCM a = WriterT [FauxCTop a] (Gen a)
+
+    fauxc :: ExpL Integer -> FauxCM Integer (FauxC Integer)
+    fauxc (VL a) = return (VFC a)
+    fauxc (AppL f a) = AppFC <$> fauxc f <*> fauxc a
+    fauxc ZeroL = return ZeroFC
+    fauxc (SucL e) = SucFC <$> fauxc e
+    fauxc (IfzL i t e) = do
+      v <- gen
+      e' <- abstract1 v <$> fauxc (instantiate1 (VL v) e)
+      IfzFC <$> fauxc i <*> fauxc t <*> return e'
+    fauxc (LetL binds e) = do
+      binds' <- mapM liftBinds binds
+      vs <- replicateM (length binds) gen
+      body <- fauxc $ instantiate (VL . (!!) vs) e
+      let e' = abstract (flip elemIndex vs) body
+      return (LetFC binds' e')
+      where lifter bindingConstr clos bind = do
+              guid <- gen
+              vs <- replicateM (length clos + 1) gen
+              body <- fauxc $ instantiate (VL . (!!) vs) bind
+              let bind' = abstract (flip elemIndex vs) body
+              tell [FauxCTop guid (length clos + 1) bind']
+              bindingConstr guid <$> mapM fauxc clos
+            bindTy (Arr _ _) = Clos
+            bindTy Nat = Int
+            liftBinds (NRecL t clos bind) = lifter NRecFC clos bind
+            liftBinds (RecL t clos bind) = lifter (RecFC $ bindTy t) clos bind
+```
+
 ### Converting To SSA-ish C
+
+``` haskell
+    type RealCM = WriterT [CBlockItem] (Gen Integer)
+
+    i2d :: Integer -> CDeclr
+    i2d = fromString . ('_':) . show
+
+    i2e :: Integer -> CExpr
+    i2e = var . fromString . ('_':) . show
+
+    taggedTy :: CDeclSpec
+    taggedTy = CTypeSpec "tagged_ptr"
+
+    tellDecl :: CExpr -> RealCM CExpr
+    tellDecl e = do
+      i <- gen
+      tell [CBlockDecl $ decl taggedTy (i2d i) $ Just e]
+      return (i2e i)
+
+    realc :: FauxC CExpr -> RealCM CExpr
+    realc (VFC e) = return e
+    realc (AppFC f a) = ("apply" #) <$> mapM realc [f, a] >>= tellDecl
+    realc ZeroFC = tellDecl $ "mkZero" # []
+    realc (SucFC e) = realc e >>= tellDecl . ("inc"#) . (:[])
+    realc (IfzFC i t e) = do
+      outi <- realc i
+      deci <- tellDecl ("dec" # [outi])
+      let e' = instantiate1 (VFC deci) e
+      (outt, blockt) <- lift . runWriterT $ (realc t)
+      (oute, blocke) <- lift . runWriterT $ (realc e')
+      out <- tellDecl "EMPTY"
+      let branch b tempOut =
+            CCompound [] (b ++ [CBlockStmt . liftE $ out <-- tempOut]) undefNode
+          ifStat =
+            cifElse ("isZero"#[outi]) (branch blockt outt) (branch blocke oute)
+      tell [CBlockStmt ifStat]
+      return out
+    realc (LetFC binds bind) = do
+      bindings <- mapM goBind binds
+      realc $ instantiate (VFC . (bindings !!)) bind
+      where sizeOf Int = "INT_SIZE"
+            sizeOf Clos = "CLOS_SIZE"
+            goBind (NRecFC i cs) =
+              ("mkClos" #) <$> (i2e i :) . (fromIntegral (length cs) :)
+                           <$> mapM realc cs
+                           >>= tellDecl
+            goBind (RecFC t i cs) = do
+              f <- ("mkClos" #) <$> (i2e i :) . (fromIntegral (length cs) :)
+                                <$> mapM realc cs
+                                >>= tellDecl
+              tellDecl ("fixedPoint"#[f, sizeOf t])
+
+    topc :: FauxCTop CExpr -> Gen Integer CFunDef
+    topc (FauxCTop i numArgs body) = do
+      binds <- gen
+      let getArg = (!!) (args (i2e binds) numArgs)
+      (out, block) <- runWriterT . realc $ instantiate getArg body
+      return $
+        fun [taggedTy] ('_' : show i) [decl taggedTy $ ptr (i2d binds)] $
+          CCompound [] (block ++ [CBlockStmt . creturn $ out]) undefNode
+      where indexArg binds i = binds ! fromIntegral i
+            args binds na = map (VFC . indexArg binds) [0..na - 1]
+```
+
+### Putting It All Together
+
+``` haskell
+    compile :: Exp Integer -> Maybe CTranslUnit
+    compile e = runGen . runMaybeT $ do
+      assertTy M.empty e Nat
+      funs <- lift $ pipe e
+      return . transUnit . map export $ funs
+      where pipe e = do
+              simplified <- closConv e >>= llift
+              (main, funs) <- runWriterT $ fauxc simplified
+              i <- gen
+              let topMain = FauxCTop i 1 (abstract (const Nothing) main)
+                  funs' = map (i2e <$>) (funs ++ [topMain])
+              (++ [makeCMain i]) <$> mapM topc funs'
+            makeCMain entry =
+              fun [intTy] "main"[] $ hBlock ["call"#[i2e entry]]
+```
+
 ## Wrap Up
+
+Well if you've made it this far congratulations. We just went through
+a full compiler from a typed higher order language to
 
 [pcf]: http://github.com/jozefg/pcf
 [lambdapi]: http://jozefg.bitbucket.org/posts/2014-12-17-variables.html
