@@ -153,6 +153,17 @@ doesn't have a function type, we just fail.
       return t
 ```
 
+Type checking lambdas and fixpoints is quite similar. In both cases we
+generate a fresh variable to unravel the binder with. We know what
+type this variable is supposed to have because we required explicit
+annotations so we add that to the map constituting our
+environment. Here's where they diverge.
+
+For a fixpoint we want to make sure that the body has the type as we
+said it would so we use `assertTy`. For a lambda we infer the body
+type and return a function from the given argument type to the body
+type.
+
 ```
     typeCheck env (Ifz i t e) = do
       assertTy env i Nat
@@ -161,6 +172,15 @@ doesn't have a function type, we just fail.
       assertTy (M.insert v Nat env) (instantiate1 (V v) e) ty
       return ty
 ```
+
+For `Ifz` we want to ensure that we actually are casing on a `Nat` so
+we use `assertTy`. Next we figure out what type the zero branch
+returns and make sure that the else branch has the same type.
+
+All in all this type checker is not particularly fascinating since all
+we have are simple types. Things get a bit more interesting with
+[polymorphism][hm]. I'd suggest looking at that if you want to see a
+more interesting type checker.
 
 ### Closure Conversion
 ### Lambda Lifting
@@ -173,3 +193,4 @@ doesn't have a function type, we just fail.
 [bound-docs]: http://hackage.haskell.org/package/bound-1.0.4/docs/Bound.html
 [mg]: http://hackage.haskell.org/package/monad-gen
 [c-dsl]: http://hackage.haskell.org/package/c-dsl
+[hm]: posts/2015-02-28-type-inference.html
