@@ -625,7 +625,28 @@ returns the variable. Haskell is pretty slick.
       return out
 ```
 
+In this next case we're translating `Ifz`. For this we obviously need
+to compute the value of `i`. We do that by recursing and storing the
+result in `outi`. Now we want to be able to use 1 less than the value
+of `i` in case we go into the successor branch. This is done by
+calling `dec` on `outi` and storing it for later.
 
+Next we do something a little odd. We recurse on the branches of `Ifz`
+but we definitely don't want to compute both of them! So we can't just
+use a normal recursive call. If we did they'd be added to the block
+we're building up in the writer monad. So we use `lift . runWriterT`
+to give us back the blocks *without* adding them to the current one
+we're building. Now it's just a matter of generating the appropriate
+`if` statement.
+
+To do this we add one instruction to the end of both branches, to
+assign to some output variable. This ensures that no matter which
+branch we go down we'll end up the result in one place. This is also
+the one place where we are no longer doing SSA. Properly speaking we
+should write this with a φ but who has time for that? :)
+
+Finally we build add the if statement and the handful of declarations
+that precede it to our block. Now for the last case.
 
 ``` haskell
     realc (LetFC binds bind) = do
@@ -644,7 +665,25 @@ returns the variable. Haskell is pretty slick.
               tellDecl ("fixedPoint"#[f, sizeOf t])
 ```
 
-Finally, we have a function for converting a faux C function into an
+For our last case we have to deal with lets. For this we simply
+traverse all the bindings which are now flat and then flatten the
+expression under the binder. When we `mapM` over the bindings we
+actually get back a list of all the expressions each binding evaluated
+to. This is perfect for use with `instantiate` making the actual
+toplevel function quite pleasant. `goBind` is slightly less so.
+
+In the nonrecursive case all we have to do is create a closure. So
+`goBind` of a nonrecursive binding shells out to `mkClos`. This
+`mkClos` is applied to the number of closed over expressions as well
+as all the closed over expressions. This is because `mkClos` is
+variadic. Finally we shove the result into `tellDecl` as usual. For a
+recursive call there's a slight difference, namely after doing all of
+that we apply `fixedPoint` to the output *and* to the size of the type
+of the thing we're fixing. This is why we kept types around for these
+bindings! With them we can avoid dragging the size with every value
+since we know it statically.
+
+Next, we have a function for converting a faux C function into an
 actual function definition. This is the function that we use `realc`
 in.
 
@@ -661,7 +700,16 @@ in.
             args binds na = map (VFC . indexArg binds) [0..na - 1]
 ```
 
+This isn't the most interesting function. We have one array of
+arguments to our C function, and then we unbind the body of the FauxC
+function by indexing into this array. We then call `realc` which
+transforms our faux-c expression into a block of actual C code. All
+that's left to do is bind it up into a C function and call it a day.
+
 ### Putting It All Together
+
+Finally, at the end of it all we have a function from expression to
+`Maybe CTranslUnit`, a C program.
 
 ``` haskell
     compile :: Exp Integer -> Maybe CTranslUnit
@@ -679,6 +727,18 @@ in.
             makeCMain entry =
               fun [intTy] "main"[] $ hBlock ["call"#[i2e entry]]
 ```
+
+This combines all the previous compilation passes together. First we
+typecheck and ensure that the program is a `Nat`. Then we closure
+convert it and immediately lambda lift. This simplified program is
+then fed into `fauxc` giving a `fauxc` expression for main and a bunch
+of functions called by main. We wrap up the main expression in a
+function that ignores all it's arguments. We then map `realc` over all
+of these fauxc functions. This gives us actual C code. Finally, we
+take on a trivial C main to call the generated code and return the
+whole thing.
+
+And that's our PCF compiler.
 
 ## Wrap Up
 
