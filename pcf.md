@@ -363,6 +363,58 @@ more simplification before we actually generate C.
 
 ### C-With-Expression
 
+C-With-Expressions is our next intermediate language. It has no notion
+of nested functions or of fixpoints. I suppose now I should finally
+fess up to why I keep talking about fixpoints and functions as if
+they're the same and why this compiler is handling them
+identically. The long and short of it is that fixpoints are really a
+combination of a "fixed point combinator" and a function. Really when
+we say
+
+``` haskell
+    fix x : τ in ...
+```
+
+It's as if we had sayed
+
+``` haskell
+    F (λ x : τ. ...)
+```
+
+Where `F` is a magical constant with the type
+
+``` haskell
+    F :: (a -> a) -> a
+```
+
+`F` calculates the fixpoint of a function. This means that `f (F f) =
+F f`. This formula underlies all recursive bindings (in Haskell
+too!). In the compiler we basically compile a `Fix` to a closure (the
+runtime representation of a function) and pass it to a C function
+`fixedPoint` which actually calculates the fixed point. Now it might
+seem dubious that a function has a fixed point. After all, it would
+seem that there's no `x` so that `(λ (x : nat). suc x) = x` right?
+Well the key is to think of these functions as not ranging over just
+values in our language, but a domain where infinite loops (bottom
+values) are also represented. In the above equation, the solution is
+that `x` should be bottom, an infinite loop. That's why
+
+``` haskell
+    fix x : nat in suc x
+```
+
+should loop! There's actual some wonderful math going on here about
+how computable functions are continuous functions over a domain and
+that we can always calculate the least fixed point of them in this
+manner. The curious reader is encouraged to check out domain theory.
+
+Anyways, so that's why I keep handling fixpoints and lambdas in the
+same way, because to me a fixpoint *is* a lambda + some magic. This is
+going to become very clear in C-With-Expressions (`FauxC` from now on)
+because we're going to promote both sorts of let bindings to the same
+thing, a `FauxC` toplevel function. Without further ado, here's the
+next IL.
+
 ``` haskell
     -- Invariant: the Integer part of a FauxCTop is a globally unique
     -- identifier that will be used as a name for that binding.
@@ -381,7 +433,21 @@ more simplification before we actually generate C.
                  | SucFC (FauxC a)
                  | ZeroFC
                  deriving (Eq, Functor, Foldable, Traversable)
+```
 
+The big difference is that we've lifted things out of let
+bindings. They now contain references to some global function instead
+of actually having the value right there. We also tag fixpoints as
+either fixing an `Int` or a `Clos`. The reasons for this will be
+apparent in a bit.
+
+Now for the conversion. We don't just have a function from `ExpL` to
+`FauxC` because we also want to make note of all the nested lets we're
+lifting out of the program. Thus we use `WriterT` to gather a lift of
+toplevel functions as we traverse the program. Other than that this is
+much like what we've seen before.
+
+```
     type FauxCM a = WriterT [FauxCTop a] (Gen a)
 
     fauxc :: ExpL Integer -> FauxCM Integer (FauxC Integer)
@@ -393,13 +459,29 @@ more simplification before we actually generate C.
       v <- gen
       e' <- abstract1 v <$> fauxc (instantiate1 (VL v) e)
       IfzFC <$> fauxc i <*> fauxc t <*> return e'
+```
+
+In the first couple cases we just recurse. as we've seen
+before. Things only get interesting once we get to `LetL`
+
+``` haskell
     fauxc (LetL binds e) = do
       binds' <- mapM liftBinds binds
       vs <- replicateM (length binds) gen
       body <- fauxc $ instantiate (VL . (!!) vs) e
       let e' = abstract (flip elemIndex vs) body
       return (LetFC binds' e')
-      where lifter bindingConstr clos bind = do
+```
+
+In this case we recurse with the function `liftBinds` across all the
+bindings, then do what we've done before and unwrap the body of the
+let and recurse in it. So the meat of this transformation is in
+`liftBinds`.
+
+``` haskell
+      where liftBinds (NRecL t clos bind) = lifter NRecFC clos bind
+            liftBinds (RecL t clos bind) = lifter (RecFC $ bindTy t) clos bind
+            lifter bindingConstr clos bind = do
               guid <- gen
               vs <- replicateM (length clos + 1) gen
               body <- fauxc $ instantiate (VL . (!!) vs) bind
@@ -408,9 +490,35 @@ more simplification before we actually generate C.
               bindingConstr guid <$> mapM fauxc clos
             bindTy (Arr _ _) = Clos
             bindTy Nat = Int
-            liftBinds (NRecL t clos bind) = lifter NRecFC clos bind
-            liftBinds (RecL t clos bind) = lifter (RecFC $ bindTy t) clos bind
 ```
+
+To lift a binding all we do is generate a globally unique identifier
+for the toplevel. Once we have that we that we can unwrap the
+particular binding we're looking at. This is going to comprise the
+body of the `TopC` function we're building. Since we need it to be
+`FauxC` code as well we recurse on it. No we have a bunch of faux-C
+code for the body of the toplevel function. We then just repackage the
+body up into a binding (a `FauxCTop` needs one) and use `tell` to make
+a note of it. Once we've done that we return the stripped down let
+binding that just remembers the guid that we created for the toplevel
+function.
+
+In an example, this code transformers
+
+``` haskell
+    let x = λ (x : τ). ... in
+      ... x ...
+```
+
+into
+
+``` haskell
+    TOP = λ (x : τ). ...
+    let x = TOP in
+      ... x ...
+```
+
+With this done our language is now 80% of the way to C!
 
 ### Converting To SSA-ish C
 
