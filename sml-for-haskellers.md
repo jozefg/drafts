@@ -18,13 +18,18 @@ SML and Haskell have quite a lot in common
 
 Common types:
 
-    Int | Integer    | Char | Bool | String | Double | (A,  B,  C)
-    int | IntInf.int | char | bool | string | real   | (A * B * C)
+    ()   | Int | Integer    | Char | Bool | String | Double | (A,  B,  C)
+    unit | int | IntInf.int | char | bool | string | real   | (A * B * C)
 
 Common values:
 
-    1 | 'a'  | True | "hello" | 3.14 | (1, 2, 3)
-    1 | #'a' | true | "hello" | 3.14 | (1, 2, 3)
+    () | 1 | 'a'  | True | "hello" | 3.14 | (1, 2, 3)
+    () | 1 | #'a' | true | "hello" | 3.14 | (1, 2, 3)
+
+Common operators
+
+    == | /= | not | &&      | ||     | ++ | !!
+    =  | <> | not | andalso | orelse | ^  | String.sub
 
 Type variables:
 
@@ -45,11 +50,6 @@ If:
 
     if True then 1 else 0
     if true then 1 else 0
-
-Short circuiting operators:
-
-    True && False       False || False
-    true andalso false  false orelse false
 
 Pattern matching
 
@@ -116,6 +116,23 @@ Read a mutable reference:
     readIORef r
     ! r
 
+Making exceptions:
+
+    data MyExn = Exn String; instance Exception ... where
+    exception Exn of string
+
+Raising an exception:
+
+    throw (Exn "uh oh")
+    raise Exn "uh oh"
+
+Catching an exception:
+
+    catch e $ \(Exn s) -> s
+    e handle Exn s => s
+
+
+
 ## What Is SML Missing
 
 
@@ -135,7 +152,23 @@ Haskell has. A nice exception to this is lambda cases, which is written
      | 1 => 2
      | n => 0
 
-Additionally, SML doesn't have significant identation which means that it's
+Additionally, SML doesn't have significant indentation which means that
+occasionally awkward parenthesis is necessary. For example
+
+    case x of
+       true  => (case !r of
+                  x => x + 1)
+     | false => (r := 1; 2)
+
+The parenthesis are mandatory.
+
+Finally, the reason why I haven't pulled up stakes and started writing only SML,
+SML's community isn't nearly as large as Haskell's. This means a corresponding
+lack of tooling and external libraries. This is a serious pain if you want to
+write something like a webserver. For some things, less so.
+
+SML has records (discussed later) but they don't have a functional updating
+operation. This is a pain to be honest.
 
 ## What Does SML Have
 
@@ -167,8 +200,26 @@ We can't apply `#firstName` to an expression of type `user`. It's ill-typed
 since `user` isn't a record, it has a constructor which *contains a
 record*. In order to apply `#firstName` we have to pattern match first.
 
+Finally, SML has a real, honest too goodness specification. In fact, SML is so
+well specified it's been [completely mechanized][sml-in-twelf]. There is an
+actual mechanized proof that SML is typesafe. The practical up shot of this is
+that SML is rock solid. There's a definitive right answer to what a program
+should do and that answer is "whatever that one true implementation does". In
+fact, there are actually a lot of SML compilers. Two noteworthy ones
+
+ 1. SML/NJ - An interactive system for SML. This provides a REPL and is what we
+    use at CMU for our introduction to functional programming courses.
+ 2. Mlton - A whole program optimizing compiler. Mlton produces stupidly fast
+    code but is significantly slower for compilation.
+
+Since SML is fully standardized, I general develop with NJ and eventually feed
+the program into mlton if I intend the thing to run fast.
+
 Also, modules are freaking amazing, have I mentioned modules yet?
+
+## Wrap Up
 
 [ocaml-for-haskellers]: http://blog.ezyang.com/2010/10/ocaml-for-haskellers/
 [adams-guide]: http://adam.chlipala.net/mlcomp/
 [modules]: /posts/2015-01-08-modules.html
+[sml-in-twelf]: https://github.com/SMLFamily/The-Mechanization-of-Standard-ML
