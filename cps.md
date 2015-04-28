@@ -88,26 +88,92 @@ To see what's going on here we
 The only tree-style-nesting here comes from the top `if` expression, everything
 else is completely linear.
 
-Let's formalize this process by converting System F to CPS form.
+Let's formalize this process by converting Simply Typed Lambda Calculus (STLC)
+to CPS form.
 
-## What's System F Again?
+## STLC to CPS
 
-System F is the smallest functional language you can imagine with
-polymorphism. It's the core calculus behind a language like ML.
+First things first, we specify an AST for normal STLC
 
-Real System F has only 5 constructions, variables, abstraction, application,
-type abstraction, and type application. The distinguishing feature here is the
-type abstraction/application. In Haskell or SML we just have polymorphism, it's
-not a thing you see at the expression level but if you write your expressions in
-a certain way hey presto, they're polymorphic. Likewise, you just *use* a
-polymorphic expression as if its the type you want and it works itself out.
+``` haskell
+    data Tp = Arr Tp Tp | Int deriving Show
 
-In System F, this process is made explicit. To write something polymorphic we
-start with it with `Λ τ.` this gives us a fresh type `τ` which we use throughout
-the expression. Let's say we have `e : A` where `τ` appears somewhere in
-`A`. Then `Λ τ. e`, then the whole thing has the type `Λ τ. e : ∀ τ. A`.
+    data Op = Plus | Minus | Times | Divide
+    data Exp a = App (Exp a) (Exp a) Tp
+               | Lam Tp (Scope () Exp a)
+               | Num Int
+                 -- No need for binding here since we have Minus
+               | IfZ (Exp a) (Exp a) (Exp a)
+               | Binop Op (Exp a) (Exp a)
+               | Var a
+```
 
-## System F to CPS
+We've supplemented our lambda calculus with natural numbers and some binary
+operations because it makes things a bit more fun. Additionally, we're using
+bound to deal with bindings for lambdas. This means there's a terribly boring
+monad instance lying around that I won't bore you with.
 
+
+To convert to CPS, we first need to figure out how to convert our types. Since
+CPS functions never return we want them to go to `Void`, the unoccupied
+type. However, since our language doesn't allow `Void` outside of continuations,
+and doesn't allow functions that don't go to `Void`, let's bundle them up into
+one new type `Cont a` which is just a function from `a -> Void`. However, this
+presents us with a problem, how do we turn an `Arr a b` into this style of
+function? It seems like our function should take two arguments, `a` and `b ->
+Void` so that it can produce a `Void` of its own. However, this requires
+products since currying isn't possible with the restriction that all functions
+return `Void`! Therefore, we supplement our CPS language with pairs and
+projections for them.
+
+Now we can write the AST for CPS types and a conversion between `Tp` and it.
+
+``` haskell
+    data CTp = Cont CTp | CInt | CPair CTp CTp
+
+    cpsTp :: Tp -> CTp
+    cpsTp (Arr l r) = Cont $ CPair (cpsTp l) (Cont (cpsTp r))
+    cpsTp Int = CInt
+```
+
+The only interesting thing here is how we translate function types, but we
+talked about that above. Now for expressions.
+
+We want to define a new data type that encapsulates the restrictions of CPS. In
+order to do this we factor out our data types into "flat expressions" and "CPS
+expressions". Flat expressions are things like values and variables while CPS
+expressions contain things like "Jump to this continuation" or "Branch on this
+flat expression". Finally, there's let expressions to perform various operations
+on expressions.
+
+``` haskell
+    data LetBinder a = OpBind Op (FlatExp a) (FlatExp a)
+                     | ProjL a
+                     | ProjR a
+                     | Pair (FlatExp a) (FlatExp a)
+
+    data FlatExp a = CNum Int | CVar a | CLam CTp a (CExp a)
+
+    data CExp a = Let a (LetBinder a) (CExp a)
+                | CIf (FlatExp a) (CExp a) (CExp a)
+                | Jump (FlatExp a) (FlatExp a)
+                | Halt (FlatExp a)
+```
+
+Let's let us bind the results of a few "primitive operations" across values and
+variables to a fresh variable. Notice that here application is spelled `Jump`
+hinting that it really is just a `jmp` and not dealing with the stack in any
+way. This is a key idea with CPS: since function calls never return they need
+not be actual function calls. They're all tail calls so we can treat them as
+jumps and not overflow the stack as would be an issue with a normal calling
+convention. To seal of the chain of function calls we have `Halt`, it takes a
+`FlatExp` and returns it as the result of the program.
+
+Expressions here are also parameterized over variables but we can't use bound
+with them. Because of this we settle for just ensuring that each `a` is
+globally unique.
+
+## Logical Connections
+## Wrap Up
 
 [almost-last]: http://jozefg.bitbucket.org/posts/2015-03-24-pcf.html
