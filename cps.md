@@ -99,7 +99,10 @@ First things first, we specify an AST for normal STLC
     data Tp = Arr Tp Tp | Int deriving Show
 
     data Op = Plus | Minus | Times | Divide
+
+    -- The Tp in App refers to the return type, it's helpful later
     data Exp a = App (Exp a) (Exp a) Tp
+
                | Lam Tp (Scope () Exp a)
                | Num Int
                  -- No need for binding here since we have Minus
@@ -172,6 +175,91 @@ convention. To seal of the chain of function calls we have `Halt`, it takes a
 Expressions here are also parameterized over variables but we can't use bound
 with them. Because of this we settle for just ensuring that each `a` is
 globally unique.
+
+So now instead of having a bunch of nested `Exp`s, we have flat expressions
+which compute exactly one thing and linearize the tree of expressions into a
+series of flat ones with let binders. It's still not quite "linear" since both
+lambdas and if branches let us have something tree-like.
+
+We can now define conversion to CPS with one major helper function
+
+``` haskell
+    cps :: (Eq a, Enum a)
+        => Exp a
+        -> (FlatExp a -> Gen a (CExp a))
+        -> Gen a (CExp a)
+```
+
+This takes an expression, a "continuation" and produces a `CExp`. We have some
+monad-gen stuff going on here because we need unique variables. The
+"continuation" is an actual Haskell function. So our function breaks an
+expression down to a `FlatExp` and then feeds it to the continuation.
+
+``` haskell
+    cps (Var a) c = c (CVar a)
+    cps (Num i) c = c (CNum i)
+```
+
+The first two cases are easy since variables and numbers are already flat
+expressions, they go straight into the continuation.
+
+``` haskell
+    cps (IfZ i t e) c = cps i $ \ic -> CIf ic <$> cps t c <*> cps e c
+```
+
+For `IfZ` we first recurse on the `i`. Then once we have a flattened computation
+representing `i`, we use `CIf` and recurse.
+
+``` haskell
+    cps (Binop op l r) c =
+      cps l $ \fl ->
+      cps r $ \fr ->
+      gen >>= \out ->
+      Let out (OpBind op fl fr) <$> c (CVar out)
+```
+
+Like before, we use `cps` to recurse on the left and right sides of the
+expression. This gives us two flat expressions which we use with `OpBind` to
+compute the result and bind it to `out`. Now that we have a variable for the
+result we just toss it to the continuation.
+
+``` haskell
+    cps (Lam tp body) c = do
+      [pairArg, newCont, newArg] <- replicateM 3 gen
+      let body' = instantiate1 (Var newArg) body
+      cbody <- cps body' (return . Jump (CVar newCont))
+      c (CLam (cpsTp tp) pairArg
+         $ Let newArg  (ProjL pairArg)
+         $ Let newCont (ProjR pairArg)
+         $ cbody)
+```
+
+Converting a lambda is a little bit more work. It needs to take a pair so a lot
+of the work is abstracting the left component (the argument) and the right
+component (the continuation). With those two things in hand we recurse in the
+body using the continuation supplied as an argument.
+
+``` haskell
+    cps (App l r tp) c = do
+      arg <- gen
+      cont <- CLam (cpsTp tp) arg <$> c (CVar arg)
+      cps l $ \fl ->
+        cps r $ \fr ->
+        gen >>= \pair ->
+        return $ Let pair (Pair fr cont) (Jump fl (CVar pair))
+```
+
+For application we just create a lambda for the current continuation. We then
+evaluate the left and right sides of the application. Now that we have a
+function to jump to, we create a pair of the argument and the continuation and
+bind it to a name. From there, we just jump to `fl`, the function.
+
+Finally
+
+``` haskell
+    convert :: Exp Int -> CExp Int
+    convert = runGen . flip cps (return . Halt)
+```
 
 ## Logical Connections
 ## Wrap Up
