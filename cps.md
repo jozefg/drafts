@@ -261,7 +261,58 @@ Finally
     convert = runGen . flip cps (return . Halt)
 ```
 
-## Logical Connections
+With this, we've written a nice little compiler pass to convert expressions into
+their CPS forms. By doing this we've "eliminated expressions". Everything is now
+flat and evaluation basically proceeds by evaluating one small computation and
+using the result to compute another and another.
+
+There's still some things left to compile out before this is machine code though
+
+ - Closures - these can be converted to explicitly pass records with closure
+ conversion
+ - Hoist lambdas out of nested scope - this gets rid of anonymous functions,
+ something we don't have in C or assembly
+ - Make allocation explicit - Allocate a block of memory for a group of let
+   statements and have them explicitly move the results of their computations to
+   it
+ - Register allocation - Cleverly choose whether to store some particular
+ variable in a register or load it in as needed.
+
+Once we've done these steps we've basically written a compiler. However, they're
+all influenced by the fact that we've compiled out expressions and (really)
+function calls with our conversion to CPS, it makes the process much much
+simpler.
+
 ## Wrap Up
 
+CPS conversion is a nice alternative to something like STG machines for lazy
+languages or SSA for imperative ones. As far as I'm aware the main SML
+interpreter (SML/NJ) compiles code in this way. As does Ur/Web if I'm not
+crazy. Additionally, the course entitled "Higher Order, Typed Compilation" which
+is taught here at CMU uses CPS conversion to make compiling SML really quite
+pleasant.
+
+In fact, someone (Andrew Appel?) once wrote a paper that noted that SSA and CPS
+are actually the same. The key difference is that in SSA we merge multiple
+blocks together using the phi function. In CPS, we just let multiple source
+blocks jump to the same destination block (continuation). You can see this in
+our conversion of `IfZ` to CPS, instead of using `phi` to merge in the two
+branches, they both just use the continuation to jump to the remainder of the
+program. It makes things a little simpler because no one person needs to worry
+about
+
+Finally, if you're compiling a language like Scheme with call/cc, using CPS
+conversion makes the whole thing completely trivial. All you do is define
+`call/cc` at the CPS level as
+
+    call/cc (f, c) = f ((λ (x, c') → c x), c)
+
+So instead of using the continuation supplied to us in the expression we give to
+`f`, we use the one for the whole `call/cc` invocation! This causes us to not
+return into the body of `f` but instead to carry on the rest of the program as
+if `f` had returned whatever value `x` is. This is how my old Scheme compiler
+did things, I put figuring out how to implement `call/cc` off for a week before
+I realized it was a 10 minute job!
+
+Hope this was helpful!
 [almost-last]: http://jozefg.bitbucket.org/posts/2015-03-24-pcf.html
