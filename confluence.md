@@ -253,12 +253,82 @@ First we have the cases where `step A B` is a `step/ap1`.
 In the first case, we have two `ap1`s. We recurse on the smaller `S1` and `S2`
 and then immediately use one of our lemmas to lift the results of the recursive
 call, which step the functions in the `ap` we're looking at, to work across the
-whole `ap` term.
+whole `ap` term. In the second case there, we're stepping the function in one,
+and the argument in the other. In order to bring these to a common term we just
+apply the step in the first to the resulting term of the second step and vice
+versa. This means that we're doing something like this
 
-In the second case there, we're stepping the function in one, and the argument
-in the other.
+
+                     F A
+                    /   \
+               S1  /     \ S2
+                  /       \
+                F' A     F  A'
+                  \       /
+               S2  \     /  S1
+                    \   /
+                    F' A'
+
+This clearly commutes so this case goes through. For the final case, we're
+applying a lambda to some term so we can beta reduce. On one side we step the
+body of the lambda some how, and on the other we immediately substitute. Now we
+do something clever. What is a proof that `lam A` steps to `lam B`? It's a proof
+that for any `x`, `A x` steps to `B x`. In fact, it's just a function from `x`
+to such a step `A x` to `B x`. So we have that lying around in `F`. So to step
+from the beta-reduced term `G A` to `G' A` all we do is apply `F` to `A`! The
+other direction is just beta-reducing `ap (lam G') A` to the desired `G' A`.
+
+In the next set of cases we deal with `ap2`!
+
+``` twelf
+     - : confluent (step/ap2 S1) (step/ap2 S2) S1'* S2'*
+          <- confluent S1 S2 S1* S2*
+          <- step*/right S1* S1'*
+          <- step*/right S2* S2'*.
+     - : confluent (step/ap2 S1) (step/ap1 S2)
+          (step*/s step*/z (step/ap1 S2))
+          (step*/s step*/z (step/ap2 S1)).
+     - : confluent (step/ap2 S) (step/b : step (ap (lam F) _) _)
+          (step*/s step*/z step/b) S1*
+          <- subst F S S1*.
+```
+
+The first two cases are almost identical to what we've seen before. The key
+difference here is in the third case. This is again where we're stepping
+something on one side and beta-reducing on the other. We can't use the nice free
+stepping provided by `F` here since we're stepping the argument, not the
+function. For this we appeal to `subst` which let's us step `F A` to `F A'`
+using `S1*` exactly as required. The other direction is trivial just like it was
+in the `ap1` case, we just have to step `ap (lam F) A'` to `F A'` which is done
+with beta reduction.
+
+I'm not going to detail the cases to do with `step/b` as the first argument
+because they're just mirrors of the cases we've looked at before. That only
+leaves us with one more case, the case for `step/lam`.
+
+``` twelf
+     - : confluent (step/lam F1) (step/lam F2) F1'* F2'*
+          <- ({x} confluent (F1 x) (F2 x) (F1* x) (F2* x))
+          <- step*/lam F1* F1'*
+          <- step*/lam F2* F2'*.
+```
+
+This is just like all the other "diagonal" cases, like
+`confluent (ap1 S1) (ap1 S2) ...`. We first recurse (this time using a pi to
+unbind the body of the lambda) and then use compatibility rules in order to get
+something we can give back from `confluent`. And with this, we can actually
+prove that lambda calculus is confluent.
+
+``` twelf
+    %worlds (lam-block) (confluent _ _ _ _).
+    %total (T) (confluent T _ _ _).
+```
 
 ## Wrap Up
+
+We went through a fairly significant proof here, but the end results were
+interesting at least.
+
 
 [intro]: /posts/2015-02-28-twelf.html
 [worlds]: /posts/2015-03-07-worlds.html
