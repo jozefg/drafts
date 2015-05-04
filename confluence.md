@@ -327,7 +327,9 @@ prove that lambda calculus is confluent.
 ## Wrap Up
 
 We went through a fairly significant proof here, but the end results were
-interesting at least.
+interesting at least. One nice thing this proof illustrates is how well HOAS
+lets us encode these proofs. It's a very Twelf-y approach to use lambdas to
+represent bindings. All in all, it's a fun proof.
 
 
 [intro]: /posts/2015-02-28-twelf.html
