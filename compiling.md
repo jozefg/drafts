@@ -1,20 +1,19 @@
 ---
-title: Compiling a Lazy Functional Language in 1000 words
+title: Compiling a Lazy Language in 1,000 words
 tags: compilers, haskell
 ---
 
 I'm a fan of articles like [this one][git] which set out to explain a really
 complicated subject in 600 words or less. I wanted to write one with a similar
 goal for compiling a language like Haskell. To help with this I've broken down
-what most compilers do into 5 different phases and spent 100-200 words
-explaining how they work. This isn't really intended to be a tutorial on how to
-implement a compiler, I just want to make it less magical.
+what most compilers for a lazy language do into 5 different phases and spent 200
+words explaining how they work. This isn't really intended to be a tutorial on
+how to implement a compiler, I just want to make it less magical.
 
-I assume that you know
-
- 1. How a lazy functional language looks (this isn't a tutorial on Haskell)
- 2. A little about how your machine works (C - yes, Assembly - No)
- 3. How to put up with my typo-ridden English (it's just how it is).
+I assume that you know how a lazy functional language looks (this isn't a
+tutorial on Haskell) and a little about how your machine works. I make a few
+references to how some lower level details are compiled that will make more
+sense if you know such thing.
 
 And the word-count-clock starts... now.
 
@@ -127,9 +126,9 @@ totally out of words to say this, but screw it it's really cool).
 
 Examples:
 
- - [My writeup of STG][stg]
+ - [My writeup][stg]
  - [ezyang's (better) writeup][ezyang]
- - [The original paper][stock]
+ - [The paper][stock]
 
 ## Code Generation
 
@@ -145,6 +144,11 @@ In addition to register allocation, we have to compile those C-like language
 constructs to assembly. This means converting procedures into a label and some
 instructions, pattern matches into something like a jump table and so on. This
 is also where we'd apply low-level, bit-twiddling optimizations.
+
+Examples:
+
+ - [LLVM Code Generation][sdiehl]
+ - [Any good compilers book][ml]
 
 ## Conclusion
 
@@ -169,3 +173,5 @@ that you would like to see written about?
 [stg]: /posts/2014-10-28-stg.html
 [ezyang]: http://blog.ezyang.com/2011/04/the-haskell-heap/
 [stock]: http://research.microsoft.com/apps/pubs/default.aspx?id=67083
+[sdiehl]: http://www.stephendiehl.com/llvm/
+[ml]: http://www.cs.princeton.edu/~appel/modern/ml/
