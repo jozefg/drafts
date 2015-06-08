@@ -423,7 +423,23 @@ to recurse some more
              <- ({y} cut P (R y) (R' y)).
 ```
 
-When we have such an occurrence
+When we have such an occurrence we just do like we did with right
+rules.
+
+Okay, now that we've handled all of these cases we're ready to type
+the damn thing.
+
+``` twelf
+    of/cut : {A} of P A
+              -> ({h} hof h A -> of (F h) B)
+              -> cut P F C
+              -> of C B
+              -> type.
+    %mode of/cut +A +B +C -D -E.
+```
+
+Honestly this is less exciting than you'd think. We've really done all
+the creative work
 
 ## Wrap Up
 
