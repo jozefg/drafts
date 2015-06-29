@@ -439,9 +439,55 @@ the damn thing.
 ```
 
 Honestly this is less exciting than you'd think. We've really done all
-the creative work
+the creative work in constructing the `cut` type family. All that's
+left to do is check that this is correct. As an example, here's a case
+that exemplifies how we verify all left-right commutative cuts.
+
+``` twelf
+    - : of/cut _ P ([x][h] of/=>/l ([y][yh] C y yh x h) (A x h) H)
+         (lr/=> CC CA) (of/=>/l C' A' H)
+         <- of/cut _ P A CA A'
+         <- ({y}{yh} of/cut _ P (C y yh) (CC y) (C' y yh)).
+```
+
+We start by trying to show that
+
+``` twelf
+    lr/=> : cut P ([x] =>/l ([y] C y x) (Arg x) H) (=>/l C' Arg' H)
+             <- cut P Arg Arg'
+             <- ({y} cut P (C y) (C' y)).
+```
+
+Is type correct. To do this we have a derivation `P` that the left
+term is well-typed. Notice that I've overloaded `P` here, in the rule
+`lr/=>` `P` was a term and now it's a typing derivation for that
+term. Next we have a typing derivation for
+`[x] =>/l ([y] C y x) (Arg x) H`. This is a function which takes two
+arguments. `x` is a hypothesis, the same as in `lr/=>`, however now we
+have `h` which is a `hof` derivation that `h` has a type. There's only
+one way to type a usage of the left rule for `=>`, with `of/=>/l` so
+we have that next.
+
+Finally, our output is on the next line in two parts. First we have a
+derivation for `cut` showing how to construct the "cut out term" in
+this case. Next we have a new typing derivation that again uses
+`of/=>/l`. Notice that both of these depend on some terms we get from
+the recursive calls here.
+
+Since we've gone through all the cases already and done all the
+thinking, I'm not going to reproduce it all here. The intuition for
+how cut works is really best given by the untyped version with the
+understand that we check that it's correct with this theorem as we did
+above.
 
 ## Wrap Up
+
+To recap here's what we did
+
+ 1. Define sequent calculus' syntax
+ 2. Define typing rules across it
+ 3. Define how an untyped version of cut works across it
+ 4. Validate the correctness of cut by
 
 Hope that was a little fun, cheers!
 
