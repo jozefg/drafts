@@ -122,6 +122,83 @@ justifies introducing several more exotic terms into our language
    counterpart to typing. It reflects whether a term may be thought of
    as part of a type.
 
+In particular it's important to distinguish the difference between `∈`
+the judgment and ∈ the term. There's nothing inherent in `∈` above
+that makes it behave like a typing relation as you might
+expect. Later, we're going to construct some rules around `∈` that are
+going to make it behave that way but for now, it and `=` are just
+suggestively named constants.
+
+This term language contains the full untyped lambda calculus so we can
+write all sorts of fun programs like
+
+``` jonprl
+    λ(f.ap(λ(x.ap(f;(ap(x;x)))); λ(x.ap(f;(ap(x;x)))))
+```
+
+which is just the Y combinator. In particular this means that there's
+no reason that every term in this language should normalize to a
+value. There are plenty of terms in here that diverge and in
+principle, there's nothing that rules out them doing even stranger
+things than that. We really only depend on them being deterministic,
+that `e ⇒ v` and `e ⇒ v'` implies that `v = v'`.
+
+### Tactics
+
+The other big language in JonPRL is the language of tactics. Luckily,
+this is very familiarly territory if you're a Coq user. Unluckily, if
+you've never heard of Coq's tactic mechanism this will seem completely
+alien. As a quick high level idea for what tactics are:
+
+When we're proving something in a theorem prover we have to deal with
+a lot of boring mechanical details. For example, when proving
+`A → B → A` I have to describe that I want to introduce the `A` and
+the `B` into my context, then I have to suggest using that `A` the
+context as a solution to the goal. Bleh. All of that is pretty obvious
+so let's just get the computer to do it! In fact, we can build up a
+DSL of composable "proof procedures" or tactics to modify a particular
+goal we're trying to prove so that we don't have to think so much
+about the low level details of the proof being generated. In the end
+this DSL will generate a proof term (or verification in JonPRL) and
+we'll check that so we never have to trust the actual tactics to be
+sound.
+
+In Coq this is used to great effect. In particular see Adam Chlipala's
+[book][cpdt] to see incredibly complex theorems with one line proofs
+thanks to tactics.
+
+In JonPRL the tactic system is quite simple, to start we have a couple
+of basic tactics which are useful no matter what goal you're
+attempting to prove
+
+ - `id` a tactic which does nothing
+ - `t1; t2` this runs the `t1` tactic and runs `t2` on any resulting
+    subgoals
+ - `*{t}` this runs `t` as long as `t` does *something* to the
+   goal. If `t` ever fails for whatever reason it merely stops
+   running, it doesn't fail itself
+ - `?{t}` tries to run `t` once. If `t` fails nothing happens
+ - `!{t}` runs `t` and if `t` does anything besides complete the proof
+   it fails. This means that `!{id}` for example will always fail.
+ - `t1 | t2` runs `t1` and if it fails it runs `t2`. Only one of the
+   effects for `t1` and `t2` will be shown.
+ - `trace "some words"` will print `some words` to standard out. This
+   is useful when trying to figure out why things haven't gone your
+   way.
+ - `fail` is the opposite of `id`, it just fails. This is actually
+   quite useful for forcing backtracking and one could probably
+   implement a makeshift `!{}` as `t; fail`.
+
+Now those give us a sort of bedrock for building up scripts of
+tactics. We also have a bunch of tactics that actually let us
+manipulate things we're trying to prove. The 4 big ones to be aware of
+are
+
+ - `intro [some term]`
+ - `elim #NUM [some term]`
+ - `eq-cd`
+ - `mem-cd`
+
 ## Built in Constructs
 
 ## Built in Tactics
@@ -133,3 +210,4 @@ justifies introducing several more exotic terms into our language
 [jonprl]: https://github.com/jonsterling/JonPRL
 [nj]: http://www.smlnj.org/
 [mode]: https://github.com/david-christiansen/jonprl-mode
+[cpdt]: http://adam.chlipala.net/cpdt/
