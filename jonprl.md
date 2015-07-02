@@ -14,7 +14,10 @@ learned more or less how it works.
 
 Since there's basically no documentation on it besides the readme and
 of course the compiler I thought I'd write down some of the stuff I've
-learned.
+learned. There's also a completely separate post on the underlying
+type theory for NuPRL and JonPRL that's very interesting in its own
+right but this isn't it. Hopefully I'll get around to scribbling
+something about that because it's really quite clever.
 
 ## Getting JonPRL
 
@@ -189,7 +192,8 @@ prove
  - `!{t}` runs `t` and if `t` does anything besides complete the proof
    it fails. This means that `!{id}` for example will always fail.
  - `t1 | t2` runs `t1` and if it fails it runs `t2`. Only one of the
-   effects for `t1` and `t2` will be shown.
+    effects for `t1` and `t2` will be shown.
+ - `[t1, ..., tn]` runs tactic `ti` on subgoal `i`
  - `trace "some words"` will print `some words` to standard out. This
    is useful when trying to figure out why things haven't gone your
    way.
@@ -244,12 +248,22 @@ checking. This is actually very crucial since type checking in NuPRL
 and JonPRL is undecidable.
 
 Now how do we actually go about proving `∈(<>; unit)`? Well here
-`mem-cd` has got our back. This tactic will go through and dispatch
-most goals of this form. Sometimes you need to lend it a hand with
-helpful rewrite or two but for the most part it will just take care of
-them without you having to think so you can focus on the more
-interesting goals. Similarly to `mem-cd`, `eq-cd` takes care of goals
-of the form `=(a; b; A)`.
+`mem-cd` has got our back. This tactic transforms `∈(A; B)` into the
+equivalent form `=(A; A; B)`. In JonPRL and NuPRL, types are given
+meaning by how we interpret the equality of their members. In other
+words, if you give me a type you have to say
+
+ 1. What it means to be in that type
+ 2. What it means for two members to be equal
+
+Long ago, Stuart Allen realized we could combine the two by specifying
+a *partial* equivalence relation for a type. In this case rather than
+having a separate notion of membership we just check to see if
+something is equal to itself under the PER because when it is that PER
+behaves like a normal equivalence relation! So in JonPRL ∈ is actually
+just a very thin layer of sugar around `=` which is really the core
+defining notion of typehood. To handle `=` we have `eq-cd` which does
+clever things to handle most of the obvious cases of equality.
 
 Finally, we have `elim`. Just like `intro` let us simplify things on
 the right of the ⊢, `elim` let's us eliminate something on the
@@ -258,8 +272,8 @@ left. So we tell `elim` to "eliminate" the nth item in the context
 
 Just like with anything, it's hard to learn all the tactics without
 experimenting (though a complete list can be found with
-`jonprl --list-tactics`). Let's see some constructs that let us
-actually prove theorems.
+`jonprl --list-tactics`). Let's go look at the command language so we
+can actually prove some theorems.
 
 ### Commands
 
@@ -270,7 +284,335 @@ So in JonPRL there are only 4 commands you can write at the top level
  - `Tactic`
  - `Theorem`
 
-### Recap
+The first three of these let us customize and extend the basic suite
+of operators and tactics JonPRL comes with. The last actually lets us
+state and prove theorems.
+
+The best way to see these things is by example so we're going to build
+up a small development in JonPRL. We're going to show that products
+are monoid with `unit` as the identity.
+
+First we want a new snazzy operator to signify nondependent products
+since writing `Σ(A; x.B)` is kind of annoying. We do this using
+operator
+
+``` jonprl
+    Operator x : (0; 0).
+```
+
+This line declares `x` as a new operator which takes two arguments
+binding zero variables each. Now we really want JonPRL to know that
+`x` is sugar for `Σ`. To do this we use `=def=` which gives us a way
+to desugar a new operator into a mess of existing ones.
+
+``` jonprl
+    [x(A; B)] =def= [Σ(A; _.B)].
+```
+
+Now we can change any occurrence of `x(A; B)` for `Σ(A; _.B)` as we'd
+like. Okay, so we want to prove that we have a monoid here. What's the
+first step? Let's verify that `unit` is a left identity for `x`. This
+entails proving that for all types `A`, `x(unit; A) ⊃ A` and
+`A ⊃ x(unit; A)`. Let's prove these as separate theorems. Translating
+our first thing into JonPRL we want to prove
+
+``` jonprl
+    Π(U{i}; A.
+    Π(x(unit; A); _.
+    A))
+```
+
+In Agda notation this would be written
+
+``` agda
+    (A : Set) → (_ : x(unit; A)) → A
+```
+
+Let's prove our first theorem, we start by writing
+
+``` jonprl
+    Theorem left-id1 :
+      [Π(U{i}; A.
+       Π(x(unit; A); _.
+       A))] {
+      id
+    }.
+```
+
+This is the basic form of a theorem in JonPRL, a name, a term to
+prove, and a tactic script. Here we have `id` as a tactic script,
+which clearly doesn't prove our goal. When we run JonPRL on this file
+(C-c C-l if you're in Emacs) you get back
+
+    [XXX.jonprl:8.3-9.1]: tactic 'COMPLETE' failed with goal:
+    ⊢ ΠA ∈ U{i}. (x(unit; A)) => A
+
+    Remaining subgoals:
+    ⊢ ΠA ∈ U{i}. (x(unit; A)) => A
+
+So focus on that `Remaining subgoals` bit, that's what we have left to
+prove, it's our current goal. There's nothing to the left of that ⊢
+yet so let's run the only applicable tactic we know. Delete that `id`
+and replace it with
+
+``` jonprl
+    {
+      intro
+    }.
+```
+
+The goal now becomes
+
+Remaining subgoals:
+
+    1. A : U{i}
+    ⊢ (x(unit; A)) => A
+
+    ⊢ U{i} ∈ U{i'}
+
+
+Two ⊢s means two subgoals now. One looks pretty obvious, `U{i'}` is
+just the universe above `U{i}` (so that's like Set₁ in Agda) so it
+should be the case that `U{i} ∈ U{i'}` by definition! So the next
+tactic should be something like `[???, mem-cd; eq-cd]`. Now what
+should that ??? be? Well we can't use `elim` because there's one thing
+in the context now (`A : U{i}`), but it doesn't help us
+really. Instead let's run `unfold <x>`. This is a new tactic that's
+going to replace that `x` with the definition that we wrote earlier.
+
+``` jonprl
+    {
+      intro; [unfold <x>, mem-cd; eq-cd]
+    }
+```
+
+This gives us
+
+    Remaining subgoals:
+
+    1. A : U{i}
+    ⊢ (unit × A) => A
+
+
+We run intro again
+
+``` jonprl
+    {
+      intro; [unfold <x>, mem-cd; eq-cd]; intro
+    }
+```
+
+Now we are in a similar position to before with two subgoals.
+
+``` jonprl
+    Remaining subgoals:
+
+    1. A : U{i}
+    2. _ : unit × A
+    ⊢ A
+
+
+    1. A : U{i}
+    ⊢ unit × A ∈ U{i}
+```
+
+The first subgaol is really what we want to be proving so let's put a
+pin in that momentarily. Let's get rid of that second subgoal with a
+new helpful tactic called `auto`. It runs `eq-cd`, `mem-cd` and
+`intro` repeatedly and is built to take care of boring goals just like
+this!
+
+``` jonprl
+    {
+      intro; [unfold <x>, mem-cd; eq-cd]; intro; [id, auto]
+    }
+```
+
+Notice that we used what is a pretty common pattern in JonPRL, to work
+on one subgoal at a time we use `[]`'s and `id`s everywhere except
+where we want to do work, in this case the second subgoal.
+
+Now we have
+
+    Remaining subgoals:
+
+    1. A : U{i}
+    2. _ : unit × A
+    ⊢ A
+
+
+Cool! Having a pair of `unit × A` really ought to mean that we have an
+`A` so we can use `elim` to get access to it.
+
+
+``` jonprl
+    {
+      intro; [unfold <x>, mem-cd; eq-cd]; intro; [id, auto];
+      elim #2
+    }
+```
+
+This gives us
+
+    Remaining subgoals:
+
+    1. A : U{i}
+    2. _ : unit × A
+    3. s : unit
+    4. t : A
+    ⊢ A
+
+We've really got the answer now, #4 is precisely our goal. For this
+situations there's `assumption` which is just a tactic which succeeds
+if what we're trying to prove is in our context already. This will
+complete our proof
+
+``` jonprl
+    Theorem left-id1 :
+      [Π(U{i}; A.
+       Π(x(unit; A); _.
+       A))] {
+      intro; [unfold <x>, mem-cd; eq-cd]; intro; [id, auto];
+      elim #2; assumption
+    }.
+```
+
+Now we know that `auto` will run all of the tactics on the first line
+except `unfold <x>`, so what we just `unfold <x>` first and run
+`auto`? It ought to do all the same stuff.. Indeed we can shorten our
+whole proof to `unfold <x>; auto; elim #2; assumption`. With this more
+heavily automated proof, proving our next theorem follows easily.
+
+``` jonprl
+    Theorem left-id2 :
+      [Π(U{i}; A.
+       Π(x(A; unit); _.
+       A))] {
+      unfold <x>; auto; elim #2; assumption
+    }.
+```
+
+Finally we have to prove associativity to complete the development
+that `x` is a monoid. The statement here is a bit more complex.
+
+``` jonprl
+    Theorem assoc :
+      [Π(U{i}; A.
+       Π(U{i}; B.
+       Π(U{i}; C.
+       Π(x(A; x(B;C)); _.
+       x(x(A;B); C)))))] {
+      id
+    }.
+```
+
+In Agda notation what I've written above is
+
+``` agda
+    assoc : (A B C : Set) → A × (B × C) → (A × B) × C
+    assoc = ?
+```
+
+Let's kick things off with `unfold <x>; auto` to deal with all the
+boring stuff we had last time. In fact, since `x` appears in several
+nested places we'd have to run `unfold` quite a few times. Let's just
+shorthand all of those invocations into `*{unfold <x>}`
+
+``` jonprl
+    {
+      *{unfold <x>}; auto
+    }
+```
+
+This leaves us with the state
+
+Remaining subgoals:
+
+    1. A : U{i}
+    2. B : U{i}
+    3. C : U{i}
+    4. _ : A × B × C
+    ⊢ A
+
+
+    1. A : U{i}
+    2. B : U{i}
+    3. C : U{i}
+    4. _ : A × B × C
+    ⊢ B
+
+
+    1. A : U{i}
+    2. B : U{i}
+    3. C : U{i}
+    4. _ : A × B × C
+    ⊢ C
+
+In each of those goals we need to take apart the 4th hypothesis so
+let's do that
+
+``` jonprl
+    {
+      *{unfold <x>}; auto; elim #4
+    }
+```
+
+This leaves us with 3 subgoals still
+
+    1. A : U{i}
+    2. B : U{i}
+    3. C : U{i}
+    4. _ : A × B × C
+    5. s : A
+    6. t : B × C
+    ⊢ A
+
+
+    1. A : U{i}
+    2. B : U{i}
+    3. C : U{i}
+    4. _ : A × B × C
+    5. s : A
+    6. t : B × C
+    ⊢ B
+
+
+    1. A : U{i}
+    2. B : U{i}
+    3. C : U{i}
+    4. _ : A × B × C
+    5. s : A
+    6. t : B × C
+    ⊢ C
+
+The first subgoal is pretty easy, `assumption` should handle that. In
+the other two we want to eliminate 6 and *then* we should be able to
+apply assumption. In order to deal with this we use `|` to encode that
+disjunction. In particular we want to run `assumption` OR `elim #6;
+assumption` leaving us with
+
+``` jonprl
+    {
+      *{unfold <x>}; auto; elim #4; (assumption | elim #6; assumption)
+    }
+```
+
+This completes the proof!
+
+``` jonprl
+    Theorem assoc :
+      [Π(U{i}; A.
+       Π(U{i}; B.
+       Π(U{i}; C.
+       Π(x(A; x(B;C)); _.
+       x(x(A;B); C)))))] {
+      *{unfold <x>}; auto; elim #4; (assumption | elim #6; assumption)
+    }.
+```
+
+As an exercise to the reader, prove that we can associate the other way.
+
+## What on earth did we just do!?
 
 ## Built in Constructs
 
