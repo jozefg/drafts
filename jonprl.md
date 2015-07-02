@@ -614,12 +614,9 @@ As an exercise to the reader, prove that we can associate the other way.
 
 ## What on earth did we just do!?
 
-## Built in Constructs
+## One killer feature
 
-## Built in Tactics
-
-## Fun Uses
-
+## Wrap Up
 
 [jon]: http://www.jonmsterling.com/
 [jonprl]: https://github.com/jonsterling/JonPRL
