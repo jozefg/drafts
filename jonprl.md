@@ -167,9 +167,17 @@ In Coq this is used to great effect. In particular see Adam Chlipala's
 [book][cpdt] to see incredibly complex theorems with one line proofs
 thanks to tactics.
 
-In JonPRL the tactic system is quite simple, to start we have a couple
-of basic tactics which are useful no matter what goal you're
-attempting to prove
+In JonPRL the tactic system works by modifying a sequent of the form
+`H ⊢ A` (a goal). Each time we run a tactic we get back a list of new
+goals to prove until eventually we get to trivial goals which produce
+no new subgoals. This means that when trying to prove a theorem in the
+tactic language we never actually see the resulting extract, the
+program to be extracted from our proof. We just see this list of
+`H ⊢ A`s to prove and we do so with tactics.
+
+The tactic system is quite simple, to start we have a number of basic
+tactics which are useful no matter what goal you're attempting to
+prove
 
  - `id` a tactic which does nothing
  - `t1; t2` this runs the `t1` tactic and runs `t2` on any resulting
@@ -194,10 +202,75 @@ tactics. We also have a bunch of tactics that actually let us
 manipulate things we're trying to prove. The 4 big ones to be aware of
 are
 
- - `intro [some term]`
- - `elim #NUM [some term]`
+ - `intro`
+ - `elim #NUM`
  - `eq-cd`
  - `mem-cd`
+
+The basic idea is that `intro` modifies the `A` part of the goal. If
+we're looking at a function, so something like  `H ⊢ Π(A; x.B)`, this
+will move that `A` into the context, leaving us with
+`H, x : A ⊢ B`.
+
+If you're familiar with sequent calculus at all `intro` runs the
+appropriate right rule for the goal. If you're not familiar with
+sequent calculus `intro` looks at the outermost operator of the `A`
+and runs a rule that applies when that operator is to the right of a
+the `⊢`.
+
+Now one tricky case is what should `intro` do if you're looking at a
+Σ? Well now things get a bit tricky. Intuitively we'd expect to get
+two subgoals if we run `intro` on `H ⊢ Σ(A; x.B)`, one which proves `H
+⊢ A` and one which proves `H ⊢ B` or something, but what about the
+fact that `x.B` *depends* on whatever the underlying realizer
+(remember that's the program extracted from) the proof of `H ⊢ A`!
+Even more troubling, NuPRL and JonPRL are based around extract-style
+proof systems which shouldn't allow a goal to depend on the particular
+content of a realizer of another goal. So instead we have to tell
+`intro` up front what we want the realizer for `H ⊢ A` to be is.
+
+To do this we just give intro an argument. For example say we're
+proving that `· ⊢ Σ(unit; x.unit)`, we run `intro [<>]` which gives us
+two subgoals `· ⊢ ∈(<>; unit)` and `· ⊢ unit`. Here the `[]` let us
+denote the realizer we're passing to `intro`, in general any term
+arguments to a tactic will be wrapped in `[]`s. So the first goals
+says "OK, you said that this was your realizer for `unit`, but is it
+actually a realizer for `unit`?" and the second one substitutes the
+given realizer into the second argument of `Σ`, `x.unit` and asks us
+to prove that. Notice how here we have to prove `∈(<>; unit)`? This is
+where that weird `∈` type comes in handy. It let's us sort of play
+type checker and guide JonPRL through the process of type
+checking. This is actually very crucial since type checking in NuPRL
+and JonPRL is undecidable.
+
+Now how do we actually go about proving `∈(<>; unit)`? Well here
+`mem-cd` has got our back. This tactic will go through and dispatch
+most goals of this form. Sometimes you need to lend it a hand with
+helpful rewrite or two but for the most part it will just take care of
+them without you having to think so you can focus on the more
+interesting goals. Similarly to `mem-cd`, `eq-cd` takes care of goals
+of the form `=(a; b; A)`.
+
+Finally, we have `elim`. Just like `intro` let us simplify things on
+the right of the ⊢, `elim` let's us eliminate something on the
+left. So we tell `elim` to "eliminate" the nth item in the context
+(they're numbered when JonPRL prints them) with `elim #n`.
+
+Just like with anything, it's hard to learn all the tactics without
+experimenting (though a complete list can be found with
+`jonprl --list-tactics`). Let's see some constructs that let us
+actually prove theorems.
+
+### Commands
+
+So in JonPRL there are only 4 commands you can write at the top level
+
+ - `Operator`
+ - `[oper] =def= [term]` (A definition)
+ - `Tactic`
+ - `Theorem`
+
+### Recap
 
 ## Built in Constructs
 
