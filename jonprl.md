@@ -688,8 +688,127 @@ aren't really programs though, they don't correspond one to one with
 proof terms we may run like they would in Coq. The computational
 interpretation of our program is bundled up in that `a`.
 
-To see what I mean here we need
+To see what I mean here we need a little bit more
+machinery. Specifically, let's look at the rules for the equality
+around the proposition `=(a; b; A)`. Remember that we have a term `<>`
+lying around,
 
+         a = b ∈ A
+    ————————————————————
+    <> = <> ∈ =(a; b; A)
+
+So the only member of `=(a; b; A)` is `<>` `a = b ∈ A` actually
+holds. First off, notice that `<> ∈ A` and `<> ∈ B` doesn't imply
+that `A = B`! In another example, `λ(x. x) ∈ Π(A; _.A)` for all `A`!
+This is a natural consequence of separating our typing judgment from
+our programming language. Secondly, there's not really any computation
+in the `e` of `H ⊢ =(a; b; A) (e)`. After all, in the end the only
+thing `e` could be so that `e : =(a; b; A)` is `<>`! However, there
+is potentially quite a large derivation involved in making `=(a; b;
+A)` evident! For example, we might have something like this
+
+    x : =(A; B; U{i}); y : =(b; a; A) ⊢ =(a; b; B)
+    ———————————————————————————————————————————————— Substitution
+    x : =(A; B; U{i}); y : =(b; a; A) ⊢ =(a; b; A)
+    ———————————————————————————————————————————————— Symmetry
+    x : =(A; B; U{i}); y : =(b; a; A) ⊢ =(b; a; A)
+    ———————————————————————————————————————————————— Assumption
+
+Now we write derivations of this sequent up side down, so the thing we
+want to show starts on top and we write each rule application and
+subgoal below it (AI people apparently like this?). Now this was quite
+a derivation, but if we fill in the missing `(e)` for this derivation
+from the bottom up we get this
+
+
+    x : =(A; B; U{i}); y : =(b; a; A) ⊢ =(a; b; B)
+    ———————————————————————————————————————————————— Substitution   (<>)
+    x : =(A; B; U{i}); y : =(b; a; A) ⊢ =(a; b; A)
+    ———————————————————————————————————————————————— Symmetry       (<>)
+    x : =(A; B; U{i}); y : =(b; a; A) ⊢ =(b; a; A)
+    ———————————————————————————————————————————————— Assumption     (x)
+
+Notice how at the bottom there was some computational content (That
+`x` signifies that we're accessing a variable in our context) but than
+we throw it away right on the next line! That's because we find that
+no matter what the extract was that let's us derive `=(b; a; A)`, the
+only realizer it could possible generate is `<>`. Remember our
+conditions, if we can make evident the fact that `b = a ∈ A` then `<>
+∈ =(b; a; A)`. Because we somehow managed to prove that `b = a ∈ A`
+holds, we're entitled to just use `<>` to realize our proof. This
+means that despite our somewhat tedious verification and the
+bookkeeping that we had to do to generate that program, that program
+reflects *none* of it.
+
+This is why type checking in JonPRL is woefully undecidable in part,
+the realizers that we want to type check contain none of the helpful
+hints that proof terms in Coq would. This also means that extraction
+from JonPRL proofs is built right into the system and we can actually
+generate cool and useful things! In NuPRL they actually write proofs
+and use this realizers to run real software. From what they said at
+OPLSS they can actually get these programs to run fast (within 5x of
+naive C code).
+
+So to recap, in JonPRL we
+
+ - See `H ⊢ A`
+ - Use tactics to generate a verification of this judgment
+ - Once this verification is generated, we can extract the
+ computational content as a program in our untyped system
+
+In fact, we can see all of this happen if you call JonPRL from the
+command line *or* hit C-c C-c in emacs! On our earlier proof we see
+
+
+    Operator x : (0; 0).
+    ⸤x(A; B)⸥ ≝ ⸤A × B⸥.
+
+    Theorem left-id1 : ⸤⊢ ΠA ∈ U{i}. (x(unit; A)) => A⸥ {
+      fun-intro(A.fun-intro(_.prod-elim(_; _.t.t); prod⁼(unit⁼; _.hyp⁼(A))); U⁼{i})
+    } ext {
+      λ_. λ_. spread(_; _.t.t)
+    }.
+
+    Theorem left-id2 : ⸤⊢ ΠA ∈ U{i}. (x(A; unit)) => A⸥ {
+      fun-intro(A.fun-intro(_.prod-elim(_; s._.s); prod⁼(hyp⁼(A); _.unit⁼)); U⁼{i})
+    } ext {
+      λ_. λ_. spread(_; s._.s)
+    }.
+
+    Theorem assoc : ⸤⊢ ΠA ∈ U{i}. ΠB ∈ U{i}. ΠC ∈ U{i}. (x(A; x(B; C))) => x(x(A; B); C)⸥ {
+      fun-intro(A.fun-intro(B.fun-intro(C.fun-intro(_.independent-prod-intro(independent-prod-intro(prod-elim(_;
+      s.t.prod-elim(t; _._.s)); prod-elim(_; _.t.prod-elim(t;
+      s'._.s'))); prod-elim(_; _.t.prod-elim(t; _.t'.t')));
+      prod⁼(hyp⁼(A); _.prod⁼(hyp⁼(B); _.hyp⁼(C)))); U⁼{i}); U⁼{i});
+      U⁼{i})
+    } ext {
+      λ_. λ_. λ_. λ_. ⟨⟨spread(_; s.t.spread(t; _._.s)), spread(_; _.t.spread(t; s'._.s'))⟩, spread(_; _.t.spread(t; _.t'.t'))⟩
+    }.
+
+Now we can see that those `Operator` and `≝` bits are really what we
+typed with `=def=` and `Operator` in JonPRL, what's interesting here
+are the theorems. There's two bits, the verification and the extract
+or realizer.
+
+    {
+      derivation of the sequent · ⊢ A
+    } ext {
+      the program in the untyped system extracted from our derivation
+    }
+
+We can move that derivation into a different theorem prover and check
+it. This gives us all the information we need to prove that JonPRL is
+safe and helps us not trust *all* of JonPRL (I wrote some of it so I'd
+be a little scared to trust it :). We can also see the computational
+bit of our proof in the extract. For example, the computation involved
+in taking `A × unit → A` is just `λ_. λ_. spread(_; s._.s)`! This is
+probably closer to what you've seen in Coq or Idris, even though I'd
+say the verification is probably more similar in spirit (just ugly and
+beta normal). That's because the extract need not have any notion of
+typing or proof, it's just the computation needed to produce a witness
+of the appropriate type. This means for a really tricky proof of
+equality, your extract might just be `<>`! Your verification however
+will always exactly reflect the complexity of your proof.
 
 ## One killer feature
 
