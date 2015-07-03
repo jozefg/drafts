@@ -810,7 +810,57 @@ of the appropriate type. This means for a really tricky proof of
 equality, your extract might just be `<>`! Your verification however
 will always exactly reflect the complexity of your proof.
 
-## One killer feature
+## Killer features
+
+OK, so I've just dumped about 50 years worth of hard research in type
+theory into your lap which is best left to ruminate for a
+bit. However, before I finish up this post I wanted to do a little bit
+of marketing so that you can see why one might be interested in JonPRL
+(or NuPRL). Since we've embraced this idea of programs first and types
+as PERs, we can define some really strange types completely
+seamlessly. For example, in JonPRL there's a type `⋂(A; x.B)`, it
+behaves a lot like `Π` but with one big difference, the definition of
+`- = - ∈ ⋂(A; x.B)` looks like this
+
+    a : A ⊢ e = e' ∈ [a/x]B
+    ————————————————————————
+       e = e' ∈ ⋂(A; x.B)
+
+Notice here that `e` and `e'` *may not use* `a` anywhere in their
+bodies. That is, they have to be in `[a/x]B` without knowing anything
+about `a` and without even having access to it.
+
+This is a pretty alien concept that turned out to be new in logic as
+well (it's called "uniform quantification" I believe). It turns out
+to be very useful in PRL's because it lets us declare things in our
+theorems without having them propogate into our witness. For example,
+we could have said
+
+``` jonprl
+    Theorem left-id2 :
+          [⋂(U{i}; A.
+           Π(x(A; unit); _.
+           A))] {
+          unfold <x>; auto; elim #2; assumption
+        }.
+```
+
+With the observation that our realizer doesn't need to depend on `A`
+at all (remember, no types!). Then the extract of this theorem is
+
+    λx. spread(x; s._.s)
+
+There's no spurious `λ _. ...` at the beginning! Even more wackily, we
+can define subsets of an existing type since realizers need not have
+unique types
+
+    e = e' ∈ A  [e/x]P  [e'/x]P
+    ————————————————————————————
+      e = e' ∈ subset(A; x.P)
+
+And in JonPRL we can now say things like "all odd numbers" by just
+saying `subset(nat; n. ap(odd; n))`
+
 
 ## Wrap Up
 
