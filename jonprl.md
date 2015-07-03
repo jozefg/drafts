@@ -614,6 +614,83 @@ As an exercise to the reader, prove that we can associate the other way.
 
 ## What on earth did we just do!?
 
+So we just proved a theorem.. but what really just happened? I mean
+how did we go from "Here we have an untyped computation system which
+types just behaving as normal terms" to "Now apply `auto` and we're
+done!". In this section I'd like to briefly sketch the path from
+untyped computation to theorems.
+
+The path looks like this
+
+  - We start with our untyped language and its notion of computation
+
+    We already discussed this in great depth before.
+
+  - We define a judgment `a = b ∈ A`.
+
+    This is a judgment, not a term in that language. It exists in
+    whatever metalanguage we're using. This judgment is defined across
+    3 terms in our untyped language (I'm only capitalizing `A` out of
+    convention). This is supposed to represent that `a` and `b` are
+    equal elements of type `A`. This also gives meaning to typehood:
+    something is a type in CTT precisely when we know what the partial
+    equivalence relation defined by `- = - ∈ A` on canonical values
+    is.
+
+    Notice here that I said *partial*. It isn't the case that `a = b ∈
+    A` presupposes that we know that `a : A` and `b : A` because we
+    don't have a notion of `:` yet!
+
+    In some sense this is where we depart from a type theory like Coq
+    or Agda's. We have programs already and on top of them we define
+    this 3 part judgment which interacts which computation in a few
+    ways I'm not specifying. In Coq or Agda, we would specify *one*
+    notion of equality, generic over all types, and separately specify
+    a typing relation.
+
+ - From here we can define the normal judgments of Martin Lof's type
+   theory. For example, `a : A` is `a = a ∈ A`. We recover the
+   judgment `A type` with `A = A ∈ U` (where `U` here is a universe).
+
+Hypothetical judgments are introduced in the same way they would be in
+Martin-Lof's presentations of type theory. The idea being that `H ≫ J`
+if `J` is evident under the assumption that each thing in `H` holds
+and furthermore that `J` is functional (respects equality) with
+respect to what `H` contains.
+
+With this we have something that walks and quacks like normal type
+theory. Using the normal tools of our metatheory we can formulate
+proofs of `a : A` and do normal type theory things. This whole
+development is building up what is called "Computational Type
+Theory". The way this diverges from Martin-Lof's extensional type
+theory is subtle but it does directly descend from Martin-Lof's famous
+1979 paper "Constructive Mathematics and Computer Programming" (which
+you should read. Instead of my crappy blog post).
+
+Now there's one final layer we have to consider, the PRL bit of
+JonPRL. We define a new judgment, `H ⊢ A (a)`. This is judgment is
+cleverly set up so two properties hold
+
+ - `H ⊢ A (a)` should entail that `H ⊢ a : A` or `H ⊢ a = a ∈ A`
+ - In `H ⊢ A (a)`, `a` is an output and `H` and `A` are inputs. In
+   particular, this implies that in any inference for this judgment,
+   the subgoals may not use `a` in their `H` and `A`.
+
+This means that `a` is completely determined by `H` and `A` which
+justifies my use of the term output. I mean this in the sense of Twelf
+and logic programming if that's a more familiar phrasing (for the
+dozen Twelf users in the world). It's this judgment that we see in
+JonPRL! Since that `a` is output we simply hide it, leaving us with `H
+⊢ A` as we saw before. When we prove something with tactics in JonPRL
+we're generating a *verification*, a tree of inference rules which
+make `H ⊢ A` evident for our particular `H` and `A`! These rules
+aren't really programs though, they don't correspond one to one with
+proof terms we may run like they would in Coq. The computational
+interpretation of our program is bundled up in that `a`.
+
+To see what I mean here we need
+
+
 ## One killer feature
 
 ## Wrap Up
