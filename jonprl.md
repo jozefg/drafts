@@ -162,7 +162,7 @@ so let's just get the computer to do it! In fact, we can build up a
 DSL of composable "proof procedures" or tactics to modify a particular
 goal we're trying to prove so that we don't have to think so much
 about the low level details of the proof being generated. In the end
-this DSL will generate a proof term (or verification in JonPRL) and
+this DSL will generate a proof term (or derivation in JonPRL) and
 we'll check that so we never have to trust the actual tactics to be
 sound.
 
@@ -644,9 +644,9 @@ The path looks like this
     In some sense this is where we depart from a type theory like Coq
     or Agda's. We have programs already and on top of them we define
     this 3 part judgment which interacts which computation in a few
-    ways I'm not specifying. In Coq or Agda, we would specify *one*
-    notion of equality, generic over all types, and separately specify
-    a typing relation.
+    ways I'm not specifying. In Coq, we would specify *one* notion of
+    equality, generic over all types, and separately specify a typing
+    relation.
 
  - From here we can define the normal judgments of Martin Lof's type
    theory. For example, `a : A` is `a = a ∈ A`. We recover the
@@ -654,9 +654,11 @@ The path looks like this
 
 Hypothetical judgments are introduced in the same way they would be in
 Martin-Lof's presentations of type theory. The idea being that `H ≫ J`
-if `J` is evident under the assumption that each thing in `H` holds
-and furthermore that `J` is functional (respects equality) with
-respect to what `H` contains.
+if `J` is evident under the assumption that each term in `H` has the
+appropriate type and furthermore that `J` is functional (respects
+equality) with respect to what `H` contains. This isn't really a
+higher order judgment, but it will be defined in terms of a higher
+order hypothetical judgment in the metatheory.
 
 With this we have something that walks and quacks like normal type
 theory. Using the normal tools of our metatheory we can formulate
@@ -668,11 +670,11 @@ theory is subtle but it does directly descend from Martin-Lof's famous
 you should read. Instead of my crappy blog post).
 
 Now there's one final layer we have to consider, the PRL bit of
-JonPRL. We define a new judgment, `H ⊢ A (a)`. This is judgment is
+JonPRL. We define a new judgment, `H ⊢ A [ext a]`. This is judgment is
 cleverly set up so two properties hold
 
- - `H ⊢ A (a)` should entail that `H ⊢ a : A` or `H ⊢ a = a ∈ A`
- - In `H ⊢ A (a)`, `a` is an output and `H` and `A` are inputs. In
+ - `H ⊢ A [ext a]` should entail that `H ⊢ a : A` or `H ⊢ a = a ∈ A`
+ - In `H ⊢ A [ext a]`, `a` is an output and `H` and `A` are inputs. In
    particular, this implies that in any inference for this judgment,
    the subgoals may not use `a` in their `H` and `A`.
 
@@ -682,7 +684,7 @@ and logic programming if that's a more familiar phrasing (for the
 dozen Twelf users in the world). It's this judgment that we see in
 JonPRL! Since that `a` is output we simply hide it, leaving us with `H
 ⊢ A` as we saw before. When we prove something with tactics in JonPRL
-we're generating a *verification*, a tree of inference rules which
+we're generating a *derivation*, a tree of inference rules which
 make `H ⊢ A` evident for our particular `H` and `A`! These rules
 aren't really programs though, they don't correspond one to one with
 proof terms we may run like they would in Coq. The computational
@@ -717,16 +719,16 @@ A)` evident! For example, we might have something like this
 Now we write derivations of this sequent up side down, so the thing we
 want to show starts on top and we write each rule application and
 subgoal below it (AI people apparently like this?). Now this was quite
-a derivation, but if we fill in the missing `(e)` for this derivation
+a derivation, but if we fill in the missing `[ext e]` for this derivation
 from the bottom up we get this
 
 
     x : =(A; B; U{i}); y : =(b; a; A) ⊢ =(a; b; B)
-    ———————————————————————————————————————————————— Substitution   (<>)
+    ———————————————————————————————————————————————— Substitution [ext <>]
     x : =(A; B; U{i}); y : =(b; a; A) ⊢ =(a; b; A)
-    ———————————————————————————————————————————————— Symmetry       (<>)
+    ———————————————————————————————————————————————— Symmetry     [ext <>]
     x : =(A; B; U{i}); y : =(b; a; A) ⊢ =(b; a; A)
-    ———————————————————————————————————————————————— Assumption     (x)
+    ———————————————————————————————————————————————— Assumption   [ext x]
 
 Notice how at the bottom there was some computational content (That
 `x` signifies that we're accessing a variable in our context) but than
@@ -736,7 +738,7 @@ only realizer it could possible generate is `<>`. Remember our
 conditions, if we can make evident the fact that `b = a ∈ A` then `<>
 ∈ =(b; a; A)`. Because we somehow managed to prove that `b = a ∈ A`
 holds, we're entitled to just use `<>` to realize our proof. This
-means that despite our somewhat tedious verification and the
+means that despite our somewhat tedious derivation and the
 bookkeeping that we had to do to generate that program, that program
 reflects *none* of it.
 
@@ -752,8 +754,8 @@ naive C code).
 So to recap, in JonPRL we
 
  - See `H ⊢ A`
- - Use tactics to generate a verification of this judgment
- - Once this verification is generated, we can extract the
+ - Use tactics to generate a derivation of this judgment
+ - Once this derivation is generated, we can extract the
  computational content as a program in our untyped system
 
 In fact, we can see all of this happen if you call JonPRL from the
@@ -787,7 +789,7 @@ command line *or* hit C-c C-c in emacs! On our earlier proof we see
 
 Now we can see that those `Operator` and `≝` bits are really what we
 typed with `=def=` and `Operator` in JonPRL, what's interesting here
-are the theorems. There's two bits, the verification and the extract
+are the theorems. There's two bits, the derivation and the extract
 or realizer.
 
     {
@@ -803,11 +805,11 @@ be a little scared to trust it :). We can also see the computational
 bit of our proof in the extract. For example, the computation involved
 in taking `A × unit → A` is just `λ_. λ_. spread(_; s._.s)`! This is
 probably closer to what you've seen in Coq or Idris, even though I'd
-say the verification is probably more similar in spirit (just ugly and
+say the derivation is probably more similar in spirit (just ugly and
 beta normal). That's because the extract need not have any notion of
 typing or proof, it's just the computation needed to produce a witness
 of the appropriate type. This means for a really tricky proof of
-equality, your extract might just be `<>`! Your verification however
+equality, your extract might just be `<>`! Your derivation however
 will always exactly reflect the complexity of your proof.
 
 ## Killer features
