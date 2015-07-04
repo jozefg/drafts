@@ -81,18 +81,18 @@ x.B)` corresponds to `(x : A) → B` in Agda or `forall (x : A), B` in
 Coq.
 
 We also have dependent sums as well (`Σ`s). In Agda you would write
-`(A , B)` to introduce a pair and `Σ C λ x → D` to type it. In JonPRL
-you have `pair(A; B)` and `Σ(C; x.D)`. To use a `Σ` we have spread
+`(M , N)` to introduce a pair and `Σ A λ x → B` to type it. In JonPRL
+you have `pair(M; N)` and `Σ(A; x.B)`. To use a `Σ` we have spread
 which let's us provide a term which depends on the two components of a
 pair. Eg `spread(0; 2)`, you give it a `Σ` in the first spot and
 `x.y.e` in the second and it'll replace `x` with the first component
 and `y` with the second. Can you think of how to write `fst` and `snd`
 with this?
 
-There's sums, so `inl(A)`, `inr(B)` and `sum(C; D)` corresponds to
+There's sums, so `inl(M)`, `inr(N)` and `sum+(A; B)` corresponds to
 `Left`, `Right`, and `Either` in Haskell. For case analysis there's
-`decide` which has the arity `(0; 1; 1)`. You should read `decide(E;
-x.L; y.R)` as something like
+`decide` which has the arity `(0; 1; 1)`. You should read `decide(M;
+x.N; y.P)` as something like
 
 ``` haskell
     case E of
@@ -103,12 +103,12 @@ x.L; y.R)` as something like
 In addition we have `unit` and `<>` (pronounced axe for axiom
 usually). Neither of these takes any arguments so we write them just
 as I have above. They correspond to `()` and `()` in Haskell. Finally
-there's `void` which is sometimes called bottom or ⊥ in theorem prover
-land.
+there's `void` which is sometimes called `false` or `empty` in theorem
+prover land.
 
 You'll notice that I presented a bunch of types as if they were normal
 terms in this section. That's because in this untyped computation
-systems types *are literally* just terms. There's no typing relation
+system, types *are literally* just terms. There's no typing relation
 to distinguish them yet so they just float around exactly as if they
 were λ or something! I call them types because I'm thinking of later
 when we have a typing relation built on top of this system but for now
@@ -121,9 +121,10 @@ justifies introducing several more exotic terms into our language
  - `=(0; 0; 0)` this is equality between two terms at a type. It's a
    proposition that's going to precisely mirror what's going on later
    in the type theory with the equality judgment
- - `∈(0; 0)` this is just like `=` but behaves as the propositional
-   counterpart to typing. It reflects whether a term may be thought of
-   as part of a type.
+ - `∈(0; 0)` this is just like `=` but internalizes membership in a
+   type into the system. Remember that normally "This has that type"
+   is a judgment but with this term we're going to have a
+   propositional counterpart to use in theorems.
 
 In particular it's important to distinguish the difference between `∈`
 the judgment and ∈ the term. There's nothing inherent in `∈` above
@@ -297,35 +298,35 @@ since writing `Σ(A; x.B)` is kind of annoying. We do this using
 operator
 
 ``` jonprl
-    Operator x : (0; 0).
+    Operator prod : (0; 0).
 ```
 
 This line declares `x` as a new operator which takes two arguments
 binding zero variables each. Now we really want JonPRL to know that
-`x` is sugar for `Σ`. To do this we use `=def=` which gives us a way
+`prod` is sugar for `Σ`. To do this we use `=def=` which gives us a way
 to desugar a new operator into a mess of existing ones.
 
 ``` jonprl
-    [x(A; B)] =def= [Σ(A; _.B)].
+    [prod(A; B)] =def= [Σ(A; _.B)].
 ```
 
-Now we can change any occurrence of `x(A; B)` for `Σ(A; _.B)` as we'd
+Now we can change any occurrence of `prod(A; B)` for `Σ(A; _.B)` as we'd
 like. Okay, so we want to prove that we have a monoid here. What's the
 first step? Let's verify that `unit` is a left identity for `x`. This
-entails proving that for all types `A`, `x(unit; A) ⊃ A` and
-`A ⊃ x(unit; A)`. Let's prove these as separate theorems. Translating
+entails proving that for all types `A`, `prod(unit; A) ⊃ A` and
+`A ⊃ prod(unit; A)`. Let's prove these as separate theorems. Translating
 our first thing into JonPRL we want to prove
 
 ``` jonprl
     Π(U{i}; A.
-    Π(x(unit; A); _.
+    Π(prod(unit; A); _.
     A))
 ```
 
 In Agda notation this would be written
 
 ``` agda
-    (A : Set) → (_ : x(unit; A)) → A
+    (A : Set) → (_ : prod(unit; A)) → A
 ```
 
 Let's prove our first theorem, we start by writing
@@ -333,7 +334,7 @@ Let's prove our first theorem, we start by writing
 ``` jonprl
     Theorem left-id1 :
       [Π(U{i}; A.
-       Π(x(unit; A); _.
+       Π(prod(unit; A); _.
        A))] {
       id
     }.
@@ -345,10 +346,10 @@ which clearly doesn't prove our goal. When we run JonPRL on this file
 (C-c C-l if you're in Emacs) you get back
 
     [XXX.jonprl:8.3-9.1]: tactic 'COMPLETE' failed with goal:
-    ⊢ ΠA ∈ U{i}. (x(unit; A)) => A
+    ⊢ ΠA ∈ U{i}. (prod(unit; A)) => A
 
     Remaining subgoals:
-    ⊢ ΠA ∈ U{i}. (x(unit; A)) => A
+    ⊢ ΠA ∈ U{i}. (prod(unit; A)) => A
 
 So focus on that `Remaining subgoals` bit, that's what we have left to
 prove, it's our current goal. There's nothing to the left of that ⊢
@@ -366,7 +367,7 @@ The goal now becomes
 Remaining subgoals:
 
     1. A : U{i}
-    ⊢ (x(unit; A)) => A
+    ⊢ (prod(unit; A)) => A
 
     ⊢ U{i} ∈ U{i'}
 
@@ -377,12 +378,12 @@ should be the case that `U{i} ∈ U{i'}` by definition! So the next
 tactic should be something like `[???, mem-cd; eq-cd]`. Now what
 should that ??? be? Well we can't use `elim` because there's one thing
 in the context now (`A : U{i}`), but it doesn't help us
-really. Instead let's run `unfold <x>`. This is a new tactic that's
+really. Instead let's run `unfold <prod>`. This is a new tactic that's
 going to replace that `x` with the definition that we wrote earlier.
 
 ``` jonprl
     {
-      intro; [unfold <x>, mem-cd; eq-cd]
+      intro; [unfold <prod>, mem-cd; eq-cd]
     }
 ```
 
@@ -398,7 +399,7 @@ We run intro again
 
 ``` jonprl
     {
-      intro; [unfold <x>, mem-cd; eq-cd]; intro
+      intro; [unfold <prod>, mem-cd; eq-cd]; intro
     }
 ```
 
@@ -416,7 +417,7 @@ Now we are in a similar position to before with two subgoals.
     ⊢ unit × A ∈ U{i}
 ```
 
-The first subgaol is really what we want to be proving so let's put a
+The first subgoal is really what we want to be proving so let's put a
 pin in that momentarily. Let's get rid of that second subgoal with a
 new helpful tactic called `auto`. It runs `eq-cd`, `mem-cd` and
 `intro` repeatedly and is built to take care of boring goals just like
@@ -424,7 +425,7 @@ this!
 
 ``` jonprl
     {
-      intro; [unfold <x>, mem-cd; eq-cd]; intro; [id, auto]
+      intro; [unfold <prod>, mem-cd; eq-cd]; intro; [id, auto]
     }
 ```
 
@@ -447,7 +448,7 @@ Cool! Having a pair of `unit × A` really ought to mean that we have an
 
 ``` jonprl
     {
-      intro; [unfold <x>, mem-cd; eq-cd]; intro; [id, auto];
+      intro; [unfold <prod>, mem-cd; eq-cd]; intro; [id, auto];
       elim #2
     }
 ```
@@ -470,25 +471,25 @@ complete our proof
 ``` jonprl
     Theorem left-id1 :
       [Π(U{i}; A.
-       Π(x(unit; A); _.
+       Π(prod(unit; A); _.
        A))] {
-      intro; [unfold <x>, mem-cd; eq-cd]; intro; [id, auto];
+      intro; [unfold <prod>, mem-cd; eq-cd]; intro; [id, auto];
       elim #2; assumption
     }.
 ```
 
 Now we know that `auto` will run all of the tactics on the first line
-except `unfold <x>`, so what we just `unfold <x>` first and run
+except `unfold <prod>`, so what we just `unfold <prod>` first and run
 `auto`? It ought to do all the same stuff.. Indeed we can shorten our
-whole proof to `unfold <x>; auto; elim #2; assumption`. With this more
+whole proof to `unfold <prod>; auto; elim #2; assumption`. With this more
 heavily automated proof, proving our next theorem follows easily.
 
 ``` jonprl
     Theorem left-id2 :
       [Π(U{i}; A.
-       Π(x(A; unit); _.
+       Π(prod(A; unit); _.
        A))] {
-      unfold <x>; auto; elim #2; assumption
+      unfold <prod>; auto; elim #2; assumption
     }.
 ```
 
@@ -500,8 +501,8 @@ that `x` is a monoid. The statement here is a bit more complex.
       [Π(U{i}; A.
        Π(U{i}; B.
        Π(U{i}; C.
-       Π(x(A; x(B;C)); _.
-       x(x(A;B); C)))))] {
+       Π(prod(A; prod(B;C)); _.
+       prod(prod(A;B); C)))))] {
       id
     }.
 ```
@@ -513,14 +514,14 @@ In Agda notation what I've written above is
     assoc = ?
 ```
 
-Let's kick things off with `unfold <x>; auto` to deal with all the
+Let's kick things off with `unfold <prod>; auto` to deal with all the
 boring stuff we had last time. In fact, since `x` appears in several
 nested places we'd have to run `unfold` quite a few times. Let's just
-shorthand all of those invocations into `*{unfold <x>}`
+shorthand all of those invocations into `*{unfold <prod>}`
 
 ``` jonprl
     {
-      *{unfold <x>}; auto
+      *{unfold <prod>}; auto
     }
 ```
 
@@ -553,7 +554,7 @@ let's do that
 
 ``` jonprl
     {
-      *{unfold <x>}; auto; elim #4
+      *{unfold <prod>}; auto; elim #4
     }
 ```
 
@@ -593,7 +594,7 @@ assumption` leaving us with
 
 ``` jonprl
     {
-      *{unfold <x>}; auto; elim #4; (assumption | elim #6; assumption)
+      *{unfold <prod>}; auto; elim #4; (assumption | elim #6; assumption)
     }
 ```
 
@@ -604,9 +605,9 @@ This completes the proof!
       [Π(U{i}; A.
        Π(U{i}; B.
        Π(U{i}; C.
-       Π(x(A; x(B;C)); _.
-       x(x(A;B); C)))))] {
-      *{unfold <x>}; auto; elim #4; (assumption | elim #6; assumption)
+       Π(prod(A; prod(B;C)); _.
+       prod(prod(A;B); C)))))] {
+      *{unfold <prod>}; auto; elim #4; (assumption | elim #6; assumption)
     }.
 ```
 
@@ -762,22 +763,22 @@ In fact, we can see all of this happen if you call JonPRL from the
 command line *or* hit C-c C-c in emacs! On our earlier proof we see
 
 
-    Operator x : (0; 0).
-    ⸤x(A; B)⸥ ≝ ⸤A × B⸥.
+    Operator prod : (0; 0).
+    ⸤prod(A; B)⸥ ≝ ⸤A × B⸥.
 
-    Theorem left-id1 : ⸤⊢ ΠA ∈ U{i}. (x(unit; A)) => A⸥ {
+    Theorem left-id1 : ⸤⊢ ΠA ∈ U{i}. (prod(unit; A)) => A⸥ {
       fun-intro(A.fun-intro(_.prod-elim(_; _.t.t); prod⁼(unit⁼; _.hyp⁼(A))); U⁼{i})
     } ext {
       λ_. λ_. spread(_; _.t.t)
     }.
 
-    Theorem left-id2 : ⸤⊢ ΠA ∈ U{i}. (x(A; unit)) => A⸥ {
+    Theorem left-id2 : ⸤⊢ ΠA ∈ U{i}. (prod(A; unit)) => A⸥ {
       fun-intro(A.fun-intro(_.prod-elim(_; s._.s); prod⁼(hyp⁼(A); _.unit⁼)); U⁼{i})
     } ext {
       λ_. λ_. spread(_; s._.s)
     }.
 
-    Theorem assoc : ⸤⊢ ΠA ∈ U{i}. ΠB ∈ U{i}. ΠC ∈ U{i}. (x(A; x(B; C))) => x(x(A; B); C)⸥ {
+    Theorem assoc : ⸤⊢ ΠA ∈ U{i}. ΠB ∈ U{i}. ΠC ∈ U{i}. (prod(A; prod(B; C))) => prod(prod(A; B); C)⸥ {
       fun-intro(A.fun-intro(B.fun-intro(C.fun-intro(_.independent-prod-intro(independent-prod-intro(prod-elim(_;
       s.t.prod-elim(t; _._.s)); prod-elim(_; _.t.prod-elim(t;
       s'._.s'))); prod-elim(_; _.t.prod-elim(t; _.t'.t')));
@@ -841,9 +842,9 @@ we could have said
 ``` jonprl
     Theorem left-id2 :
           [⋂(U{i}; A.
-           Π(x(A; unit); _.
+           Π(prod(A; unit); _.
            A))] {
-          unfold <x>; auto; elim #2; assumption
+          unfold <prod>; auto; elim #2; assumption
         }.
 ```
 
