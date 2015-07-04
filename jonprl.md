@@ -1,5 +1,5 @@
 ---
-title: A Basic Tutorial JonPRL
+title: A Basic Tutorial on JonPRL
 tags: jonprl, types
 ---
 
@@ -861,13 +861,54 @@ unique types
       e = e' ∈ subset(A; x.P)
 
 And in JonPRL we can now say things like "all odd numbers" by just
-saying `subset(nat; n. ap(odd; n))`
+saying `subset(nat; n. ap(odd; n))`. In intensional type theories,
+these types are hard to deal with and still the subject of open
+research. In CTT they just kinda fall out because of how we thought
+about types in the first place. Quotients are a similarly natural
+conception (just define a new type with a stricter PER) but JonPRL
+currently lacks them (though they shouldn't be hard to add..).
 
+Finally, if you're looking for one last reason to dig into **PRL, the
+fact that we've defined all our equalities extensionally means that
+several very useful facts just fall right out of our theory
+
+``` jonprl
+    Theorem fun-ext :
+      [⋂(U{i}; A.
+       ⋂(Π(A; _.U{i}); B.
+       ⋂(Π(A; a.ap(B;a)); f.
+       ⋂(Π(A; a.ap(B;a)); g.
+
+       ⋂(Π(A; a.=(ap(f; a); ap(g; a); ap(B; a))); _.
+       =(f; g; Π(A; a.ap(B;a))))))))] {
+      auto; ext; ?{elim #5 [a]}; auto
+    }.
+```
+
+This means that two functions are equal in JonPRL if and only if they
+map equal arguments to equal output. This is quite pleasant for
+formalizing mathematics for example.
 
 ## Wrap Up
+
+Whew, we went through a lot! I didn't intend for this to be a full
+tour of JonPRL, just a taste of how things sort of hang together and
+maybe enough to get you looking through the examples. Speaking of
+which, JonPRL comes with quite a few [examples][examples] which are
+going to make a lot more sense now.
+
+Additionally, you may be interested in the documentation in the README
+which covers most of the primitive operators in JonPRL. As for an
+exhaustive list of tactics, [well...][tactic-issue].
+
+Hopefully I'll be writing about JonPRL again soon. Until then, I hope
+you've learned something cool :)
+
 
 [jon]: http://www.jonmsterling.com/
 [jonprl]: https://github.com/jonsterling/JonPRL
 [nj]: http://www.smlnj.org/
 [mode]: https://github.com/david-christiansen/jonprl-mode
 [cpdt]: http://adam.chlipala.net/cpdt/
+[examples]: https://github.com/jonsterling/JonPRL/tree/master/example
+[tactic-issue]: https://github.com/jonsterling/JonPRL/issues/83
