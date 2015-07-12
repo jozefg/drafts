@@ -149,13 +149,18 @@ that this is the case with two lemmas
     component.
 
 These two properties state the monotonicity and cocontinuity of
-`Φ`. We then may show that
+`Φ`. In fact, cocontinuity should imply monotonicity (can you see
+how?). We then may show that
 
-    Φ(⋂ₙ Φⁿ(⊤)) = ⋂ₙ Φⁿ(⊤)
+    Φ(⋂ₙ Φⁿ(⊤)) = ⋂ₙ Φ(Φⁿ(⊤))
+                 = ⊤ ⋂ (⋂ₙ Φ(Φⁿ(⊤)))
+                 = ⋂ₙ Φⁿ(⊤)
 
 As desired.
 
 ## The Code
+
+Now that we have some idea of how to formalize
 
 ## The Clincher
 
