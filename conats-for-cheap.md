@@ -160,7 +160,67 @@ As desired.
 
 ## The Code
 
-Now that we have some idea of how to formalize
+Now that we have some idea of how to formalize coinduction can we port
+this to JonPRL? Well we have natural numbers and we can take the
+intersection of types.. Seems like a start. Looking at that example we
+first need to figure out what `⊤` corresponds to. It should include
+all programs, which sounds like the type `base` in JonPRL. However, it
+also should be the case that `x = y ∈ ⊤` for all `x` and `y`. For that
+we need an interesting trick
+
+``` jonprl
+    Operator top : ().
+    [top] =def= [isect(void; _.void)].
+```
+
+In prettier notation,
+
+    top ≙ ⋂ x : void. void
+
+Now `x ∈ top` if `x ∈ void` for all `_ ∈ void`. Hey wait a minute.. No
+such `_` exists so the if is always satisfied vacuously so `x ∈ top`
+always holds. Ok, that good. Now `x = y ∈ top` if for all `_ ∈ void`,
+`x = y ∈ void`. Since no such _ exists again, all things are in fact
+equal in `void`. We can even prove this within JonPRL
+
+``` jonprl
+    Theorem top-is-top :
+      [isect(base; x.
+       isect(base; y.
+       =(x; y; top)))] {
+      unfold <top>; auto
+    }.
+```
+
+Now the fact that `x ∈ top` is a trivial corollary since our theorem
+tells us that `x = x ∈ top` and the former is just sugar for the
+latter. With this defined, we can now write down a general operator
+for coinduction!
+
+``` jonprl
+    Operator corec : (1).
+    [corec(F)] =def= [isect(nat; n. natrec(n; top; _.x. so_apply(F;x)))].
+```
+
+To unpack this, `corec` takes one argument which binds one
+variable. We then intersect the type `natrec(n; top;
+_.x.so_apply(F;x))` for all `n ∈ nat`. That `natrec` construct is
+really saying `Fⁿ(⊤)`, it's just a little obscured. Especially since
+we have to use `so_apply`, a sort of "meta-application" which lets us
+apply a term binding a variable to another term. This should look
+familiar, it's just how we defined that fixed point of a `Φ`!
+
+For a fun demo, let's define an `F` so that `cofix(F)` will give us
+the conatural numbers. I know that the natural numbers come from the
+least fixed point of `X ↦ 1 + X`, so let's define that.
+
+``` jonprl
+    Operator conatF : (0).
+    [conatF(X)] =def= [+(unit; X)].
+
+    Operator conat : ().
+    [conat] =def= [corec(R. conatF(R))].
+```
 
 ## The Clincher
 
