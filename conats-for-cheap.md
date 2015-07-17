@@ -178,10 +178,10 @@ In prettier notation,
     top ≙ ⋂ x : void. void
 
 Now `x ∈ top` if `x ∈ void` for all `_ ∈ void`. Hey wait a minute.. No
-such `_` exists so the if is always satisfied vacuously so `x ∈ top`
-always holds. Ok, that good. Now `x = y ∈ top` if for all `_ ∈ void`,
-`x = y ∈ void`. Since no such _ exists again, all things are in fact
-equal in `void`. We can even prove this within JonPRL
+such `_` exists so the if is always satisfied vacuously. Ok, that
+good. Now `x = y ∈ top` if for all `_ ∈ void`, `x = y ∈ void`. Since
+no such _ exists again, all things are in fact equal in `void`. We can
+even prove this within JonPRL
 
 ``` jonprl
     Theorem top-is-top :
@@ -191,6 +191,11 @@ equal in `void`. We can even prove this within JonPRL
       unfold <top>; auto
     }.
 ```
+
+This proof is really just
+
+ 1. Unfold all the definitions
+ 2. Hey! There's a `x : void` in my context! Tell me more about that
 
 Now the fact that `x ∈ top` is a trivial corollary since our theorem
 tells us that `x = x ∈ top` and the former is just sugar for the
@@ -212,15 +217,36 @@ familiar, it's just how we defined that fixed point of a `Φ`!
 
 For a fun demo, let's define an `F` so that `cofix(F)` will give us
 the conatural numbers. I know that the natural numbers come from the
-least fixed point of `X ↦ 1 + X`, so let's define that.
+least fixed point of `X ↦ 1 + X` (because I said so above, so it must
+be so) so let's define that.
 
 ``` jonprl
     Operator conatF : (0).
     [conatF(X)] =def= [+(unit; X)].
+```
 
+This is just that `X ↦ 1 + X` I wrote above in JonPRL land instead of
+math notation. Next we need to actually define conatural numbers using
+`cofix`.
+
+``` jonprl
     Operator conat : ().
     [conat] =def= [corec(R. conatF(R))].
 ```
+
+Now I've defined this, but that's no fun unless we can actual build
+some terms so that `member(X; conat)`. Specifically I want to prove
+two things to start
+
+ 1. `member(czero; conat)`
+ 2. `fun(member(M; conat); _.member(csucc(M); conat))`
+
+This states that `conat` is closed under some zero and successor
+operations. Now what should those operations be? Remember what I said
+before, that we had this correspondence?
+
+    X    ↦   1   +   X
+    Nat     Zero   Suc X
 
 ## The Clincher
 
