@@ -95,16 +95,16 @@ Precisely mirrors the equation we had above. Such an `X` is called a
 well be more than one fixed point of a function! Which one do we
 choose? The key is that we want the coinductively defined
 version. Coinduction means that we should always be able to examine a
-term in our type and its outermost form should be `1 + ???`. Okay,
-let's optimistically start by saying that `X` is `⊤` (the collection
-of all terms).
+term in our set and its outermost form should have the type `1 +
+???`. Okay, let's optimistically start by saying that `X` is `⊤` (the
+collection of all terms).
 
 Ah okay, this isn't right. This works only so long as we don't make
 any observations about a term we claim is in this type. The minute we
-patter match, we might have found we claimed a function was in our
-type! I have not yet managed to pay my rent by saying "OK, here's the
-check.. but don't try to *use* it and it's rent" so perhaps we should
-try something else. Okay, so let's not say `⊤`, let's say
+pattern match, we might have found we claimed a function was in our
+type! Since I have not yet managed to pay my rent by saying "OK,
+here's the check.. but don't try to *cash* it" perhaps we should try
+something else. Instead of ⊤, how about
 
     X = ⊤ ⋂ Φ(⊤)
 
@@ -132,8 +132,7 @@ Okay, so that didn't work. What if we fixed this code by doing
 Now this fixes the above code, but can you imagine a snippet of code
 where this still gets stuck? So each time we intersect `X` with `Φ(X)`
 we get a new type which behaves like the real fixed point so long as
-we only observe `n + 1` times where `X` behaves like the fixed point
-for `n` observations. Well, we can only make finitely many
+we only observe t `n + 1` times. Well, we can only make finitely many
 observations so let's just iterate such an intersection
 
     X = ⋂ₙ Φⁿ(⊤)
@@ -178,9 +177,9 @@ In prettier notation,
     top ≙ ⋂ x : void. void
 
 Now `x ∈ top` if `x ∈ void` for all `_ ∈ void`. Hey wait a minute.. No
-such `_` exists so the if is always satisfied vacuously. Ok, that
+such `_` exists so the "if" is always satisfied vacuously. Ok, that
 good. Now `x = y ∈ top` if for all `_ ∈ void`, `x = y ∈ void`. Since
-no such _ exists again, all things are in fact equal in `void`. We can
+no such _ exists again, all things are in fact equal in `top`. We can
 even prove this within JonPRL
 
 ``` jonprl
@@ -212,8 +211,9 @@ variable. We then intersect the type `natrec(n; top;
 _.x.so_apply(F;x))` for all `n ∈ nat`. That `natrec` construct is
 really saying `Fⁿ(⊤)`, it's just a little obscured. Especially since
 we have to use `so_apply`, a sort of "meta-application" which lets us
-apply a term binding a variable to another term. This should look
-familiar, it's just how we defined that fixed point of a `Φ`!
+apply a term binding a variable to another term. I read it as
+something like `so_apply(x.F; A) = [A/x]F`. This should look familiar,
+it's just how we defined that fixed point of a `Φ`!
 
 For a fun demo, let's define an `F` so that `cofix(F)` will give us
 the conatural numbers. I know that the natural numbers come from the
@@ -424,10 +424,11 @@ substitute all occurrences of `x` for `y`. This is written
 There are three arguments here, a direction to substitute, an index
 telling us which hypothesis to use as the equality to substitute with
 and finally, a term `[h. ...]`. The idea with this term is that each
-occurrence of `h` tells us where we want to substitute. In our case we
-used `h` in two places: both where we use `x`, and the direction says
-to replace the right hand side of the equality with the left side of
-the equality.
+occurrence of `h` tells us where we want to substitute. So that term
+should be the goal with `h` plugged into various spots. In our case we
+used `h` in two places: all the occurrences of `x`, and the direction
+says to replace the right hand side of the equality with the left side
+of the equality.
 
 Actually running this gives
 
@@ -455,13 +456,15 @@ basically says that the result of our substitution is still a
 well-formed type. JonPRL's thought process is something like this
 
 > You said you were substituting for things of this type
-> here. However, I know that just because `x : A` doesn't mean we're
-> using it in all those spots as if it has type `A`. What if you
-> substitute things equal in top (always equal) for when they're being
-> used as functions! This would let us prove that `zero ∈ Π(...)` or
-> something silly. Convince me that when we fill in those holes with
-> *something* of the type you mentioned the goal is still a type (in a
-> universe).
+> here. However, I know that just because `x : A` doesn't mean that
+> all occurrences of `x` are being used as if they have type `A`.
+>
+>
+> What if you substitute things equal in top (always equal) for when
+> they're being used as functions! This would let us prove that `zero
+> ∈ Π(...)` or something silly. Convince me that when we fill in those
+> holes with *something* of the type you mentioned the goal is still a
+> type (in a universe).
 
 However, these well-formedness goals usually go away with auto. This
 completes our theorem in fact.
@@ -680,7 +683,7 @@ that's enough marketing from me.
 
 Cheers.
 
-*Huge thanks to Jon Sterling for the idea on how to right this code and
+*Huge thanks to Jon Sterling for the idea on how to write this code and
 then touching up the results*
 
 [tutorial]: /posts/2015-07-06-jonprl.html
