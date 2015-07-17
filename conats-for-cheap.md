@@ -248,7 +248,339 @@ before, that we had this correspondence?
     X    ↦   1   +   X
     Nat     Zero   Suc X
 
+Now remember that `conat` is `isect(nat; n....)` and when constructing a
+member of `isect` we're not allowed to mention that `n` in it (as
+opposed to `fun` where we do exactly that). So that means `czero` has
+to be a member of `top` and `sum(unit; ...)`. The `top` bit is easy,
+everything is in `top`! That diagram above suggests `inl` of
+*something* in unit
+
+``` jonprl
+    Operator czero : ().
+    [czero] =def= [inl(<>)].
+```
+
+So now we want to prove that this in fact in `conat`.
+
+``` jonprl
+    Theorem zero-wf : [member(czero; conat)] {
+
+    }.
+```
+
+Okay loading this into JonPRL gives
+
+    ⊢ czero ∈ conat
+
+From there we start be unfolding all the definitions
+
+``` jonprl
+    {
+       unfold <czero conat conatF corec top>
+    }
+```
+
+This gives us back the desugared goal
+
+    ⊢ inl(<>) ∈ ⋂n ∈ nat. natrec(n; top; _.x.+(unit; x))
+
+Next let's apply all the obvious introductions so that we're in a
+position to try to prove things
+
+``` jonprl
+    unfold <czero conat conatF corec top>; auto
+```
+
+This gives us back
+
+    1. [n] : nat
+    ⊢ inl(<>) = inl(<>) ∈ natrec(n; top; _.x.+(unit; x))
+
+Now we're stuck. We want to show `inl` is in something, but we're
+never going to be able to do that until we can reduce that
+`natrec(n; top; _.x.+(unit; x))` to a canonical form. Since it's stuck
+on `n`, let's induct on that `n`. After that, let's immediately
+reduce.
+
+``` jonprl
+    {
+      unfold <czero conat conatF corec top>; auto; elim #1; reduce
+    }
+```
+
+Now we have to cases, the base and inductive case.
+
+    1. [n] : nat
+    ⊢ inl(<>) = inl(<>) ∈ top
+
+
+    1. [n] : nat
+    2. n' : nat
+    3. ih : inl(<>) = inl(<>) ∈ natrec(n'; top; _.x.+(unit; x))
+    ⊢ inl(<>) = inl(<>) ∈ +(unit; natrec(n'; top; _.x.+(unit; x)))
+
+Now that we have canonical terms on the right of the `∈` and let's let
+`auto` handle the rest.
+
+``` jonprl
+    Theorem zero-wf : [member(czero; conat)] {
+      unfold <czero conat conatF corec top>; auto; elim #1; reduce; auto
+    }.
+```
+
+So now we have proven that `czero` is in the correct type. Let's
+figure out `csucc`? Going by our noses, `inl` corresponded to `czero`
+and our diagram says that `inr` should correspond to `csucc`. This
+gives us
+
+``` jonprl
+    Operator csucc : (0).
+    [csucc(M)] =def= [inr(M)].
+```
+
+Now let's try to prove the corresponding theorem for `csucc`
+
+``` jonprl
+    Theorem succ-wf : [isect(conat; x. member(csucc(x); conat))] {
+    }.
+```
+
+Now we're going to start off this proof like we did with our last
+one. unfold everything, apply the introduction rules, and induct on
+`n`.
+
+``` jonprl
+    {
+      unfold <csucc conat conatF corec top>; auto; elim #2; reduce
+    }
+```
+
+Like before, we now have to subgoals
+
+    1. [x] : ⋂n ∈ nat. natrec(n; ⋂_ ∈ void. void; _.x.+(unit; x))
+    2. [n] : nat
+    ⊢ inr(x) = inr(x) ∈ ⋂_ ∈ void. void
+
+
+    1. [x] : ⋂n ∈ nat. natrec(n; ⋂_ ∈ void. void; _.x.+(unit; x))
+    2. [n] : nat
+    3. n' : nat
+    4. ih : inr(x) = inr(x) ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    ⊢ inr(x) = inr(x) ∈ +(unit; natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x)))
+
+The first one looks pretty easy, that's just `foo ∈ top`, I think
+`auto` should handle that.
+
+``` jonprl
+    {
+      unfold <csucc conat conatF corec top>; auto; elim #2; reduce;
+      auto
+    }
+```
+
+This just leaves one goal to prove
+
+    1. [x] : ⋂n ∈ nat. natrec(n; ⋂_ ∈ void. void; _.x.+(unit; x))
+    2. [n] : nat
+    3. n' : nat
+    4. ih : inr(x) = inr(x) ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    ⊢ x = x ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+
+Now as it turns out this is nice and easy, look at what our first
+assumption says! Since `x ∈ isect(nat; n.Foo)` and our goal is to
+show that `x ∈ Foo(n')` this should be as easy as another call to
+`elim`.
+
+``` jonprl
+    {
+      unfold <csucc conat conatF corec top>; auto; elim #2; reduce;
+      auto; elim #1 [n']; auto
+    }
+```
+
+Note that the `[n']` bit there let's us supply the term we wish to
+substitute for `n` while eliminating. This leaves us here
+
+    1. [x] : ⋂n ∈ nat. natrec(n; ⋂_ ∈ void. void; _.x.+(unit; x))
+    2. [n] : nat
+    3. n' : nat
+    4. ih : inr(x) = inr(x) ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    5. y : natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    6. z : y = x ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    ⊢ x = x ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+
+Now a small hiccup, we now that `y = x` in the right type so `x = x`
+in the right type, but how do we prove this? The answer is to
+substitute all occurrences of `x` for `y`. This is written
+
+``` jonprl
+    {
+      unfold <csucc conat conatF corec top>; auto; elim #2; reduce;
+      auto; elim #1 [n']; auto;
+      hyp-subst ← #6 [h.=(h; h; natrec(n'; isect(void; _.void); _.x.+(unit;x)))];
+    }
+```
+
+There are three arguments here, a direction to substitute, an index
+telling us which hypothesis to use as the equality to substitute with
+and finally, a term `[h. ...]`. The idea with this term is that each
+occurrence of `h` tells us where we want to substitute. In our case we
+used `h` in two places: both where we use `x`, and the direction says
+to replace the right hand side of the equality with the left side of
+the equality.
+
+Actually running this gives
+
+    1. [x] : ⋂n ∈ nat. natrec(n; ⋂_ ∈ void. void; _.x.+(unit; x))
+    2. [n] : nat
+    3. n' : nat
+    4. ih : inr(x) = inr(x) ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    5. y : natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    6. z : y = x ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    ⊢ y = y ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+
+
+    1. [x] : ⋂n ∈ nat. natrec(n; ⋂_ ∈ void. void; _.x.+(unit; x))
+    2. [n] : nat
+    3. n' : nat
+    4. ih : inr(x) = inr(x) ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    5. y : natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    6. z : y = x ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    7. h : natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    ⊢ h = h ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x)) ∈ U{i}
+
+The first goal is the result of our substitution and it's trivial,
+`auto` will handle this now. The second goal is a little strange. It
+basically says that the result of our substitution is still a
+well-formed type. JonPRL's thought process is something like this
+
+> You said you were substituting for things of this type
+> here. However, I know that just because `x : A` doesn't mean we're
+> using it in all those spots as if it has type `A`. What if you
+> substitute things equal in top (always equal) for when they're being
+> used as functions! This would let us prove that `zero ∈ Π(...)` or
+> something silly. Convince me that when we fill in those holes with
+> *something* of the type you mentioned the goal is still a type (in a
+> universe).
+
+However, these well-formedness goals usually go away with auto. This
+completes our theorem in fact.
+
+``` jonprl
+    Theorem succ-wf : [isect(conat; x. member(csucc(x); conat))] {
+      unfold <csucc conat conatF corec top>; auto; elim #2; reduce;
+      auto; elim #1 [n']; auto;
+      hyp-subst ← #6 [h.=(h; h; natrec(n'; isect(void; _.void); _.x.+(unit;x)))];
+      auto
+    }.
+```
+
+Okay so we now have something kind of number-ish, with zero and
+successor. But in order to demonstrate that this is the conatural
+numbers there's one big piece missing.
+
 ## The Clincher
+
+The thing that distinguishes the *co*natural numbers from the
+inductive variety is the fact that we include infinite terms. In
+particular, I want to show that Ω (infinitely many `csucc`s) belongs
+in our type.
+
+In order to say Ω in JonPRL we recursion. Specifically, we want to
+write
+
+``` jonprl
+    [omega] =def= [csucc(omega)].
+```
+
+But this doesn't work! Instead, we'll define the Y combinator and say
+
+``` jonprl
+    Operator omega : ().
+    [omega] =def= [Y(x.csucc(x))].
+```
+
+So what should this `Y` be? Well the standard definition of Y is
+
+    Y(F) = (λ x. F (x x)) (λ x. F (x x))
+
+Excitingly, we can just say that in JonPRL, remember that we have a
+full untyped computation system after all!
+
+``` jonprl
+    Operator Y : (1).
+    [Y(f)] =def= [ap(lam(x.so_apply(f;ap(x;x)));lam(x.so_apply(f;ap(x;x))))].
+```
+
+This is more or less a direct translation, we occasionally use
+`so_apply` for the reasons I explained above. As a fun thing, try to
+prove that this is a fixed point, eg that
+
+``` jonprl
+    isect(U{i}; A. isect(fun(A; _.A); f . ceq(Y(f); ap(f; Y(f)))))
+```
+
+The complete proof is in the JonPRL repo under
+`example/computational-equality.jonprl`. Anyways, we now want to prove
+
+``` jonprl
+    Theorem omega-wf : [member(omega; conat)] {
+
+    }.
+```
+
+Let's start with the same prelude
+
+``` jonprl
+    {
+      *{unfold <csucc conat conatF corec top omega Y>}; auto; elim #1;
+    }
+```
+
+Two goals just like before
+
+    1. [n] : nat
+    ⊢ (λx. inr(x[x]))[λx. inr(x[x])] = (λx. inr(x[x]))[λx. inr(x[x])] ∈ natrec(zero; ⋂_ ∈ void. void; _.x.+(unit; x))
+
+
+    1. [n] : nat
+    2. n' : nat
+    3. ih : (λx. inr(x[x]))[λx. inr(x[x])] = (λx. inr(x[x]))[λx. inr(x[x])] ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    ⊢ (λx. inr(x[x]))[λx. inr(x[x])] = (λx. inr(x[x]))[λx. inr(x[x])] ∈ natrec(succ(n'); ⋂_ ∈ void. void; _.x.+(unit; x))
+
+The goals start to get fun now. I've also carefully avoided using
+`reduce` ike we did before. The reason is simple, if we reduce in the
+second goal, our `ih` will reduce as well and we'll end up completely
+stuck in a few steps (try it and see). So instead we're going to
+finesse it a bit.
+
+First let's take care of that first goal. We can tell JonPRL to apply
+some tactics to just the first goal with the `focus` tactic
+
+``` jonprl
+    {
+      *{unfold <csucc conat conatF corec top omega Y>}; auto; elim #1;
+      focus 0 #{reduce 1; auto};
+    }
+```
+
+Here `reduce 1` says "reduce by only one step" since really omega will
+diverge if we just let it run. This takes care of the first goal
+leaving just
+
+    1. [n] : nat
+    2. n' : nat
+    3. ih : (λx. inr(x[x]))[λx. inr(x[x])] = (λx. inr(x[x]))[λx. inr(x[x])] ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    ⊢ (λx. inr(x[x]))[λx. inr(x[x])] = (λx. inr(x[x]))[λx. inr(x[x])] ∈ natrec(succ(n'); ⋂_ ∈ void. void; _.x.+(unit; x))
+
+Here's the proof sketch for what's left
+
+ 1. Reduce the goal by one step but *carefully avoid touching the ih*
+ 2. Step everything by one
+ 3. The result follows by intro and assumption
+
+You can stop here or you can see how we actually do this. It's
+somewhat tricky.
 
 ## Wrap Up
 
