@@ -580,9 +580,92 @@ Here's the proof sketch for what's left
  3. The result follows by intro and assumption
 
 You can stop here or you can see how we actually do this. It's
-somewhat tricky.
+somewhat tricky. The basic complication is that there's no built in
+tactic for 1. Instead we use a new type called `ceq` which is
+"computational equality". It ranges between two terms, no types
+involved here. It's designed to work thusly if `ceq(a; b)`, either
+
+  1. `a` and `b` run to weak-head normal form (canonical
+     verifications) with the same outermost form, and all the inner
+     operands are `ceq`
+  2. `a` and `b` both diverge
+
+So if `ceq(a; b)` then `a` and `b` "run the same". What's a really
+cool upshot of this is that if `ceq(a; b)` then if `a = a ∈ A` and `b
+= b ∈ A` then `a = b ∈ A`! `ceq` is the strictest equality in our
+system and we can rewrite with it absolutely everywhere without
+regards to types. Proving this requires showing the above definition
+forms a congruence (two things are related if their subcomponents are
+related).
+
+This was a *big deal* because until Doug Howe came up with this proof
+NuPRL/CTT was awash with rules trying to specify this idea chunk by
+chunk and showing those rules were valid wasn't trivial. Actually, you
+should [read that paper][howe]: it's 6 pages and the proof concept
+comes up a lot.
+
+So, in order to do 1. we're going to say "the goal and the goal if we
+step it twice are computationally equal" and then use this fact to
+substitute for the stepped version. The tactic to use here is called
+`csubst`. It takes two arguments
+
+ 1. The `ceq` we're asserting
+ 2. Another `h.` term to guide the rewrite
+
+``` jonprl
+    {
+      *{unfold <csucc conat conatF corec top omega Y>}; auto; elim #1;
+      focus 0 #{reduce 1; auto};
+      csubst [ceq(ap(lam(x.inr(ap(x;x))); lam(x.inr(ap(x;x))));
+                  inr(ap(lam(x.inr(ap(x;x))); lam(x.inr(ap(x;x))))))]
+         [h.=(h;h; natrec(succ(n'); isect(void; _. void); _.x.+(unit; x)))];
+    }
+```
+
+This leaves us with two goals
+
+    1. [n] : nat
+    2. n' : nat
+    3. ih : (λx. inr(x[x]))[λx. inr(x[x])] = (λx. inr(x[x]))[λx. inr(x[x])] ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    ⊢ ceq((λx. inr(x[x]))[λx. inr(x[x])]; inr((λx. inr(x[x]))[λx. inr(x[x])]))
+
+
+    1. [n] : nat
+    2. n' : nat
+    3. ih : (λx. inr(x[x]))[λx. inr(x[x])] = (λx. inr(x[x]))[λx. inr(x[x])] ∈ natrec(n'; ⋂_ ∈ void. void; _.x.+(unit; x))
+    ⊢ inr((λx. inr(x[x]))[λx. inr(x[x])]) = inr((λx. inr(x[x]))[λx. inr(x[x])]) ∈ natrec(succ(n'); ⋂_ ∈ void. void; _.x.+(unit; x))
+
+Now we have two goals. The first is that `ceq` proof obligation. The
+second is our goal post-substitution. The first one can easily be
+dispatched by `step`. `step` let's us prove `ceq` by saying
+
+  1. `ceq(a; b)` holds if
+  2. `a` steps to `a'` in one step
+  3. `ceq(a'; b)`
+
+This will leave us with `ceq(X; X)` which `auto` can handle. The
+second term is.. massive. But also simple. We just need to step it
+once and we suddenly have `inr(X) = inr(X) ∈ sum(_; A)` where
+`X = X ∈ A` is our assumption! So that can also be handled by `auto`
+as well. That means we need to run `step` on the first goal,
+`reduce 1` on the second, and `auto` on both.
+
+``` jonprl
+    Theorem omega-wf : [member(omega; conat)] {
+      unfolds; unfold <omega Y>; auto; elim #1;
+      focus 0 #{reduce 1; auto};
+      csubst [ceq(ap(lam(x.inr(ap(x;x))); lam(x.inr(ap(x;x))));
+                  inr(ap(lam(x.inr(ap(x;x))); lam(x.inr(ap(x;x))))))]
+             [h.=(h;h; natrec(succ(n'); isect(void; _. void); _.x.+(unit; x)))];
+      [step, reduce 1]; auto
+    }.
+```
+
+And we've just proved that `omega ∈ conat`, a term that is certainly
+the canonical (heh) example of coinduction in my mind.
 
 ## Wrap Up
 
 
 [tutorial]: /posts/2015-07-06-jonprl.html
+[howe]: http://www.nuprl.org/documents/Howe/EqualityinLazy.html
