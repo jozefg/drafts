@@ -666,6 +666,22 @@ the canonical (heh) example of coinduction in my mind.
 
 ## Wrap Up
 
+Whew, I actually meant for this to be a short blog post but that
+didn't work out so well. Hopefully this illustrated a cool trick in
+computer science (intersect your way to coinduction) and in
+JonPRL.
+
+Funnily enough before this was written no one had actually realized
+you could do coinduction in JonPRL. I'm still somewhat taken with the
+fact that a *very* minimal proof assistant like JonPRL is powerful
+enough to let you do this by giving you such general purpose tools as
+family intersection and a full computation system to work with. Okay
+that's enough marketing from me.
+
+Cheers.
+
+*Huge thanks to Jon Sterling for the idea on how to right this code and
+then touching up the results*
 
 [tutorial]: /posts/2015-07-06-jonprl.html
 [howe]: http://www.nuprl.org/documents/Howe/EqualityinLazy.html
