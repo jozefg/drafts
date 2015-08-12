@@ -87,6 +87,26 @@ saying they coincide with `≅`.
 
 ## Applicative Bisimulation
 
+The first trick for proving observational equivalence we're going to
+look at is called "applicative bisimulation". The basic idea is to say
+that `e` is bisimilar to `e'` if they behave the same no matter how we
+run them.
+
+We don't quantify over full contexts, instead applicative bisimulation
+will say that two terms are equal if
+
+ 1. They both loop or run to some values `v1` and `v2`
+ 2. Then, depending on the type of the expressions, `elimOp(v1)` and
+ `elimOp(v2)` must be bisimilar.
+
+Here when I say `elimOp` I'm carelessly notating applying the
+elimination forms for a type. Elimination forms here being PL-speak
+for what operations are available to *use* an expression of a
+particular type. So we can apply functions, we can project out fields
+from tuples and similar. To give an example,
+
+
+
 ## Logical Relations
 
 ## Wrap Up
