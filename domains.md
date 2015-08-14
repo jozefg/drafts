@@ -102,7 +102,7 @@ is called `Cpo` is it's here that we're going to do most of our
 interesting constructions.
 
 Finally, we have to discuss one important construction on
-`Cpo`: `D ⊸ E`. This is the set of strict (maps `⊥` to `⊥`) continuous
+`Cpo`: `D → E`. This is the set of continuous
 functions from `D` to `E`. The ordering on this is pointwise, meaning
 that `f ⊑ g` if for all `x ∈ D`, `f(x) ⊑ g(x)`. This is a cppo where
 `⊥` is `x ↦ ⊥` and all the lubs are determined pointwise.
@@ -127,3 +127,109 @@ the question we weren't sure about before, the slogan is "computable
 functions are continuous functions".
 
 ## Solving Recursive Equations in `Cpo`
+
+So now we can get to the result that main domain theory so incredibly
+useful. Remember our problem before? We wanted to find a collection
+`D` so that
+
+    D ≅ D → D
+
+However it wasn't clear how to do this due to size issues. In `Cpo`
+however, we can absolutely solve this. This huge result was due to
+Dana Scott. First, we make a small transformation to the problem
+that's very common in these scenarios. Instead of trying to solve this
+equation (something we don't have very many tools for) we're going to
+instead look for the fixpoint of this functor
+
+    F(X) = X → X
+
+The idea here is that we're going to prove that all well behaved
+endofunctors on Cpo have fixpoints. By using this viewpoint we get all
+the powerful tools we normally have for reasoning about functors in
+category theory. However, there's a problem: the above isn't a
+functor! It has both positive and negative occurrences of `X` so it's
+neither a co nor contravariant functor. To handle this we apply
+another clever trick. Let's not look at endofunctors, but rather
+functors `Cpoᵒ × Cpo → Cpo` (I believe this should be attributed to
+Freyd). This is a binary functor which is covariant in the second
+argument and contravariant in the first. We'll use the first argument
+everywhere there's a negative occurrence of `X` and the second for
+every positive occurrence. Take note: we need things to be
+contravariant in the first argument because we're using that first
+argument: if we didn't do that we wouldn't have a functor.
+
+Now we have
+
+    F(X⁻, X⁺) = X⁻ → X⁺
+
+This is functorial. We can also always recover the original map simply
+by diagonalizing: `F(X) = F(X, X)`. We'll now look for an object `D`
+so that `F(D, D) ≅ D`. Not quite a fixed point, but still equivalent
+to the equation we were looking at earlier.
+
+Furthermore, we need one last critical property,
+we want `F` to be locally continuous. This means that the maps on
+morphisms determined by `F` should be continuous so `F(⊔ P, g) = ⊔
+F(P, g)` and vice-versa. Note that such morphisms have an ordering
+because they belong to the pointwise ordered cppo we talked about
+earlier.
+
+We have one final thing to set up before this proof: what about if
+there's multiple non-isomorphic solutions to `F` (hint, there are)?
+What do we do then? We want a further coherence condition that's going
+to provide us with 2 things
+
+ 1. An ability to uniquely determine a solution
+ 2. A powerful proof technique that isolates us from the particulars
+    of the construction
+
+What we want is called minimal invariance. Suppose we have a `D` and
+an `i : D ≅ F(D, D)`. This is the minimal invariant solution if and
+only if the least fixed point of `f(e) = i⁻ ∘ F(e, e) ∘ i` is `id`. In
+other words, we want it to be the case that `d = ⊔ₓ fˣ(⊥)(d)`. I
+mentally picture this as saying that the isomorphism is set up so that
+for any particular `d` we choose, if we apply `i`, `fmap` over it,
+apply `i` again, repeat and repeat, eventually this process will halt
+and we'll run out of things to `fmap` over. It's a sort of a statement
+that each `d ∈ D` is "finite" in a very, *very* handwavy sense. Don't
+worry if that didn't make much sense, it's helpful to me but it's just
+my intuition. This property has some interesting effects though: it
+means that if we find such a `D` then `(D, D)` is going to be both the
+initial algebra and final coalgebra of `F`.
+
+Without further ado, let's prove that every locally continuous functor
+`F`. We start by defining the following
+
+    D₀ = {⊥}
+    Dᵢ  = F(Dᵢ₋₁, Dᵢ₋₁)
+
+This gives us a chain of cppos that gradually get larger. How do we
+show that they're getting larger? By defining an section from `Dᵢ` to
+`Dⱼ` where `j = i + 1`. A section is a function `f` which is paired
+with a (unique) function `f⁰` so that `f⁰f = id` and `ff⁰ ⊑ id`. In
+other words, `f` embeds its domain into the codomain and `f⁰` tells us
+how to get it out. Putting something in and taking it out is a round
+trip. Since the codomain may be bigger though taking something out and
+putting it back only *approximates* a round trip. Our sections are
+defined thusly
+
+    s₀ = x ↦ ⊥         r₀ = x ↦ ⊥
+    sᵢ  = F(rᵢ₋₁, sᵢ₋₁)   rᵢ = F(rᵢ₋₁, sᵢ₋₁)
+
+It would be very instructive to work out that these definitions are
+actually sections and retractions. Since type-setting this subscripts
+is a little rough, if it's clear from context I'll just write `r` and
+`s`. Now we've got this increasing chain, we define an interesting
+object
+
+     D = {x ∈ Πᵢ Dᵢ | x.(i-1) = r(x.i)}
+
+In other words, `D` is the collection of infinitely large pairs. Each
+component if from one of those `Dᵢ`s above and they cohere with each
+other so using `s` and `r` to step up the chain takes you from one
+component to the next. Next we define a way to go from a single `Dᵢ`
+to a `D`: `upᵢ : Dᵢ → D` where
+
+    upᵢ(x).j =  x    if i = j
+             | rᵈ(x) if i - j = d > 0
+             | sᵈ(x) if j - i = d > 0
