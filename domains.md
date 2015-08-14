@@ -233,3 +233,34 @@ to a `D`: `upᵢ : Dᵢ → D` where
     upᵢ(x).j =  x    if i = j
              | rᵈ(x) if i - j = d > 0
              | sᵈ(x) if j - i = d > 0
+
+Interestingly, note that `πᵢ ∘ upᵢ = id` (easy proof) and that `upᵢ ∘
+πᵢ ⊑ id` (slightly harder proof). This means that we've got more
+sections lying around: every `Dᵢ` can be fed into `D`. Consider the
+following diagram
+
+        s      s      s
+    D0 ——> D1 ——> D2 ——> ...
+
+I claim that `D` is the colimit to this diagram where the collection
+of arrows mapping into it are given with `upᵢ`. Seeing this is a
+colimit follows from the fact that `πᵢ ∘ upᵢ` is just
+`id`. Specifically, suppose we have some object `C` and a family of
+morphisms `cᵢ : Dᵢ → C` which commute properly with `s`. We need to
+find a unique morphism `h` so that `cᵢ = h ∘ upᵢ`. Define `h` as
+`⊔ᵢ cᵢπᵢ`. Then ``
+
+    h ∘ upⱼ = (⊔j<i cᵢsʲrʲ) ⊔ cᵢ ⊔ (⊔j>i cᵢrʲsʲ) = (⊔j<i cᵢsʲrʲ) ⊔ cᵢ
+
+The last step follows from the fact that `rʲsʲ = id`. Furthermore,
+`sʲrʲ ⊑ id` so `cᵢsʲrʲ ⊑ cᵢ` so that whole massive term just evaluates
+to `cᵢ` as required. So we have a colimit. Notice that if we apply `F`
+to each `Dᵢ` in the diagram we end up with a new diagram.
+
+`D` is still the colimit (all we've done is shift the diagram over by
+one) but by identical reasoning to `D` being a colimit, so is `F(D,
+D)`. This means we have a unique isomorphism `i : D ≅ F(D, D)`. The
+fact that `i` is the minimal invariant follows from the properties we
+get from the fact that `i` comes from a colimit.
+
+## Wrap Up
