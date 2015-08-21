@@ -43,6 +43,82 @@ have a proposition which internalizes membership and I'll demonstrate
 
 ## Background on JonPRL
 
+Before we can really get to the proof we want to talk about we should
+go through some of the more advanced features of JonPRL we need to
+use. First, let's talk about the image type.
+
+This is a type constructor with the following formation rule
+
+     H ⊢ A : U{i}        H ⊢ f : Base
+     —————————————————————————————————
+          H ⊢ image(H; f) : U{i}
+
+So here `A` is a type and `f` is an untyped term in the computation
+system JonPRL is built on. Things are going to be equal `image` if we can
+prove that they're of the form `f w` and `f w'` where `w = w' ∈ A`. So
+`image` gives us the codomain (range) of a function. What's pretty
+crazy about this is that it's not just the range of some function
+`A → B`, we don't really need a whole new type for that. It's the range of
+*literally any closed term we can apply*. We can take the range of the
+y combinator over pi types. We can take the range of `lam(x. ⊥)` over
+`unit`, anything we want!
+
+This construct let's us define some really incredible things as a user
+of JonPRL. For example, the "squash" of a type is supposed to be a
+type which is occupied by `<>` (and only `<>`) if and only if there
+was an occupant of the original type. You can define these in HoTT
+with higher inductive types. Or, you can define these in this type
+theory as
+
+``` jonprl
+    Operator squash : (0).
+    [squash(A)] =def= [image(A; lam(x. <>))]
+```
+
+Something is in `x ∈ squash(A)` if and only if we can construct an `a` so
+that `a ∈ A` and `lam(x. <>) a ~ x`. Clearly `x` must be `<>` and we
+can construct such an `a` if and only if `A` is nonempty.
+
+We can also define the set-union of two types. Something is supposed
+to be in the set union if and only if it's in one or the other. Two
+define such a thing with an image type we have
+
+``` jonprl
+    Operator union : (0).
+    [union(A; B)] =def= [image((x : unit + unit) * decide(x; _.A; _.B); lam(x.snd(x)))]
+```
+
+This one is a bit more complicated. The domain of things we're
+applying our function to this time is
+
+``` jonprl
+    (x : unit + unit) * decide(x; _.A; _.B)
+```
+
+This is a dependent pair, it's a boolean (true being `inl(<>)` and
+false being `inr(<>)`). If the first component is true the second
+component is of type `A`, otherwise it's of type `B`. So for every
+term of type `A` or `B`, there's a term of this type. In fact, we can
+recover that original term of type `A` or `B` by just grabbing the
+second component of the term! We don't have to worry about the type of
+such an operation because we're not creating something with a function
+type, just something in `base`.
+
+`union`s let us define an absolutely critical admissible rule in our
+system. See JonPRL has this propositional reflection of the equality
+judgement, but it's non-negatable. In order to prove that `=(a; b; A)`
+is a proposition we have to make `a = b ∈ A` is evident. So `=(a; b;
+A)` is a proposition only if it's true. However, we can add a rule
+that says that `=(a; b; A)` is a proposition if `a = b ∈ A ∪ base`!
+This rule let's us meaningfully write things like `=(a; b; A) →
+void`. Before having a function take a `=(...)` was useless! The
+function is only even type-able if its domain was provably true so
+there was no point in taking it as an argument. With this rule we can
+prove that `=(<>; <>; nat)` is a proposition! Not a true one, but a
+well formed one. We can apply this special rule in JonPRL with
+`eq-eq-base` instead of just `eq-cd` like the rest of our equality
+rules.
+
 ## The Main Result
 
 ## Wrap Up
