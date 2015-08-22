@@ -45,9 +45,36 @@ have a proposition which internalizes membership and I'll demonstrate
 
 Before we can really get to the proof we want to talk about we should
 go through some of the more advanced features of JonPRL we need to
-use. First, let's talk about the image type.
+use.
 
-This is a type constructor with the following formation rule
+
+**TODO, does this paragraph sound awful? I think maybe.** First,
+notice that JonPRL is built a bit differently than other proof
+assistants. In JonPRL we *start* with computation and add typing as a
+layer on top of a computation system. Programs existed before types so
+to speak. In other languages, we have a type system and we use the
+local reductions admissible in it to build computation. In JonPRL
+though, we can embrace this computational nature and define a type
+which contains all closed terms in our language and whose equality is
+purely computational. This type is `base`. To prove that `=(a; b;
+base)` holds you have to prove `ceq(a; b)` the finest grain equality
+in JonPRL. Two terms are `ceq` if they
+
+ 1. Both diverge
+ 2. Run to the same outermost operator and have `ceq` components
+
+What's particularly exciting is that you can substitute any term for
+any other term `ceq` to it, no matter at what type it's being used. In
+fact, the `reduce` tactic (which beta reduces terms) can conceptually
+be thought of as substituting a bunch of terms for their whn forms
+which are `ceq` to the original terms. The relevant literature behind
+this is found in Doug Howe's "Equality in a Lazy Computation
+System". There's more in JonPRL in this regard, we also have the
+asymmetric version of `ceq` (called `approx`) but we won't need it
+today.
+
+Next, let's talk about the image type. This is a type constructor
+with the following formation rule
 
      H ⊢ A : U{i}        H ⊢ f : Base
      —————————————————————————————————
