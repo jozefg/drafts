@@ -148,4 +148,128 @@ rules.
 
 ## The Main Result
 
+Now let's actually begin proving Russell's paradox. To start with some
+notation.
+
+``` jonprl
+    Infix 20 "∈" := member.
+    Infix 40 "~" := ceq.
+    Infix 60 "∪" := bunion.
+    Prefix 40 "¬" := not.
+```
+
+This let's us say `a ∈ b` instead of `member(a; b)`. JonPRL recently
+grew this ability to add transparent notation to terms, it makes our
+theorems a *lot* prettier.
+
+Next we define the central term to our proof
+
+``` jonprl
+    Operator Russell : ().
+    [Russell] =def= [{x : U{i} | ¬ (x ∈ x)}]
+```
+
+Here we've defined `Russell` as shorthand for a subset type, in
+particular it's a subset of `U{i}` (the universe of types). `x ∈
+Russell` if `x ∈ U{i}` and `¬ (x ∈ x)`. Now normally we won't be able
+to prove that this is a type (specifically `x ∈ x` is going to be a
+problem), but in our case we'll have some help from an assumption that
+`U{i} ∈ U{i}`.
+
+Now we begin to define a small set of tactic that we'll want. If
+you're not a fan of tactics. First we have a tactic which finds an
+occurrence of `H : A + B` in the context and eliminate it. This gives us
+two goals, one with an `A` and one with a `B`. To do this we use
+match, This gives us something like `match goal with` in Coq.
+
+``` jonprl
+    Tactic break-plus {
+      @{ [H : _ + _ |- _] => elim <H>; thin <H> }
+    }.
+```
+
+Note the syntax `[H : ... |- ...]` to match on a sequent. In
+particular here we just have `_ + _` and `_`. Next we have a tactic
+`bunion-eq-right`. It's to help us work with `bunion`s. Basically it
+turns `=(M; N; bunion(A; B))` into
+
+``` jonprl
+    =(lam(x.snd(x)) <<>, M>; lam(x.snd(x)) <<>, N>; bunion(A; B))
+```
+
+This is actually helpful because it turns out that once we unfold
+`bunion` we have to prove that `M` and `N` are in an image type, by
+rewriting them to be the results of function applications we can
+easily prove it's in that image.
+
+This is done with
+
+``` jonprl
+    Tactic bunion-eq-right {
+      @{ [|- =(M; N; L ∪ R)] =>
+           csubst [M ~ lam(x. snd(x)) <inr(<>), M>] [h.=(h;_;_)];
+           aux { unfold <snd>; reduce; auto };
+           csubst [N ~ lam(x. snd(x)) <inr(<>), N>] [h.=(_;h;_)];
+           aux { unfold <snd>; reduce; auto };
+      }
+    }.
+```
+
+This is done using `csubst` which takes a `ceq` as its first argument
+and a "targeting". It then tries to replace each occurrence of the
+left side of the equality with the right. To find each occurrence the
+targeting maps a variable to each occurrence. We're allowed to use
+wildcards in the targeting as well. It also relegates actually proving
+things into a new subgoal. It's easy enough to prove so we demonstrate
+it with `aux {unfold <snd>; reduce; auto}`.
+
+We only need to apply this tactic after `eq-eq-base`, this applies
+that rule I mentioned earlier about proving equalities well formed in
+a much more liberal environment. Therefore we wrap those two tactics
+into one more convenient package.
+
+``` jonprl
+    Tactic eq-base-tac {
+      @{ [|- =(=(M; N; A); =(M'; N'; A'); _)] =>
+           eq-eq-base; auto;
+           bunion-eq-right; unfold <bunion>
+       }
+    }.
+```
+
+One last tactic in this vein, this one to prove that `member(X; X) ∈
+U{i}` is well formed. It starts by unfolding `member` into `=(=(X; X;
+X); =(X; X; X); U{i})` and then applying the new tactic. Then we do
+other things. These things aren't pretty. I suggest we just ignore
+them.
+
+``` jonprl
+    Tactic impredicativity-wf-tac {
+      unfold <member>; eq-base-tac;
+      eq-cd; ?{@{[|- =(_; _; base)] => auto}};
+      eq-cd @i'; ?{break-plus}; reduce; auto
+    }.
+```
+
+Finally we have a tactic to prove that if we have `not(P)` and `P`
+existing in the context proves `void`. This is another nice
+application match
+
+``` jonprl
+    Tactic contradiction {
+      unfold <not implies>;
+      @{ [H : P -> void, H' : P |- void] =>
+           elim <H> [H'];
+           unfold <member>;
+           auto
+       }
+    }.
+```
+
+We start by unfolding `not` and `implies`. This gives us `P -> void`
+and `P`. From there, we just apply one to the other giving us a void
+as we wanted.
+
+We're no ready to prove our theorem.
+
 ## Wrap Up
