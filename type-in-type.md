@@ -270,6 +270,215 @@ We start by unfolding `not` and `implies`. This gives us `P -> void`
 and `P`. From there, we just apply one to the other giving us a void
 as we wanted.
 
-We're no ready to prove our theorem.
+We're now ready to prove our theorem. We start with
+
+``` jonprl
+    Theorem type-not-in-type : [¬ (U{i} ∈ U{i})] {
+    }.
+```
+
+We now have the main subgoal
+
+    Remaining subgoals:
+
+    [main] ⊢ not(member(U{i}; U{i}))
+
+We can start by unfold `not` and `implies`. This gives us something we
+can actually apply the `intro` tactic.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+    }
+```
+
+Now we have two subgoals, one is the result of applying `intro`,
+namely we have a hypothesis `x : member(U{i}; U{i})`. The second
+subgoal is the "well-formedness" obligation. We have to prove that
+`member(U{i}; U{i})` is a type in order to apply the `intro`
+tactic. This is a crucial difference between Coq-like systems and
+these proof-refinement logics. The process of demonstrating that what
+you're proving is a proposition is intermingled with actually
+constructing the proof. In the case of `member(...)` propositions
+after all, the process is identical.
+
+This does mean we get these annoying well-formedness goals. They're
+annotated with `[aux]` (as opposed to `[main]`). This means we can
+target them all at once using with the `aux` tactics.
+
+Our proof state is
+
+    [main]
+    1. x : member(U{i}; U{i})
+    ⊢ void
+
+    [aux] ⊢ member(member(U{i}; U{i}); U{i'})
+
+Let's get rid of that subgoal using that `impredictivity-wf-tac`
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { impredicativity-wf-tac };
+    }
+```
+
+This handles that `[aux]` goal leaving us with just
+
+    [main]
+    1. x : member(U{i}; U{i})
+    ⊢ void
+
+Now we need to prove some lemmas. They state that `Russell` is
+actually a type. This is possible to do here and only here because
+we'll need to actually use `x` in the process of proving these. We're
+going to use the `assert` tactic. This let's us state a term, prove it
+as a subgoal and use it as a hypothesis in the main goal. If you're
+logically minded, it's cut.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { impredicativity-wf-tac };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+    }
+```
+
+This leaves us with two subgoals. The `aux` one being the assertion
+and the `main` one being allowed to assume it.
+
+    [aux]
+    1. x : member(U{i}; U{i})
+    ⊢ member(Russell; U{i})
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    ⊢ void
+
+We can prove this by basically working our way towards using
+`impredicativity-wf-tac`. We'll use `aux` again to target the `aux`
+subgoal. We'll start by unfolding everything and applying `eq-cd`.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { impredicativity-wf-tac };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux {
+        unfold <member Russell>; eq-cd; auto;
+      };
+    }
+```
+
+So we just applied `eq-cd` to a subset type (`Russell`) so we get two
+subgoals. One says that `U{i}` is a type, one says that if `x ∈ U{i}`
+then `¬ (x ∈ x)` is also a type. The former goal is quite
+straightforward so we'll apply `auto` and take care of it. Now we have
+one new subgoal to handle
+
+    [main]
+    1. x : =(U{i}; U{i}; U{i})
+    2. x' : U{i}
+    ⊢ =(not(member(x'; x')); not(member(x'; x')); U{i})
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    ⊢ void
+
+The second subgoal is just the rest of the proof, the first subgoal is
+what we want to handle. It says that if we have a type `x` then
+`not(member(x; x))` is a type. To prove this we have to unfold
+`not`. So we'll do this and apply `eq-cd` again.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { impredicativity-wf-tac };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux {
+        unfold <member Russell>; eq-cd; auto;
+        unfold <not implies>; eq-cd; auto;
+      };
+    }
+```
+
+This is
+
+    [main]
+    1. x : =(U{i}; U{i}; U{i})
+    2. x' : U{i}
+    ⊢ =(member(x'; x'); member(x'; x'); U{i})
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    ⊢ void
+
+Now we're getting to the root of the issue. We're trying to prove that
+`member(x'; x')` is a type. This is happily handled by
+`impredicativity-wf-tac` which will use our assumption that `U{i} ∈
+U{i}`.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { impredicativity-wf-tac };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux {
+        unfold <member Russell>; eq-cd; auto;
+        unfold <not implies>; eq-cd; auto;
+        impredicativity-wf-tac
+      };
+    }
+```
+
+Now we just have that main goal with the assumption `russell-wf`
+added.
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    ⊢ void
+
+Now we have a similar type well-formedness goal to prove. We want to
+prove that `∈(Russell; Russell)` is a type. This is easier though, we
+can prove it easily using `impredicativity-wf-tac`.
+
+``` jonprl
+    assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+    aux { impredicativity-wf-tac; cum @i; auto };
+```
+
+That `cum @i` is a quirk of `impredicativity-wf-tac`. It basically
+means that instead of proving `=(...; ...; U{i'})` we can prove
+`=(...; ...; U{i})` since `U{i}` is a universe below `U{i'}` and all
+universes are cumulative.
+
+Our goal is now
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    ⊢ void
+
+
+Ok, so now the reasoning can start now that we have all these
+well-formedness lemmas. Our proof sketch is basically as follows
+
+ 1. Prove that `Russell ∈ Russell` is false. This is because if
+    `Russell` *was* in `Russell` then by definition of `Russell` it
+    isn't in `Russell`.
+ 2. Since `not(Russell ∈ Russell)` holds, then `Russell ∈ Russell`
+    holds.
+ 3. Hilarity ensues.
+
+
 
 ## Wrap Up
