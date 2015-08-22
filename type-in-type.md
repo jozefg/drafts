@@ -451,8 +451,20 @@ prove that `∈(Russell; Russell)` is a type. This is easier though, we
 can prove it easily using `impredicativity-wf-tac`.
 
 ``` jonprl
-    assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
-    aux { impredicativity-wf-tac; cum @i; auto };
+    {
+      unfold <not implies>; intro
+      aux { impredicativity-wf-tac };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux {
+        unfold <member Russell>; eq-cd; auto;
+        unfold <not implies>; eq-cd; auto;
+        impredicativity-wf-tac
+      };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { impredicativity-wf-tac; cum @i; auto };
+    }
 ```
 
 That `cum @i` is a quirk of `impredicativity-wf-tac`. It basically
@@ -479,6 +491,618 @@ well-formedness lemmas. Our proof sketch is basically as follows
     holds.
  3. Hilarity ensues.
 
+Here's the first assertion
 
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { impredicativity-wf-tac };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux {
+        unfold <member Russell>; eq-cd; auto;
+        unfold <not implies>; eq-cd; auto;
+        impredicativity-wf-tac
+      };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { impredicativity-wf-tac; cum @i; auto };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+    }
+```
+
+Here are our subgoals
+
+    [aux]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    ⊢ not(member(Russell; Russell))
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. russell-not-in-russell : not(member(Russell; Russell))
+    ⊢ void
+
+ We want to prove that first one. To start, let's unfold that `not`
+ and move `member(Russell; Russell)` to the hypothesis and use it to
+ prove `void`. We do this with `intro`.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { ... };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux {
+        unfold <not implies>;
+        intro @i; aux {assumption};
+      }
+    }
+```
+
+Now our subgoals look like this
+
+    Remaining subgoals:
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. x' : member(Russell; Russell)
+    ⊢ void
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. russell-not-in-russell : not(member(Russell; Russell))
+    ⊢ void
+
+So what we want to do is note that we've assume that `Russell ∈
+Russell` we can say that `Russell ~ X` for some `X` where `¬ (X ∈ X)`
+holds. But wait, that means that `¬ (Russell ∈ Russell)` holds but
+we've assume that `Russell ∈ Russell` also holds so we have a
+contradiction.
+
+Let's start by introducing that `X` (here called `R`). We'll assert an
+`R : Russell` such that `R ~ Russell`. We do this using dependent
+pairs (here written `(x : A) * B(x)`).
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { impredicativity-wf-tac; cum @i; auto };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux {
+        unfold <not implies>;
+        intro @i; aux {assumption};
+        assert [(R : Russell) * R ~ Russell] <R-with-prop>;
+        aux {
+          intro [Russell] @i; auto
+        };
+      }
+    }
+```
+
+We've proven this by `intro`. For proving dependent products we
+provide an explicit witness for the first component. After this we
+have to prove that this witness has type `Russell` and then prove the
+second component holds. Happily, `auto` takes care of both of these
+obligation so `intro [Russell] @i; auto` handles it all.
+
+
+Now we promptly eliminate this pair. It gives us two new facts, that
+`R : Russell` and `R ~ Russell` hold.
+
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { ... };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux {
+        unfold <not implies>;
+        intro @i; aux {assumption};
+        assert [(R : Russell) * R ~ Russell] <R-with-prop>;
+        aux {
+          intro [Russell] @i; auto
+        };
+
+        elim <R-with-prop>; thin <R-with-prop>
+      }
+    }
+```
+
+This leaves our goal as
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. x' : member(Russell; Russell)
+    5. s : Russell
+    6. t : ceq(s; Russell)
+    ⊢ void
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. russell-not-in-russell : not(member(Russell; Russell))
+    ⊢ void
+
+Now let's invert a little on that `s : Russell`, we want to use it to
+conclude that `¬ (s ∈ s)` holds since that will give us `¬ (R ∈ R)`.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { ... };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux {
+        unfold <not implies>;
+        intro @i; aux {assumption};
+        assert [(R : Russell) * R ~ Russell] <R-with-prop>;
+        aux {
+          intro [Russell] @i; auto
+        };
+
+        elim <R-with-prop>; thin <R-with-prop>
+        unfold <Russell>; elim #5;
+      }
+    }
+```
+
+Now that we've unfolded all of those `Russell`s our goal is a little
+bit harder to read, remember to mentally substitute `{x : U{i} |
+not(member(x; x))}` as `Russell`.
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member({x:U{i} | not(member(x; x))}; U{i})
+    3. russell-in-russell-wf : member(member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))}); U{i})
+    4. x' : member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))})
+    5. s : {x:U{i} | not(member(x; x))}
+    6. x'' : U{i}
+    7. [t'] : not(member(x''; x''))
+    8. t : ceq(x''; {x:U{i} | not(member(x; x))})
+    ⊢ void
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. russell-not-in-russell : not(member(Russell; Russell))
+    ⊢ void
+
+Now we use #7 to derive that `not(member(Russell; Russell))` holds.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { ... };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux {
+        unfold <not implies>;
+        intro @i; aux {assumption};
+        assert [(R : Russell) * R ~ Russell] <R-with-prop>;
+        aux {
+          intro [Russell] @i; auto
+        };
+
+        elim <R-with-prop>; thin <R-with-prop>
+        unfold <Russell>; elim #5;
+
+        assert [¬ (Russell; Russell)];
+        aux {
+          unfold <Russell>;
+        };
+      }
+    }
+```
+
+This leaves us with 3 subgoals. The first one being the assertion.
+
+    [aux]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member({x:U{i} | not(member(x; x))}; U{i})
+    3. russell-in-russell-wf : member(member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))}); U{i})
+    4. x' : member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))})
+    5. s : {x:U{i} | not(member(x; x))}
+    6. x'' : U{i}
+    7. [t'] : not(member(x''; x''))
+    8. t : ceq(x''; {x:U{i} | not(member(x; x))})
+    ⊢ not(member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))}))
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member({x:U{i} | not(member(x; x))}; U{i})
+    3. russell-in-russell-wf : member(member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))}); U{i})
+    4. x' : member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))})
+    5. s : {x:U{i} | not(member(x; x))}
+    6. x'' : U{i}
+    7. [t'] : not(member(x''; x''))
+    8. t : ceq(x''; {x:U{i} | not(member(x; x))})
+    9. H : not(member(Russell; Russell))
+    ⊢ void
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. russell-not-in-russell : not(member(Russell; Russell))
+    ⊢ void
+
+Now to prove this what we need to do is substitute the unfolded
+`Russell` for `x''`, from there it's immediate by assumption. We
+perform the substitution with `chyp-subst`. This takes a direction to
+substitute, the hypothesis to use, and another targeting telling us
+where to apply the substitution.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { ... };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux {
+        unfold <not implies>;
+        intro @i; aux {assumption};
+        assert [(R : Russell) * R ~ Russell] <R-with-prop>;
+        aux {
+          intro [Russell] @i; auto
+        };
+
+        elim <R-with-prop>; thin <R-with-prop>
+        unfold <Russell>; elim #5;
+
+        assert [¬ (Russell; Russell)];
+        aux {
+          unfold <Russell>;
+          chyp-subst ← #8 [h. ¬ (h ∈ h)];
+        };
+      }
+    }
+```
+
+This leaves us with a much more tractable goal.
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member({x:U{i} | not(member(x; x))}; U{i})
+    3. russell-in-russell-wf : member(member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))}); U{i})
+    4. x' : member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))})
+    5. s : {x:U{i} | not(member(x; x))}
+    6. x'' : U{i}
+    7. [t'] : not(member(x''; x''))
+    8. t : ceq(x''; {x:U{i} | not(member(x; x))})
+    ⊢ not(member(x''; x''))
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member({x:U{i} | not(member(x; x))}; U{i})
+    3. russell-in-russell-wf : member(member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))}); U{i})
+    4. x' : member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))})
+    5. s : {x:U{i} | not(member(x; x))}
+    6. x'' : U{i}
+    7. [t'] : not(member(x''; x''))
+    8. t : ceq(x''; {x:U{i} | not(member(x; x))})
+    9. H : not(member(Russell; Russell))
+    ⊢ void
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. russell-not-in-russell : not(member(Russell; Russell))
+    ⊢ void
+
+We'd like to imply just apply `assumption` but it's not immediately
+applicable due to some technically details (basically we can only
+apply an assumption in a proof irrelevant context but we have to
+unfold `Russell` and introduce it to demonstrate that it's
+irrelevant). So just read what's left as a (very) convoluted
+`assumption`.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { ... };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux {
+        unfold <not implies>;
+        intro @i; aux {assumption};
+        assert [(R : Russell) * R ~ Russell] <R-with-prop>;
+        aux {
+          intro [Russell] @i; auto
+        };
+
+        elim <R-with-prop>; thin <R-with-prop>
+        unfold <Russell>; elim #5;
+
+        assert [¬ (Russell; Russell)];
+        aux {
+          unfold <Russell>;
+          chyp-subst ← #8 [h. ¬ (h ∈ h)];
+          unfold <not implies>
+          intro; aux { impredicativity-wf-tac };
+          contradiction
+        };
+      }
+    }
+```
+
+Now we're almost through this assertion, our subgoals look like this
+(pay attention to 9 and 4)
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member({x:U{i} | not(member(x; x))}; U{i})
+    3. russell-in-russell-wf : member(member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))}); U{i})
+    4. x' : member({x:U{i} | not(member(x; x))}; {x:U{i} | not(member(x; x))})
+    5. s : {x:U{i} | not(member(x; x))}
+    6. x'' : U{i}
+    7. [t'] : not(member(x''; x''))
+    8. t : ceq(x''; {x:U{i} | not(member(x; x))})
+    9. H : not(member(Russell; Russell))
+    ⊢ void
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. russell-not-in-russell : not(member(Russell; Russell))
+    ⊢ void
+
+Once we unfold that `Russell` we have an immediate contradiction so
+`unfold <Russell>; contradiction` solves it.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { ... };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux {
+        unfold <not implies>;
+        intro @i; aux {assumption};
+        assert [(R : Russell) * R ~ Russell] <R-with-prop>;
+        aux {
+          intro [Russell] @i; auto
+        };
+
+        elim <R-with-prop>; thin <R-with-prop>
+        unfold <Russell>; elim #5;
+
+        assert [¬ (Russell; Russell)];
+        aux {
+          unfold <Russell>;
+          chyp-subst ← #8 [h. ¬ (h ∈ h)];
+          unfold <not implies>
+          intro; aux { impredicativity-wf-tac };
+          contradiction
+        };
+
+        unfold <Russell>; contradiction
+      }
+    }
+```
+
+This takes care of this subgoal so now we're back on the main
+goal. This time though we have an extra hypothesis which will provide
+the leverage we need to prove our next assertion.
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. russell-not-in-russell : not(member(Russell; Russell))
+    ⊢ void
+
+Now we're going to claim that `Russell` is in fact in `Russell`. This
+will follow from the fact that we've proved already that `Russell`
+isn't in `Russell` (yeah, it seems pretty paradoxical already).
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { ... };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux { ... };
+
+      assert [Russel ∈ Russell];
+   }
+```
+
+Giving us
+
+    [aux]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. russell-not-in-russell : not(member(Russell; Russell))
+    ⊢ member(Russell; Russell)
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. russell-not-in-russell : not(member(Russell; Russell))
+    5. H : member(Russell; Russell)
+    ⊢ void
+
+
+Proving this is pretty straightforward, we only have to demonstrate
+that `not(Russell ∈ Russell)` and `Russell ∈ U{i}`, both of which we
+have as assumptions. The rest of the proof is just more
+well-formedness goals.
+
+Let's finish this off. First we unfold everything and apply
+`eq-cd`. This gives us 3 subgoals, the first two are `Russell ∈ U{i}`
+and `¬(Russell ∈ Russell)`. Since we have these as assumptions we'll
+use `main {assumption}`. That will target both these goals and prove
+them immediately.
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { ... };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux { ... };
+
+      assert [Russel ∈ Russell];
+      aux {
+        unfold <member Russell>; eq-cd;
+        unfold <member>;
+
+        main { assumption };
+      };
+    }
+```
+
+This just leaves us with one awful well-formedness goal requiring us
+to prove that `not(=(x; x; x))` is a type if `x` is a type. We
+actually proved something similar back when we prove that `Russell`
+was well formed. The proof is the same as then, just unfold, `eq-cd`
+and `impredicativity-wf-tac`. We use `?{!{auto}}` to only apply `auto`
+in a subgoal where it immediately proves it. Here `?{}` says "run this
+or do nothing" and `!{}` says "run this, if it succeeds stop, if it
+does anything else, fail".
+
+``` jonprl
+    {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { ... };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux { ... };
+
+      assert [Russel ∈ Russell] <russell-in-russell>;
+      aux {
+        unfold <member Russell>; eq-cd;
+        unfold <member>;
+
+        main { assumption };
+        unfold <not implies>; eq-cd; ?{!{auto}};
+        impredicativity-wf-tac;
+      };
+    }
+```
+
+Now we just have the final subgoal to prove. We're actually in a
+position to do so now.
+
+    [main]
+    1. x : member(U{i}; U{i})
+    2. russell-wf : member(Russell; U{i})
+    3. russell-in-russell-wf : member(member(Russell; Russell); U{i})
+    4. russell-not-in-russell : not(member(Russell; Russell))
+    5. russell-in-russell : member(Russell; Russell)
+    ⊢ void
+
+Now that we've shown `P` and `not(P)` hold at the same time all we
+need to do is apply `contradiction` and we're done.
+
+
+``` jonprl
+    Theorem type-not-in-type [¬ (U{i} ∈ U{i})] {
+      unfold <not implies>; intro
+      aux { ... };
+
+      assert [Russell ∈ U{i}] <russell-wf>;
+      aux { ... };
+
+      assert [(Russell ∈ Russell) ∈ U{i}] <russell-in-russell-wf>;
+      aux { ... };
+
+      assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
+      aux { ... };
+
+      assert [Russel ∈ Russell] <russell-in-russell>;
+      aux { ... };
+
+      contradiction
+    }.
+```
+
+And there you have it, a complete proof of Russell's paradox fully
+formalized in JonPRL!
 
 ## Wrap Up
