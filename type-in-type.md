@@ -48,8 +48,7 @@ go through some of the more advanced features of JonPRL we need to
 use.
 
 
-**TODO, does this paragraph sound awful? I think maybe.** First,
-notice that JonPRL is built a bit differently than other proof
+First, notice that JonPRL is built a bit differently than other proof
 assistants. In JonPRL we *start* with computation and add typing as a
 layer on top of a computation system. Programs existed before types so
 to speak. In other languages, we have a type system and we use the
@@ -133,7 +132,7 @@ type, just something in `base`.
 
 `union`s let us define an absolutely critical admissible rule in our
 system. See JonPRL has this propositional reflection of the equality
-judgement, but it's non-negatable. In order to prove that `=(a; b; A)`
+judgment, but it's non-negatable. In order to prove that `=(a; b; A)`
 is a proposition we have to make `a = b ∈ A` is evident. So `=(a; b;
 A)` is a proposition only if it's true. However, we can add a rule
 that says that `=(a; b; A)` is a proposition if `a = b ∈ A ∪ base`!
@@ -974,7 +973,7 @@ isn't in `Russell` (yeah, it seems pretty paradoxical already).
       assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
       aux { ... };
 
-      assert [Russel ∈ Russell];
+      assert [Russell ∈ Russell];
    }
 ```
 
@@ -1021,7 +1020,7 @@ them immediately.
       assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
       aux { ... };
 
-      assert [Russel ∈ Russell];
+      assert [Russell ∈ Russell];
       aux {
         unfold <member Russell>; eq-cd;
         unfold <member>;
@@ -1054,7 +1053,7 @@ does anything else, fail".
       assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
       aux { ... };
 
-      assert [Russel ∈ Russell] <russell-in-russell>;
+      assert [Russell ∈ Russell] <russell-in-russell>;
       aux {
         unfold <member Russell>; eq-cd;
         unfold <member>;
@@ -1095,7 +1094,7 @@ need to do is apply `contradiction` and we're done.
       assert [¬ (Russell ∈ Russell)] <not-russell-in-russell>;
       aux { ... };
 
-      assert [Russel ∈ Russell] <russell-in-russell>;
+      assert [Russell ∈ Russell] <russell-in-russell>;
       aux { ... };
 
       contradiction
@@ -1106,3 +1105,10 @@ And there you have it, a complete proof of Russell's paradox fully
 formalized in JonPRL!
 
 ## Wrap Up
+
+I hope you found this proof interesting. Even if you're not at all
+interested in JonPRL, it's nice to see that allowing one to have
+`U{i} : U{i}` or `* :: *` gives you the ability to have a type like
+`Russell` and with it, `void`.
+
+*Thanks to Jon for greatly improving the original proof we had*
