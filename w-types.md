@@ -50,8 +50,12 @@ represent the types of nodes with
       sup : A → (F a → W A F) → W A F
 ```
 
-Each node has the type `a : A` and `F` determines the shape of the
-recursive calls given the type of the node.
+ So `A`s are the particular type of node we're at, you can think of it
+as determining what constructor we're using, `F a` is then a sort of
+collection of keys. For each distinct `x : F a` we can get a recursive
+subterm of the term we're looking at. Each node has the type `a : A`
+and `F` determines the shape of the recursive calls given the type of
+the node.
 
 For example, for natural numbers we have two types of nodes which we
 represent with `bool`. For the successor case we have only one
@@ -72,3 +76,110 @@ We can then define
     Nat : Set
     Nat = W Bool NatF
 ```
+
+To see that this is more or less equivalent to `ℕ` as we're used to
+it, look at this
+
+``` agda
+    left : ℕ → Nat
+    left zero = sup false (λ ())
+    left (suc n) = sup true (λ _ → left n)
+```
+
+So you can see that each `ℕ` can be converted by to a `Nat`. We change
+each constructor to `sup` + some particular `Bool`. From there we use
+just recurse to construct a term of type `NatF b → Nat`. Going the
+other way is similar, except instead of constructing that lambda we'll
+apply it!
+
+``` agda
+    right : Nat → ℕ
+    right (sup false _) = zero
+    right (sup true f) = suc (right (f tt))
+```
+
+In the first case, the function has the type `⊥ → Nat` which is pretty
+useless so we just ignore it and return `zero`. In the next case, `f :
+⊤ → Nat` so we can apply it to `tt`, `f tt : Nat`. The intuition being
+that this is `n` and we're looking at `suc n` in it's W-tree
+presentation.
+
+Proving that `left` and `right` are inverses isn't so simple. The
+issue is that `left ∘ right` is going to involve building new lambdas
+by applying the old functions, ie will end up with `sup false (λ ())`
+instead of `sup false f`! Now we know these are extensionally
+equivalent since any two functions from `⊥` are, but extensional
+equivalence doesn't apply ≡ in Agda! At best we can just assert
+`funext` and live with it.
+
+``` agda
+    postulate funext : {A B : Set}(f g : A → B) → ((a : A) → f a ≡ g a) → f ≡ g
+
+    idR : (n : Nat) → left (right n) ≡ n
+    idR (sup true x) rewrite idR (x tt) | funext _ _ (λ _ → refl) = refl
+    idR (sup false x) rewrite funext x ⊥-elim (λ b → ⊥-elim b) = refl
+```
+
+The proof proceeds by induction and we use `funext` to show that the
+functions we get back are equal to the ones we put in. The other
+direction is easier and we don't need `funext` for it.
+
+So now we have our dilemma, W-types work great for modeling these
+inductive types, but we can't prove them to be equal directly because
+our notion of equality forbids us from identifying the functions we
+generate with the functions we start with when manipulating
+w-types. For example, we can package up the recursion principle (the
+non-dependent thing) for a W-type into this function
+
+``` agda
+    cata : {A B : Set}{F : A → Set} → W F → ((a : A) → (F a → B) → B) → B
+    cata (sup a x) f = f a (λ z → cata (x z) f)
+```
+
+One thing we'd like to be able to do is prove that `cata` has the
+properties we'd expect a catamorphism to have. `W` after all can be
+thought as an initial F-algebra with the appropriate categorical
+semantics. In particular, since `W F` is supposed to be initial, it
+should be the case that there is a map from unique map `W F → W F`,
+since `λ x → cata x sup : W F → W F` we can therefore infer that `cata
+_ sup` should just be `id`. Proving this holds those is a bit
+troublesome.
+
+``` agda
+    cata-id : {A : Set}{F : A → Set}(w : W F) → cata w sup ≡ w
+    cata-id (sup a x) = {!!}
+```
+
+gives us the goal
+
+    Goal: sup a (λ z → cata (x z) sup) ≡ sup a x
+    ————————————————————————————————————————————————————————————
+    x  : .F a → W .F
+    a  : .A
+    .F : .A → Set
+    .A : Set
+
+Here's the problem though, we'd like to use our IH to rewrite `cata (x
+z) sup` to `x z` at which point we have our goal up to
+eta-expansion. We can't perform this rewrite though! In order to do so
+we need to be able to say "If for all `x` `f x ≡ g x` then `f ≡ g`"
+which is just functional extensionality. Without our `funext`
+postulate, we're completely stuck just trying to get out of the gate.
+
+This means that while W-types are nice in theory, in practice in an
+intensional type theory there's a fair amount of pain in using
+them. This doesn't mean that W-types are useless, just that they're
+useless in this setting.
+
+## In Extensional Type Theory
+
+Way in 1979ish, Martin-Lof proposed this type theory here termed
+"Intuitionistic Type Theory" (though everyone else just calls it
+Martin-Lof Type Theory, MLTT). MLTT is built by specifying a bunch of
+formation/introduction rules for types and then using them to justify
+their elimination rules. One admissible rule in particular is
+interesting to us, that's "equality reflection".
+
+It states that if we have a proof that `I(A, a, b)` (written `a ≡ b`)
+then we can derive that the *judgment* `a = b ∈ A` holds. This is
+actually a very interesting.
