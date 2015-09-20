@@ -21,36 +21,92 @@ solutions to some misconceptions I've had for a while.
 
 First things first, let's go over the more familiar notion of type
 theory. To develop one of these type theories you start by discussing
-some syntax. You lay out the syntax for some types
+some syntax. You lay out the syntax for some types and some terms
 
     A ::= Σ x : A. A | Π x : A. A | ⊤ | ⊥ | ...
+    M ::= M M | λ x : A. M | <M, M> | π₁ M | ⋆ | ...
 
-And now we want to describe
+And now we want to describe the all important `M : A` relation. This
+tells us that some term has some type. This relation is inductively
+defined from a finite set of inferences. Ideally, it's even decidable
+for philosophical reasons I've never cared too much about.
 
-... lots of stuff happens ...
+In fact, it's this relation that really governs our whole type theory,
+everything else is going to stem from this. As an afterthought, we may
+decide that we want to identify certain terms which other terms this
+is called definitional equality. It's another inductively defined (and
+decidable) judgment `M ≡ N : A`. Two quick things to note here
+
+ 1. Definitional equality is completely arbitrary, it exists in the
+    way it does because we defined it that way and for no other reason
+ 2. The complexity of proving `M ≡ N : A` is independent of the
+    complexity of `A`
+
+The last point is some concern because it means that equality for
+dependent functions is never going to be right for what we want. We
+have this uniformly complex judgment `M ≡ N : A` but when `A = Π x :
+B. C` the complexity *should* be greater and dependent on the
+complexity of `B` and `C`. That's how it works in math after all,
+equality at functions is defined pointwise, something we can't really
+do here if `≡` is to be decidable or just be of the same complexity no
+matter the type.
+
+Now we can do lots of things, one thing we almost always want to do is
+now go back and build an operational semantics for our terms. This
+operational semantics should be some judgment `M ↦ M` with the
+property that `M ↦ N` will imply that `M ≡ N`. This gives us
+some computational flavor in our type theory and lets us run the
+pieces of syntax we carved out with `M : A`.
 
 But these terms that we've written down aren't really
 programs. They're just serializations of the collections of rules
 we've applied to prove a proposition. There's no ingrained notion of
-"running" an `M`. What we have instead is this `≡` relation which just
-specifies which symbols we consider equivalent. There's no reason we ≡
-needs to be a reasonable term rewriting system or anything. If we're
-good at our jobs it will be, sometimes (HoTT) it's not completely
-clear what that computation system is even though we're working to
-find it.
+"running" an `M` since it's built on after the fact. What we have
+instead is this `≡` relation which just specifies which symbols we
+consider equivalent but even it is pretty arbitrary. There's no reason
+we `≡` needs to be a reasonable term rewriting system or anything. If
+we're good at our jobs it will be, sometimes (HoTT) it's not
+completely clear what that computation system is even though we're
+working to find it.
 
-So that's formal type theory, it's a more syntactic thing where one
-exhaustively specifies rules for `M : A` and `M ≡ N : A`. This type
-theory is a formal system like any other and it's useful for a lot of
-things. Our primary concern here was to pick rules with good
-properties like soundness, decidability, ability to prove X
-proposition, and so on. A secondary concern that comes *after*
-formalizing what terms exist and they're types is what sorts of proofs
-we want to identify as equal and even on this we impose the same
-decidability requirements. It's not the case that it's any harder to
-prove that `M ≡ N : A → B` then `M ≡ N : ⊤` because it's all the same
-decidable judgment.
+This leads to the first interpretation of the props-as-types
+correspondence (the boring one). This states that the inductively
+defined judgments of a logic give rise to a type theory whose terms
+are proof terms for those same inductively defined judgments. It's an
+identification of similar looking syntactic systems. It's useful to be
+sure if you want to develop a formal type theory, but it gives us less
+insight into the computational nature of a logic because we've
+reflected into a type theory which we have no reason to suspect has a
+reasonable computational characterization.
 
 *It was pointed out to me that there is a very large gap between
  decidable and efficiently computable. Many, many things in formal
  type theory are inefficient to compute*.
+
+## Behavioural/Computational Type Theory and Props-as-Types #2
+
+Now we can look at a second flavor of type theory. In this setting the
+way we order our system is very different. We start with an
+programming language, a collection of terms and an untyped evaluation
+relation between them. We don't necessarily care about all of what's
+in the language. As we define types later we'll say things like "Well,
+the system has to include at least X" but we don't need to
+exhaustively specify all of the system. It follows that we have
+actually no clue when defining the type theory how things
+compute. They just compute *somehow*. We don't really even want the
+system to be strongly normalizing, it's perfectly valid to take the
+lambda calculus (or Perl... actually can someone please make this a
+thing?).
+
+So we have some terms and `↦`, on top of this we start by defining a
+notion of equality between terms. This equality is purely
+computational and has no notion of types yet (like `M ≡ N : A`)
+because we have no types yet. This equality is sometimes denoted `~`,
+we usually define it as `M ~ N` iff `M ↦ O(Ms)` if and only if `N ↦
+O(Ns)` and if they terminate than `Ms ~ Ns`. By this I mean that two
+terms are the same if they compute in the same way, either by
+diverging or running to the same value built from `~` equal
+components. For more on this, you could read [Howe's paper][howe].
+
+
+[howe]: http://www.nuprl.org/documents/Howe/EqualityinLazy.html
