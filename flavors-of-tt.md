@@ -137,17 +137,17 @@ they behave as equal programs when used as functions. Since we use
 functions by applying them all we have to do is specify that they
 behave equally on application
 
-
      v x = v' x ∈ B (x ∈ A)
     ————————————————————————
       v = v' ∈ Π x : A. B
 
-Equality is determined on a per type basis by induction over the
-type. This means that when defining equality for `Π x : A. B` we get
-to use the equalities for `A` and `B`! We proceed in this fashion,
-defining rules on a per-type basis with induction(-recursion). As
-another example, let's have a look at the equality type.
-
+Equality is determined on a per type basis. Furthermore, it's allowed
+to use the equality of smaller types in its definition. This means
+that when defining equality for `Π x : A. B` we get to use the
+equalities for `A` and `B`! We make no attempt to maintain either
+decidability or uniform complexity in the collections of terms
+specified by `_ = _ ∈ _` as we did with `≡`. As another example, let's
+have a look at the equality type.
 
      A = A'  a = a' ∈ A  b = b' ∈ A
      ————————————————————————————————
@@ -184,7 +184,20 @@ a logical relation we define what each type means by defining the
 class of appropriate programs that fit its specification. For example,
 we defined functions to be the class of things that apply and
 proofs of equality are ⋆ when the equality is true and there are no
-proofs when it's false.
+proofs when it's false. Another way of phrasing this correspondence is
+types-as-specs. Types are used to identify a collection of terms that
+may be used in some particular way instead of merely specifying the
+syntax of their terms.
+
+Finally, the last helpful way I can suggest for looking at this is by
+examining viewing types as partial equivalence relations. We can give
+a semantics to a fragment of computational type theory by defining
+a denotation of types into a symmetric and transitive relationship on
+the set of terms. This leads to what's called the PER model of type
+theory. What we want to do is set this up so that `T` is associated
+with some PER `P` so that `(e, e') ∈ P` implies that `e = e' ∈ T`. For
+this, see [Stuart Allen][allen] and [Bob Harper's][harper] work on the
+subject.
 
 ## Building Proof Assistants for Formal Type Theory
 
@@ -193,3 +206,5 @@ proofs when it's false.
 ## Wrap Up
 
 [howe]: http://www.nuprl.org/documents/Howe/EqualityinLazy.html
+[allend]: todo
+[harper]: todo
