@@ -197,14 +197,50 @@ the set of terms. This leads to what's called the PER model of type
 theory. What we want to do is set this up so that `T` is associated
 with some PER `P` so that `(e, e') ∈ P` implies that `e = e' ∈ T`. For
 this, see [Stuart Allen][allen] and [Bob Harper's][harper] work on the
-subject.
+subject. If you're familiar with realizability, this is a
+realizability model which accounts for equality. If you're familiar
+with logical relations, it's a logical relation.
 
-## Building Proof Assistants for Formal Type Theory
+## Building Proof Assistants
 
-## Building Proof Assistants for Computational Type Theory
+A lot of the ways we actually interact with type theories is not on
+the blackboard but through some proof assistant which mechanizes the
+tedious aspects of using a type theory. For formal type theory this is
+particularly natural. It's decidable whether `M : A` holds so the user
+just writes a term and says "Hey this is a proof of `A`" and the
+computer can take care of all the work of checking it. This is the
+basic experience we get with Coq, Agda, Idris, and others. Even `≡` is
+handled without us thinking about it.
+
+With computational type theory life is a little sadder. We can't just
+write terms like we would for a formal type theory because `M ∈ A`
+isn't decidable! We need to help guide the computer through the
+process of validating that our term is well typed. This is the price
+we pay for having an exceptionally rich notion of `M = N ∈ A` and
+`M ∈ A`, there isn't a snowball's chance in hell of it being
+decidable [^1]. To make this work we switch gears and instead of
+trying to construct terms we start working with what's called a
+program refinement logic, a PRL. A PRL is basically a sequent calculus
+with a central judgment of
+
+    H ≫ A ◁ e
+
+This is going to be set up so that `H ⊢ e ∈ A` holds, but there's a
+crucial difference. With `∈` everything was an input. To mechanize it
+we would write a function accepting a context and two terms and
+checking whether one is a member of the other. With `H ≫ A ◁ e` only
+`H` and `A` are inputs, `e` should be thought of as an output. What
+we'll do with this judgment is work with a tactic language to
+construct a derivation of `H ≫ A` without even really thinking with
+that `◁ e` and the system will use our proof to *construct the term
+for us*.
 
 ## Wrap Up
 
 [howe]: http://www.nuprl.org/documents/Howe/EqualityinLazy.html
-[allend]: todo
-[harper]: todo
+[allend]: http://www.nuprl.org/documents/Allen/lics87.html
+[harper]: https://www.cs.uoregon.edu/research/summerschool/summer10/lectures/Harper-JSC92.pdf
+[^1]: To be clear, this is the chance of the snowball not melting. Not the
+snowball's chances of being able to decide whether or not `M ∈ A`
+holds. Though I suppose they're roughly the same. This was definitely
+not written so I could figure out whether or not I can use footnotes.
