@@ -101,9 +101,9 @@ So we have some terms and `↦`, on top of this we start by defining a
 notion of equality between terms. This equality is purely
 computational and has no notion of types yet (like `M ≡ N : A`)
 because we have no types yet. This equality is sometimes denoted `~`,
-we usually define it as `M ~ N` iff `M ↦ O(Ms)` if and only if `N ↦
-O(Ns)` and if they terminate than `Ms ~ Ns`. By this I mean that two
-terms are the same if they compute in the same way, either by
+we usually define it as `M ~ N` if and only if `M ↦ O(Ms)` if and only
+if `N ↦ O(Ns)` and if they terminate than `Ms ~ Ns`. By this I mean
+that two terms are the same if they compute in the same way, either by
 diverging or running to the same value built from `~` equal
 components. For more on this, you could read [Howe's paper][howe].
 
@@ -233,14 +233,65 @@ checking whether one is a member of the other. With `H ≫ A ◁ e` only
 we'll do with this judgment is work with a tactic language to
 construct a derivation of `H ≫ A` without even really thinking with
 that `◁ e` and the system will use our proof to *construct the term
-for us*.
+for us*. So in Agda when I want to write a sorting function what I
+might do is say
+
+``` agda
+    sort : List Nat → List Nat
+    sort xs = ...
+```
+
+I just give the definition and Agda is going to do the grunt work to
+make sure that I don't apply a nat to a string or something equally
+nutty. In a system like (Jon|Nu|Meta|λ)prl what we do instead is
+define the type that our sorting function ought to have and use
+tactics to prove the existence of a realizer for it. By default we
+don't really specify what exactly that realizer. For example, if I was
+writing JonPRL maybe I'd say
+
+``` jonprl
+    ||| Somehow this says a list of nats is a sorted version of another
+    Operator sorting : (0; 0).
+
+    Theorem sort : [(xs : List Nat) {ys : List Nat | is-sorting(ys; xs)}] {
+      ||| Tactics go here.
+    }
+```
+
+I specify a sufficiently strong type so that if I can construct a
+realizer for it then I clearly have constructed a sorting
+algorithm. Of course we have tactics which let us say things "I want
+to use *this* realizer" and then we have to go off and show that the
+candidate realizer is a validate realizer. In that situation we're
+actually acting as a type checker, constructing a derivation implying
+`e ∈ A`.
 
 ## Wrap Up
+
+About a year ago I went to the meeting of a paper reading club at
+CMU. There someone said something along the lines of
+
+> Wouldn't Brouwer be horrified with what we've done with his ideas?
+> His goal was these mental constructions but now we build
+> constructive proofs that no one ever sees
+
+A year later, I think Brouwer would be doubly horrified, not only are
+we building proofs we never look at our construct ourselves, but these
+proofs are derivations in a formal system not constructions! I'm not
+so sure that he would even consider such things a proof.
+
+Much closer to his ideas about construction is this idea of
+realizability that's deeply ingrained in computational type theory,
+that a proof is not a derivation but an actual program with
+computational meaning. This is reflected in the core of Martin-Lof's
+type theory and now in computational type theory and in my mind is the
+key distinguishing feature between a formal type theory and
+computational type theory. One is an axiomatic system and one is a
+formalization of construction.
 
 [howe]: http://www.nuprl.org/documents/Howe/EqualityinLazy.html
 [allend]: http://www.nuprl.org/documents/Allen/lics87.html
 [harper]: https://www.cs.uoregon.edu/research/summerschool/summer10/lectures/Harper-JSC92.pdf
 [^1]: To be clear, this is the chance of the snowball not melting. Not the
 snowball's chances of being able to decide whether or not `M ∈ A`
-holds. Though I suppose they're roughly the same. This was definitely
-not written so I could figure out whether or not I can use footnotes.
+holds. Though I suppose they're roughly the same.
