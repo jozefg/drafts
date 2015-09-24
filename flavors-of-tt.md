@@ -10,12 +10,10 @@ computational type theory. This is the type theory that underlies
 Nuprl (or [JonPRL][jonprl] cough cough).
 
 One thing that stood out to me was that you could do all these
-absolutely *magical* things in this system that completely flew in the
-face of what I was used to after 3 or so years of Coq and Agda. In
-this post I'd like to sketch some of the philosophical differences
-between CTT and a type theory more in the spirit of CiC. I'd like to
-introduce some folks to the other side of the aisle and write down the
-solutions to some misconceptions I've had for a while.
+absolutely crazy things in this system that seemed impossible after 3
+years of Coq and Agda. In this post I'd like to sketch some of the
+philosophical differences between CTT and a type theory more in the
+spirit of CiC.
 
 ## Formal Type Theory and Props-as-Types #1
 
@@ -27,15 +25,16 @@ some syntax. You lay out the syntax for some types and some terms
     M ::= M M | λ x : A. M | <M, M> | π₁ M | ⋆ | ...
 
 And now we want to describe the all important `M : A` relation. This
-tells us that some term has some type. This relation is inductively
-defined from a finite set of inferences. Ideally, it's even decidable
-for philosophical reasons I've never cared too much about.
+tells us that some term has some type. It's is inductively defined
+from a finite set of inferences. Ideally, it's even decidable for
+philosophical reasons I've never cared too much about. In fact, it's
+this relation that really governs our whole type theory, everything
+else is going to stem from this.
 
-In fact, it's this relation that really governs our whole type theory,
-everything else is going to stem from this. As an afterthought, we may
-decide that we want to identify certain terms which other terms this
-is called definitional equality. It's another inductively defined (and
-decidable) judgment `M ≡ N : A`. Two quick things to note here
+As an afterthought, we may decide that we want to identify certain
+terms which other terms this is called definitional equality. It's
+another inductively defined (and decidable) judgment `M ≡ N : A`. Two
+quick things to note here
 
  1. Definitional equality is completely arbitrary; it exists in the
     way it does because we defined it that way and for no other reason
@@ -48,7 +47,8 @@ uniformly complex judgment `M ≡ N : A` but when `A = Π x : B. C` the
 complexity *should* be greater and dependent on the complexity of `B`
 and `C`. That's how it works in math after all, equality at functions
 is defined pointwise, something we can't really do here if `≡` is to
-be decidable or just be of the same complexity no matter the type.
+be decidable or just be of the same complexity no matter the
+type.
 
 Now we can do lots of things with our theory. One thing we almost
 always want to do is now go back and build an operational semantics
@@ -62,25 +62,23 @@ programs. They're just serializations of the collections of rules
 we've applied to prove a proposition. There's no ingrained notion of
 "running" an `M` since it's built on after the fact. What we have
 instead is this `≡` relation which just specifies which symbols we
-consider equivalent but even it is pretty arbitrary. There's no reason
-we `≡` needs to be a reasonable term rewriting system or anything. If
-we're good at our jobs it will be, sometimes (HoTT) it's not
-completely clear what that computation system is even though we're
-working to find it.
+consider equivalent but even it is was defined arbitrarily. There's no
+reason we `≡` needs to be a reasonable term rewriting system or
+anything. If we're good at our jobs it will be, sometimes (HoTT) it's
+not completely clear what that computation system is even though we're
+working to find it. So I'd describe a (good) formal type theory as an
+axiomatic system like any other that we can add a computational flavor
+to.
 
 This leads to the first interpretation of the props-as-types
-correspondence (the boring one). This states that the inductively
-defined judgments of a logic give rise to a type theory whose terms
-are proof terms for those same inductively defined judgments. It's an
-identification of similar looking syntactic systems. It's useful to be
-sure if you want to develop a formal type theory, but it gives us less
-insight into the computational nature of a logic because we've
-reflected into a type theory which we have no reason to suspect has a
-reasonable computational characterization.
-
-*It was pointed out to me that there is a very large gap between
- decidable and efficiently computable. Many, many things in formal
- type theory are inefficient to compute*.
+correspondence. This states that the inductively defined judgments of
+a logic give rise to a type theory whose terms are proof terms for
+those same inductively defined judgments. It's an identification of
+similar looking syntactic systems. It's useful to be sure if you want
+to develop a formal type theory, but it gives us less insight into the
+computational nature of a logic because we've reflected into a type
+theory which we have no reason to suspect has a reasonable
+computational characterization.
 
 ## Behavioural/Computational Type Theory and Props-as-Types #2
 
@@ -94,8 +92,7 @@ exhaustively specify all of the system. It follows that we have
 actually no clue when defining the type theory how things
 compute. They just compute *somehow*. We don't really even want the
 system to be strongly normalizing, it's perfectly valid to take the
-lambda calculus (or Perl... actually can someone please make this a
-thing?).
+lambda calculus or Perl (PerlPRL!).
 
 So we have some terms and `↦`, on top of this we start by defining a
 notion of equality between terms. This equality is purely
@@ -107,15 +104,12 @@ that two terms are the same if they compute in the same way, either by
 diverging or running to the same value built from `~` equal
 components. For more on this, you could read [Howe's paper][howe].
 
-So now we still have a type theory with no types.. It's about time to
-add those. The next distinguishing feature of computational type
-theory is that we're not going to list out a bunch of inferences and
-have that be our type theory. Rather, for each new type we answer
-several questions about it,
+So now we still have a type theory with no types.. To fix this we go
+off an define inferences to answer three questions.
 
- 1. What other values denote types equal to it?
- 2. What values are in the type?
- 3. What values are considered equal **at that type**?
+ 1. What other values denote types equal to it? (`A = B`)
+ 2. What values are in the type? (`a ∈ A`)
+ 3. What values are considered equal **at that type**? (`a = b ∈ A`)
 
 The first questions is usually answered in a boring way, for instance,
 we would say that `Π x : A. B = Π x : A'. B'` if we know that `A = A'`
@@ -125,9 +119,9 @@ that some value, which is a program existing entirely independently of
 the type we're building, is in the type. Continuing with functions, we
 might state that
 
-       e ∈ B (x ∈ A)
+      e x ∈ B (x ∈ A)
     ———————————————————
-    λx. e ∈ Π x : A. B
+      e ∈ Π x : A. B
 
 Here I'm using `_ (_)` as syntax for a hypothetical judgment, we have
 to know that `e ∈ B` under the assumption that we know that `x ∈
@@ -155,12 +149,12 @@ have a look at the equality type.
 
 
        a = b ∈ A
-     ———————————————
-      ⋆ ∈ I(a; b; A)
+     ——————————————
+     ⋆ ∈ I(a; b; A)
 
-        a = b ∈ A
-     ———————————————————
-      ⋆ = ⋆ ∈ I(a; b; A)
+         a = b ∈ A
+     ——————————————————
+     ⋆ = ⋆ ∈ I(a; b; A)
 
 Things to notice here, first off the various rules depend on the rules
 governing membership and equality in `A` as we should
@@ -182,24 +176,14 @@ we can run as appropriate for the theorem we've proven. This is the
 idea behind Kleene's realizability model. Similar to what we'd do with
 a logical relation we define what each type means by defining the
 class of appropriate programs that fit its specification. For example,
-we defined functions to be the class of things that apply and
-proofs of equality are ⋆ when the equality is true and there are no
-proofs when it's false. Another way of phrasing this correspondence is
+we defined functions to be the class of things that apply and proofs
+of equality are ⋆ when the equality is true and there are no proofs
+when it's false. Another way of phrasing this correspondence is
 types-as-specs. Types are used to identify a collection of terms that
 may be used in some particular way instead of merely specifying the
-syntax of their terms.
-
-Finally, the last helpful way I can suggest for looking at this is by
-examining viewing types as partial equivalence relations. We can give
-a semantics to a fragment of computational type theory by defining
-a denotation of types into a symmetric and transitive relationship on
-the set of terms. This leads to what's called the PER model of type
-theory. What we want to do is set this up so that `T` is associated
-with some PER `P` so that `(e, e') ∈ P` implies that `e = e' ∈ T`. For
-this, see [Stuart Allen][allen] and [Bob Harper's][harper] work on the
-subject. If you're familiar with realizability, this is a
-realizability model which accounts for equality. If you're familiar
-with logical relations, it's a logical relation.
+syntax of their terms. To read a bit more about this see
+[Stuart Allen][allen] and [Bob Harper's][harper] work on the do a good
+job of explaining how this plays out for type theory.
 
 ## Building Proof Assistants
 
@@ -268,27 +252,15 @@ actually acting as a type checker, constructing a derivation implying
 
 ## Wrap Up
 
-About a year ago I went to the meeting of a paper reading club at
-CMU. There someone said something along the lines of
+Well, that's this summer in a nutshell. Before I finish I had one more
+possible look on things. Computational type theory is not concerned
+with something being provable in an axiomatic system, rather it's
+about describing constructions. Brouwer's core idea is that a proof is
+a construction and computational type theory is a system for proving
+that a particular construction (a computable process) actually
+constructs the correct object.
 
-> Wouldn't Brouwer be horrified with what we've done with his ideas?
-> His goal was these mental constructions but now we build
-> constructive proofs that no one ever sees
-
-A year later, I think Brouwer would be doubly horrified, not only are
-we building proofs we never look at our construct ourselves, but these
-proofs are derivations in a formal system not constructions! I'm not
-so sure that he would even consider such things a proof.
-
-Much closer to his ideas about construction is this idea of
-realizability that's deeply ingrained in computational type theory,
-that a proof is not a derivation but an actual program with
-computational meaning. This is reflected in the core of Martin-Lof's
-type theory and now in computational type theory and in my mind is the
-key distinguishing feature between a formal type theory and
-computational type theory. One is an axiomatic system and one is a
-formalization of construction.
-
+[jonprl]: http://www.jonprl.org
 [howe]: http://www.nuprl.org/documents/Howe/EqualityinLazy.html
 [allend]: http://www.nuprl.org/documents/Allen/lics87.html
 [harper]: https://www.cs.uoregon.edu/research/summerschool/summer10/lectures/Harper-JSC92.pdf
