@@ -256,13 +256,14 @@ Well, that's this summer in a nutshell. Before I finish I had one more
 possible look on things. Computational type theory is not concerned
 with something being provable in an axiomatic system, rather it's
 about describing constructions. Brouwer's core idea is that a proof is
-a construction and computational type theory is a system for proving
-that a particular construction (a computable process) actually
-constructs the correct object.
+a mental construction and computational type theory is a system for
+proving that a particular a computable process actually builds the
+correct object. It's a translation of Brouwer's notion of proof into
+terms a computer scientist might be interested in.
 
 [jonprl]: http://www.jonprl.org
 [howe]: http://www.nuprl.org/documents/Howe/EqualityinLazy.html
-[allend]: http://www.nuprl.org/documents/Allen/lics87.html
+[allen]: http://www.nuprl.org/documents/Allen/lics87.html
 [harper]: https://www.cs.uoregon.edu/research/summerschool/summer10/lectures/Harper-JSC92.pdf
 [^1]: To be clear, this is the chance of the snowball not melting. Not the
 snowball's chances of being able to decide whether or not `M ∈ A`
