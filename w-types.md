@@ -171,14 +171,19 @@ intensional type theory there's a fair amount of pain in using
 them. This doesn't mean that W-types are useless, just that they're
 useless in this setting.
 
-## In Extensional Type Theory
+## In Computational Type Theory
 
 Way in 1979ish, Martin-Lof proposed this type theory here termed
 "Intuitionistic Type Theory" (though everyone else just calls it
-Martin-Lof Type Theory, MLTT). MLTT is built by specifying a bunch of
-formation/introduction rules for types and then using them to justify
-their elimination rules. One admissible rule in particular is
-interesting to us, that's "equality reflection".
+Martin-Lof Type Theory, MLTT). Time passed and eventually this flavor
+of type theory was split off into the type theory that Agda and Coq
+are based on and the type theory that NuPRL is based on, computational
+type theory.
+
+Computational type theory in particular is less concerned with this
+whole "decidable equality" thing and so it admits functional
+extensionality right off the bat. We can even show that W-types are
+sufficient to encode all the types
 
 It states that if we have a proof that `I(A, a, b)` (written `a ≡ b`)
 then we can derive that the *judgment* `a = b ∈ A` holds. This is
