@@ -1,5 +1,9 @@
 \documentclass{amsart}
 \usepackage{amsmath, amssymb}
+\usepackage[parfill]{parskip}
+
+\newcommand{\set}[1]{\ensuremath{\mathbf{set}(#1)}}
+\newcommand{\unset}[1]{\ensuremath{\mathbf{set}^{-1}(#1)}}
 
 \title{A Simple Model of The Lambda Calculus}
 \author{Danny Gratzer}
@@ -66,19 +70,14 @@ So then we can think of how to define $\psi$ and $\phi$.
 You should think of $\psi$ as a function squashing a
 function into the appropriate look up table.
 
-\[
-  \psi(F) = \{(m, n) \mid n = F(m)\}
-\]
-
-and then $\phi$ just undoes the process
-
-\[
-  \phi(d) = m \mapsto
+\begin{align*}
+  \psi(F) &= \{(m, n) \mid n = F(m)\}
+  \phi(d) &= m \mapsto
    \begin{cases}
       n & (m, n) \in d\\
       \bot & \text{otherwise}
    \end{cases}
-\]
+\end{align*}
 
 There I just mean $\bot$ for undefined, it's notation not some
 specific element of our model. This looks so great and yet it's
@@ -112,15 +111,74 @@ set of pairs. But looking to lisp, we can easily see we can encode
 finite sequences with our pairing operation as cons and nil is just
 encoded as 0 (our pairing operation never gives 0). And from sequences
 there's a simple but woefully non-injective correspondence between
-finite sets of pairs and sequence pairs. Which can be mapped to
-sequences of natural numbers, which are just natural numbers. So we've
-G\"odel numbered our way to being able to think of finite tables as
-numbers. So, since we're talking about $\mathcal{P}(\mathbb{N})$,
-that means we could regard each element really as an approximation of
-the structure we were talking about before where each time we go down
-a level in the table we go from infinitely entries at the top to
-finitely many entries, and then fewer and fewer until we're completely
-out. We're forced into a much smaller model than we had before but it
-actually exists which is a step up I suppose.
+finite sets of pairs and sequence pairs. These can be mapped to
+sequences of natural numbers, which are just natural numbers. I'll
+use the notation \set{n} to indicate the finite set of natural numbers
+$n$ denotes by this process.
+
+So we've G\"odel numbered our way to being able to think of finite
+tables as numbers. So, since we're talking about
+$\mathcal{P}(\mathbb{N})$, that means we could regard each element
+really as an approximation of the structure we were talking about
+before where each time we go down a level in the table we go from
+infinitely entries at the top to finitely many entries, and then fewer
+and fewer until we're completely out. We're forced into a much smaller
+model than we had before but it actually exists which is a step up I
+suppose.
+
+Now we have to convince ourselves that we can work in such a
+restricted model. Let's define a few helpful concepts to help us show
+this. Let
+
+\[
+  X^* \triangleq \{n \mid \set{n} \subseteq X\}
+\]
+
+We then know that
+$X^* = \{\unset{F} \mid F \text{ finite} \wedge F \subseteq X\}$. We
+can see $X^*$ as a collection of approximations of $X$. It is after
+all just an encoding of a set of sets which all describe some finite
+fragment of $X$. It's not a terribly efficient way of describing $X$
+because there's lots of duplication between approximations but having
+all the finite approximations of a set is enough to uniquely determine
+it (just union the approximations).
+
+What we do then is define $\phi$ and $\psi$ by piecing together all of
+the approximations of relevant sets.
+\begin{align*}
+  \psi(F) &= \{(n, m) \mid m \in F(\set{n})^*\} \cup \{0\}\\
+  \phi(d) &= X \mapsto
+    \bigcup \{\set{m} \mid \exists n \in X^*.\ (n, m) \in d\}
+\end{align*}
+
+So $\psi$ creates a table mapping a fragment of input to the
+appropriate fragment of output. We also tack on $\{0\}$ which is our
+G\"odel encoding of $\emptyset$ because ``completely undefined'' is
+always a valid approximation of a function, if a poor one. To reverse
+the process and get a function out of a lookup table we take our input
+and rip it apart into all its valid approximations and piece together
+what the lookup table gives us.
+
+The natural question to ask is whether these functions cohere with
+each other. Is it the case that $\psi \circ \phi = 1$ for example?
+
+Suppose we have some $X \in \mathcal{P}(\mathbb{N})$, we wish to show
+that $\psi(\phi(X)) = X$. If $(n, m) \in \psi(\phi(X))$ then
+$m \in (\phi(X))(n)^*$. In order to show that
+$\psi(\phi(X)) \supseteq X$ all we need do then is show that
+$(n, m) \in X$ implies $m \in (\phi(X))(n)^*$. Suppose we have such an
+$(n, m)$. We have immediately run into a problem: $(\phi(X))(n)$ will
+not necessarily contain
+
+ then $m = \bigcup_i \set{m_i}$ where for each $m_i$ there's
+a $n_i \in n^*$ so that $(m_i, n_i) \in X$.
+
+Now we have a problem, we may know that we have a collection of
+approximations of $(n, m)$ in $X$, but we have no way of converting
+this information into evidence for $(n, m) \in X$.  It's only true if
+we can say something like if $(n_i, m_i) \in X$ and
+$\cup n_i \subseteq n$, then $(n, \cup m_i) \in X$. But how could we
+know such a thing? We'd need to make some restrictions on how $X$ came
+to be.
 
 \end{document}
