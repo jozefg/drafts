@@ -1,11 +1,12 @@
 \documentclass{amsart}
-\usepackage{amsmath, amssymb}
+\usepackage{amsmath, amssymb, stmaryrd}
 \usepackage[parfill]{parskip}
 
 \newcommand{\set}[1]{\ensuremath{\mathbf{set}(#1)}}
 \newcommand{\unset}[1]{\ensuremath{\mathbf{set}^{-1}(#1)}}
 \newcommand{\enc}{\text{enc}}
 \newcommand{\dec}{\text{dec}}
+\newcommand{\bbrack}[1]{\ensuremath{\llbracket #1 \rrbracket}}
 
 \title{A Simple Model of The Lambda Calculus}
 \author{Danny Gratzer}
@@ -191,5 +192,14 @@ $\enc \circ \dec$ will ``morally'' work on the appropriate class of
 sets, it won't return the exact same set on the nose. It may return
 any of a number of tables which describe the same function in subtly
 different ways.
+
+Now finally, we can define a model of the lambda calculus which
+satisfies $\alpha$ and $\beta$ conversions.
+
+\begin{align*}
+  \bbrack{x}(\rho) &= \rho(x)\\
+  \bbrack{M\ N}(\rho) &= \dec(\bbrack{M}(\rho))(\bbrack{N}(\rho))\\
+  \bbrack{\lambda x.\ E}(\rho) &= \enc(X \mapsto \bbrack{E}(\rho[x \mapsto X]))
+\end{align*}
 
 \end{document}
