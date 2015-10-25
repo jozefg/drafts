@@ -4,6 +4,8 @@
 
 \newcommand{\set}[1]{\ensuremath{\mathbf{set}(#1)}}
 \newcommand{\unset}[1]{\ensuremath{\mathbf{set}^{-1}(#1)}}
+\newcommand{\enc}{\text{enc}}
+\newcommand{\dec}{\text{dec}}
 
 \title{A Simple Model of The Lambda Calculus}
 \author{Danny Gratzer}
@@ -40,17 +42,17 @@ way to convert $d \in D$ into a function upon $D$. Furthermore, in
 order to properly interpret lambdas into the model we'll want to find
 some way to turn a function on $D$ back into a term on $D$. It
 doesn't necessarily need to be an isomorphism, but it certainly needs
-to be an embedding. That is, if we have $\psi : (D \to D) \to D$ and
+to be an embedding. That is, if we have $\enc : (D \to D) \to D$ and
 
-$\phi : D \to (D \to D)$ it really needs to be the case that
-$\psi \circ \phi = 1$. It would be even better though to be able to
+$\dec : D \to (D \to D)$ it really needs to be the case that
+$\dec \circ \enc = 1$. It would be even better though to be able to
 construct a model where these two collections are isomorphic, meaning
 that all functions on our domain are computable functions and all
 elements of our domain are computable functions. This is not as easy
 as one would hope though, if our domain has 2 distinct elements (it
 needs to in order to be a reasonable model) then
 $D \to D \cong \mathcal{P}(D)$. Then Cantor pops up and we know that
-we won't be able to just build some set so that $\phi \circ \psi = 1$.
+we won't be able to just build some set so that $\dec \circ \enc = 1$.
 
 This circularity is going to come back up in pretty much any model you
 attempt to build and this won't be any exception.
@@ -66,13 +68,13 @@ fine, we'll just neglect to add an entry there. This matches our
 intuition that two functions are equivalent if they coterminate and
 are equivalent on all the cases where they terminate.
 
-So then we can think of how to define $\psi$ and $\phi$.
-You should think of $\psi$ as a function squashing a
+So then we can think of how to define $\enc$ and $\dec$.
+You should think of $\enc$ as a function squashing a
 function into the appropriate look up table.
 
 \begin{align*}
-  \psi(F) &= \{(m, n) \mid n = F(m)\}
-  \phi(d) &= m \mapsto
+  \enc(F) &= \{(m, n) \mid n = F(m)\}
+  \dec(d) &= m \mapsto
    \begin{cases}
       n & (m, n) \in d\\
       \bot & \text{otherwise}
@@ -143,15 +145,15 @@ because there's lots of duplication between approximations but having
 all the finite approximations of a set is enough to uniquely determine
 it (just union the approximations).
 
-What we do then is define $\phi$ and $\psi$ by piecing together all of
+What we do then is define $\dec$ and $\enc$ by piecing together all of
 the approximations of relevant sets.
 \begin{align*}
-  \psi(F) &= \{(n, m) \mid m \in F(\set{n})^*\} \cup \{0\}\\
-  \phi(d) &= X \mapsto
+  \enc(F) &= \{(n, m) \mid m \in F(\set{n})^*\} \cup \{0\}\\
+  \dec(d) &= X \mapsto
     \bigcup \{\set{m} \mid \exists n \in X^*.\ (n, m) \in d\}
 \end{align*}
 
-So $\psi$ creates a table mapping a fragment of input to the
+So $\enc$ creates a table mapping a fragment of input to the
 appropriate fragment of output. We also tack on $\{0\}$ which is our
 G\"odel encoding of $\emptyset$ because ``completely undefined'' is
 always a valid approximation of a function, if a poor one. To reverse
@@ -160,25 +162,34 @@ and rip it apart into all its valid approximations and piece together
 what the lookup table gives us.
 
 The natural question to ask is whether these functions cohere with
-each other. Is it the case that $\psi \circ \phi = 1$ for example?
+each other. Is it the case that $\dec \circ \enc = 1$ for example?
+The short answer is no for a variety of reasons. Remember that while
+we're encoding everything into a lookup table we can only ever encode
+finite entries, infinite sets can't have a G\"odel number. In order
+for us to be able prove that $\dec \circ \enc$ could \emph{ever} be an
+identity it needs to be possible to determine the behavior of our
+function from only the finite cases.
 
-Suppose we have some $X \in \mathcal{P}(\mathbb{N})$, we wish to show
-that $\psi(\phi(X)) = X$. If $(n, m) \in \psi(\phi(X))$ then
-$m \in (\phi(X))(n)^*$. In order to show that
-$\psi(\phi(X)) \supseteq X$ all we need do then is show that
-$(n, m) \in X$ implies $m \in (\phi(X))(n)^*$. Suppose we have such an
-$(n, m)$. We have immediately run into a problem: $(\phi(X))(n)$ will
-not necessarily contain
+This idea is a driving idea between a lot of Scott's work on lattice
+theoretic models. It stems from the observation that computation is
+smooth. In the more general sense we can state this property with the
+preservation of least upper bounds of directed sets. In our specific
+case we can use the more simplistic definition that $F$ is continuous
+if
+\[
+  F(X) = \bigcup \{F(Y) \mid Y \subseteq X \wedge Y \text{ finite}\}
+\]
 
- then $m = \bigcup_i \set{m_i}$ where for each $m_i$ there's
-a $n_i \in n^*$ so that $(m_i, n_i) \in X$.
+If we apply our trick with G\"odel numbers this is equivalent to
+\[
+  F(X) = \bigcup \{F(\set{n}) \mid n \in X^*\}
+\]
 
-Now we have a problem, we may know that we have a collection of
-approximations of $(n, m)$ in $X$, but we have no way of converting
-this information into evidence for $(n, m) \in X$.  It's only true if
-we can say something like if $(n_i, m_i) \in X$ and
-$\cup n_i \subseteq n$, then $(n, \cup m_i) \in X$. But how could we
-know such a thing? We'd need to make some restrictions on how $X$ came
-to be.
+It's not hard to prove that if $F$ is continuous then
+$\dec(\enc(F)) = F$. The reverse has some complications, while
+$\enc \circ \dec$ will ``morally'' work on the appropriate class of
+sets, it won't return the exact same set on the nose. It may return
+any of a number of tables which describe the same function in subtly
+different ways.
 
 \end{document}
