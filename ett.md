@@ -60,5 +60,11 @@ So first off, the rule that we're considering here is
 
 The equality on top is propositional equality, it's something internal
 to the type theory. The equality on the bottom is the metatheoretic
-notion of equality.
+notion of equality primitive to the system. Now in some type theories
+this rule is completely admissible, that is `A ≡ B (M : A = B)`
+holds. This is because `A = B` has a single occupant:
+`refl : A = A`. Therefore, if we invert on the fact that `M : A = B`
+then it must be the case that
+
+
 ## Wrap Up

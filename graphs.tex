@@ -202,4 +202,35 @@ satisfies $\alpha$ and $\beta$ conversions.
   \bbrack{\lambda x.\ E}(\rho) &= \enc(X \mapsto \bbrack{E}(\rho[x \mapsto X]))
 \end{align*}
 
+The unfortunate bit of this model is that it's not extensional. It's
+not the case that two lambda terms are equal if and only if they
+behave the same when applied. There are many different reasons for
+this, but the first and most obvious one is that two lambda terms are
+only on the nose equal if they are defined by the same lookup
+table. But any given function can be given infinitely many finitely
+sized look up tables! This means that even if $\dec$ claims the tables
+are the same function they may not be equal as elements of
+$\mathcal{P}(\mathbb{N})$. For many applications though this is just
+fine, in particular we can still analyze questions of computability
+and recursion theory, it's just not a good model to use for proving
+some kinds of metatheorems about the lambda calculus.
+
+\section{Conclusion}
+
+This wraps up my presentation of a simple graph model of the lambda
+calculus. The key insight into all of this is that computable
+functions are continuous. From there it's only natural to take
+advantage of the fact that continuous functions are easily encodable
+in countable amounts of information which allows us to construct
+$\enc$ and $\dec$ so that $\dec \circ \enc = 1$.
+
+Questions I'm left with include
+
+\begin{itemize}
+\item This notion of continuity can be tied back to what topology on
+  $\mathcal{P}(\mathbb{N})$?
+\item The loss of extensionality is a little disappointing, but it
+  seems possible that it would be recoverable if we could quotient our
+  set by $\dec$ or something similar. Is it really that easy?
+\end{itemize}
 \end{document}
