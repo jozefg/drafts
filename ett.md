@@ -61,6 +61,7 @@ So first off, the rule that we're considering here is
 
 The equality on top is propositional equality, it's something internal
 to the type theory. The equality on the bottom is the metatheoretic
+<<<<<<< HEAD
 notion of equality. The question of whether this rule is admissible
 usually boils down to whether evidence of `M : A ≡ B` entails that `A
 ≡ B`. The notion of entailment is something we model using our chosen
@@ -118,7 +119,6 @@ other crazy thing which behaves similarly under application but does
 something we could never accomplish. These restrictions though
 actually give us *more* power at higher types! This is the thrust of
 why the lambda calculus and turing machines needn't be equivalent in
-computational power at higher types.
 
 ## Wrap Up
 
