@@ -1,0 +1,110 @@
+\documentclass[12pt]{amsart}
+\usepackage{amsmath, amsthm}
+\usepackage{times, fullpage, microtype}
+\usepackage{minted}
+\usepackage{mathpartir}
+
+\newcommand{\lam}[3]{\lambda #1 : #2.\, #3}
+\newcommand{\ap}[2]{#1\ #2}
+\newcommand{\prl}[1]{\mathtt{fst}(#1)}
+\newcommand{\prr}[1]{\mathtt{snd}(#1)}
+\newcommand{\natrec}[3]{\mathtt{rec}(#1;\ #2;\ #3)}
+\newcommand{\nat}{\mathtt{nat}}
+\renewcommand{\succ}[1]{\mathtt{succ}(#1)}
+
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{lem}[thm]{Lemma}
+
+\title{On the Fan Theorem}
+\author{Daniel Gratzer}
+\date{\today}
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+In this post I'd like to talk a little about the fan theorem and type
+theory. Now before this scares the casual reader off, let me say that
+I'm only going to be working with a simple total functional language
+and if you ignore the math you end up with a nice justification for
+the slogan ``computation is continuous''.
+
+Now the origin of the fan theorem traces back to Browerian
+mathematics. Specifically, far before things like the propositions as
+types correspondence was being contemplated, there was a (small) group
+of mathematicians working on studying what math was possible
+intuitionistically. It's unfortunately quite hard to find lucid
+explanations of that sort of work\footnote{I recommend Elements of
+  Intuitionism or Constructivism in Mathematics} but one of the main
+results of this study was a large mathematical theory surrounding
+sequences of numbers or binary digits. Most of this is too far afield
+of what I want to talk about to delve into but one important theorem
+dealt with what are called \emph{spreads} on binary sequences. These
+are really just collections of prefixes to infinite binary sequences,
+we can think of them accordingly as predicates on lists of bits. The
+fan theorem concerns such predicates that are said to \emph{bar} the
+space of binary sequences. All this means is that for any infinite
+binary sequence $\alpha$, there is an $n$ so that $P(\alpha[0:n])$ is
+true. In words, every infinite sequence contains a prefix that $P$
+contains. We are now in a position to state the fan theorem.
+\begin{thm}[Fan Theorem]
+  If a given predicate $P$ on binary sequences is \emph{decidable} and
+  \emph{bars} the total space of binary sequences, then there is a
+  number $M$ so that for any infinite sequence $\alpha$, there is an
+  $n < M$ so that $P(\alpha[0:n])$ holds.
+\end{thm}
+This is a rather difficult to parse claim so let's take a second to
+understand what it's getting at. The gist of it is that a given
+predicate which acts as a bar and is decidable can be subjected to a
+far stronger statement, not only must it be that all infinite
+sequences have a prefix in $P$, but these prefixes can all be chosen
+within a suitable length.
+
+It may seem odd that this is true at all, after all, what's to stop us
+from designing the predicate which contains
+
+
+Before we can get to technical questions like exhibiting a concrete
+model, we need to fix our language and the rules for it. I don't want
+to work in full dependent type theory because it's a bit too
+complicated to work with. Instead I shall work with the more modest
+system called G\"odel's System T. This language is nice and
+straightforward, it includes functions, natural numbers, pairs and that's
+it. We can write down the rules for the language quite quickly
+\begin{align*}
+  \ap{(\lam{x}{\tau}{e})}{v} \mapsto& [v/x]e\\
+  \prl{(v_1, v_2)} \mapsto& v_1\\
+  \prr{(v_1, v_2)} \mapsto& v_2\\
+  \natrec{0}{e_1}{x.e_2} \mapsto& e_1\\
+  \natrec{\succ{v}}{e_1}{x.e_2} \mapsto& [\natrec{v}{e_1}{x.e_2}/x]e_2\\
+\end{align*}
+along with the expected compatibility rules. This can be summarized
+for people familiar with functional programming by just saying that we
+have tuples, along with {\tt fst} and {\tt snd} and a fold-like
+operation on natural numbers. Natural numbers are represented by
+saying that we have $\succ{-}$ and $0$, $\succ{n}$ should be read as saying
+``one more than the number {\tt n}'' and 0 is zero. If we were to
+define {\tt rec} in Haskell, it would look something like
+\begin{minted}{haskell}
+  foldnat :: Nat -> a -> (a -> a) -> a
+  foldnat 0 z s = z
+  foldnat n z s = s (foldnat (n - 1) z s)
+\end{minted}
+If you're curious, this is exactly what {\tt foldr} looks like if we
+restrict ourselves to {\tt [()]} which is exactly the terrible
+representation of natural numbers we've picked for our language!
+
+We'd now like to state Markov's principle in a way that's compatible
+with System T since System T entirely lacks the dependent types we
+used to write it down before. What we shall instead say is that
+Markov's principle can be used to decide a much more restricted
+property, the question of whether or not a given function
+$\nat \to \nat$ is ever $0$. That is, we want to show that we cannot
+code up the following function
+\section{An Intuition for Independence}
+\section{Sketching Sheaves}
+\section{Independence Result}
+\section{Conclusions}
+
+\end{document}

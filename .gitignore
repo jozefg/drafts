@@ -1,3 +1,9 @@
 *.aux
 *.log
 auto/*
+*.pdf
+*.pyg
+_minted*/*
+*.fls
+*.fdb_latexmk
+_region_.tex

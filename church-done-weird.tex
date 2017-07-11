@@ -1,0 +1,38 @@
+\documentclass{amsart}
+\title{A Weird Result of Church's Thesis}
+\author{Danny Gratzer}
+\newcommand{\uni}{\mathcal{U}}
+\newcommand{\nat}{\mathbb{N}}
+\begin{document}
+\maketitle
+
+Church's law is a widely accepted principle in computer science. It
+roughly states that any ``real'' computable function may be realized
+by a program in the lambda calculus. Church's law is not on equal
+footing to any theorem, in order to do this we'd have to select some
+particular formal model of computation and then we have the same
+problem: what if the model we chose is excluding some reasonable
+computable function.
+
+In this note I'd like to highlight a surprising realization I had
+about Church's law, if we internalize it into a system then that
+system may define some frightening observations that seem to fly in
+the face of the standard model that we're trying to construct. To pick
+a specific system, let's work with a standard computational type
+theory with the type formers you'd expect. Church's law may then be
+stated that as follows
+
+\[
+  \mathtt{church} :
+  \exists f : \nat \to (\nat \to \nat).
+  \ \Pi g : \nat \to \nat.
+  \ \exists n : \nat.
+  \ f\ n =_{\nat \to \nat} g
+\]
+
+This states that there's a computable, surjective function from $\nat$
+to functions on the naturals. Intuitively, we connect this to Church's
+law by viewing the $\nat$ that $f$ takes as a G\"odel numbered
+lambda term.
+
+\end{document}

@@ -231,3 +231,9 @@ that the collection of metric spaces we're defining all belong to the
 same category (1-bounded ultrametric spaces with nonexpansive maps as
 morphisms). It's handy for some other semantic developments to have
 this around so I wanted to toss this out as a quick note.
+
+## Semantics
+
+Now that we have all the tools in place, all we need to do is define
+
+## Conclusion
