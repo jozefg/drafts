@@ -4,6 +4,10 @@
 \usepackage{minted}
 \usepackage{mathpartir}
 
+% Sets
+\newcommand{\cantor}{\mathbb{C}} % Is there a standard symbol for the Cantor space?
+
+% PL notation
 \newcommand{\lam}[3]{\lambda #1 : #2.\, #3}
 \newcommand{\ap}[2]{#1\ #2}
 \newcommand{\prl}[1]{\mathtt{fst}(#1)}
@@ -12,10 +16,12 @@
 \newcommand{\nat}{\mathtt{nat}}
 \renewcommand{\succ}[1]{\mathtt{succ}(#1)}
 
+% amsthm config
 \newtheorem{thm}{Theorem}[section]
 \newtheorem{cor}[thm]{Corollary}
 \newtheorem{lem}[thm]{Lemma}
 
+% Preamble
 \title{On the Fan Theorem}
 \author{Daniel Gratzer}
 \date{\today}
@@ -48,7 +54,7 @@ space of binary sequences. All this means is that for any infinite
 binary sequence $\alpha$, there is an $n$ so that $P(\alpha[0:n])$ is
 true. In words, every infinite sequence contains a prefix that $P$
 contains. We are now in a position to state the fan theorem.
-\begin{thm}[Fan Theorem]
+\begin{thm}[Fan Theorem]\label{thm:intro:fan1}
   If a given predicate $P$ on binary sequences is \emph{decidable} and
   \emph{bars} the total space of binary sequences, then there is a
   number $M$ so that for any infinite sequence $\alpha$, there is an
@@ -61,8 +67,67 @@ far stronger statement, not only must it be that all infinite
 sequences have a prefix in $P$, but these prefixes can all be chosen
 within a suitable length.
 
-It may seem odd that this is true at all, after all, what's to stop us
-from designing the predicate which contains
+Let's take a moment to step back and see what this entails
+mathematically. A spread, being a collection of finite sequences, is
+in fact understandable as a collection of \emph{open sets} for the
+Cantor space. One presentation of the Cantor sequence involves a
+particular subset of the unit interval. A more intuitive presentation
+is that the Cantor space is compromised of infinite binary sequences
+where basic open sets are particular, finite, prefixes. This means
+that a bar is precisely an open cover in topological terms. Phrased in
+this way, we could have equivalently said
+\begin{thm}[Fan Theorem]\label{thm:intro:fan2}
+  Every basic open cover the Cantor space has a subcover where each open set
+  is a prefix of length less than $M$
+\end{thm}
+\begin{cor}
+  Every basic open cover of the Cantor space has a finite subcover.
+\end{cor}
+\begin{proof}
+  Supposing we have an open cover, we can apply
+  theorem~\ref{thm:intro:fan2} to conclude that there is a subcover
+  where each open set is a prefix of length less than $M$ for some
+  $M$. However, there are only\footnote{In mathematics, exponential
+    time is just fine after all.} $2^M$ such open sets so it must be
+  that the open cover is finite.
+\end{proof}
+\begin{cor}
+  Every open cover of the Cantor space has a finite subcover
+\end{cor}
+\begin{proof}
+  We recall that a full open cover is one constructed of from
+  arbitrary unions of prefixes. Consider the set of all the prefixes
+  in all such unions. This is clearly a cover if the original set
+  was. As a basic open cover, we can find a finite subcover for it by
+  the previous corollary. Now consider the finite subset of the
+  original cover which contains the unions of prefixes containing the
+  prefixes in the finite subcover just constructed. This is clearly
+  finite and as it is strictly larger than a cover, it too must be
+  a cover. Thus we have our desired finite subcover.
+\end{proof}
+
+This means that topologically, the Fan theorem is the more familiar
+statement that the Cantor space is compact. Can we derive something
+else useful from this? Well one thing we notice is that if we have a
+function $\cantor \to \{0, 1\}$ (Here we have the discrete topological
+space $\{0, 1\}$) we know that $f^{-1}(\{0, 1\}) = \cantor$. However,
+we can decompose this to say that given $U_0 = f^{-1}(\{0\})$ and
+$U_1 = f^{-1}(\{1\})$ then $U_0 \cup U_1 = \cantor$. Now we have an
+open cover because we know that $f^{-1}(\{i\})$ is open by simple
+definition of continuity. Let's further decompose $U_i$ as the union
+of basic open sets, $U_0 = \bigcup_j B_j$ and $U_1 = \bigcup_j P_j$.
+Now the existence of a finite subcover means that there is a finite
+collection $B_{j_1}, B_{j_2}, ..., P_{j_n}, B_{j_{n + 1}}, ...$ so
+that these basic open sets cover the entirety of $\cantor$. This can
+be stated in two different ways,
+
+We can phrase this in a way that might be more familiar to
+programmers. Doing so requires the observation that sequences of
+binary numbers might as well be functions from $\mathbb{N}$ to
+$\{0, 1\}$. In more PLish terms, we can encode them as
+{\tt nat -> bool}. Now does a spread become? Well since it's merely a
+predicate on binary sequences we can encode it simply as a function
+{\tt (nat -> bool) -> nat}.
 
 
 Before we can get to technical questions like exhibiting a concrete
