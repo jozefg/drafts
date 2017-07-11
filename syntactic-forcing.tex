@@ -22,7 +22,7 @@
 \newtheorem{lem}[thm]{Lemma}
 
 % Preamble
-\title{On the Fan Theorem}
+\title{On the Fan Theorem and Forcing}
 \author{Daniel Gratzer}
 \date{\today}
 \begin{document}
@@ -119,16 +119,31 @@ of basic open sets, $U_0 = \bigcup_j B_j$ and $U_1 = \bigcup_j P_j$.
 Now the existence of a finite subcover means that there is a finite
 collection $B_{j_1}, B_{j_2}, ..., P_{j_n}, B_{j_{n + 1}}, ...$ so
 that these basic open sets cover the entirety of $\cantor$. This can
-be stated in two different ways,
+be stated in two different ways, one would be that be that such a
+function is uniformly continuous. This is because, since our list of
+basic opens is finite, there's a largest basic open among them. By
+this I mean that there's a $B_{j_k}$ or $P_{j_k}$ which is created by
+a finite prefix longer than the rest of them. Therefore, if any two
+infinite sequences of binary digits agree for a prefix of at least
+that length, they must be treated the same by $f$. This is the
+property I want to chase down computationally.
 
 We can phrase this in a way that might be more familiar to
 programmers. Doing so requires the observation that sequences of
 binary numbers might as well be functions from $\mathbb{N}$ to
 $\{0, 1\}$. In more PLish terms, we can encode them as
-{\tt nat -> bool}. Now does a spread become? Well since it's merely a
-predicate on binary sequences we can encode it simply as a function
-{\tt (nat -> bool) -> nat}.
-
+{\tt nat -> bool}. Now does a continuous function on such sequences
+become? Well since all computable functions can be thought of as being
+continuous we can encode it simply as a function
+{\tt (nat -> bool) -> bool}. Now there's a very interesting upshot
+of our above argument is that it ought to be that for any such
+predicate {\tt p : (nat -> bool) -> bool}, there is a number $M$ so
+that if {\tt f(0) = g(0)}, {\tt f(1) = g(1)}, ..., {\tt f(M) = g(M)}
+then it must be that {\tt p(f) = p(g)}. I would like to prove that
+such an $M$, termed a modulus of continuity, exists for any such
+{\tt p}. In order to do this, I will exhibit a model for a simple
+functional language and show that in that model all functions have a
+modulus of continuity.
 
 Before we can get to technical questions like exhibiting a concrete
 model, we need to fix our language and the rules for it. I don't want
@@ -159,17 +174,12 @@ define {\tt rec} in Haskell, it would look something like
 If you're curious, this is exactly what {\tt foldr} looks like if we
 restrict ourselves to {\tt [()]} which is exactly the terrible
 representation of natural numbers we've picked for our language!
+\section{An Intuition for Forcing}
 
-We'd now like to state Markov's principle in a way that's compatible
-with System T since System T entirely lacks the dependent types we
-used to write it down before. What we shall instead say is that
-Markov's principle can be used to decide a much more restricted
-property, the question of whether or not a given function
-$\nat \to \nat$ is ever $0$. That is, we want to show that we cannot
-code up the following function
-\section{An Intuition for Independence}
-\section{Sketching Sheaves}
-\section{Independence Result}
+What we'd like to do is to show that our language
+
+\section{Sketching the Proof}
+\section{Uniform Continuity for Computable Functionals}
 \section{Conclusions}
 
 \end{document}
