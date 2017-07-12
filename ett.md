@@ -38,7 +38,7 @@ because a lack of ways to construct doesn't mean we have a rule
 capitalizing on this. For example the original thrust of homotopy type
 theory was based on the observation that type theory didn't preclude
 the existence of univalence and new occupants of `=`, even if they
-weren't their originally. These observations simply aren't true if we
+weren't there originally. These observations simply aren't true if we
 start with `J (J)` as our hypothetical judgment because we can inspect
 the construction of a proof in order to build up another.
 
@@ -61,7 +61,6 @@ So first off, the rule that we're considering here is
 
 The equality on top is propositional equality, it's something internal
 to the type theory. The equality on the bottom is the metatheoretic
-<<<<<<< HEAD
 notion of equality. The question of whether this rule is admissible
 usually boils down to whether evidence of `M : A ≡ B` entails that `A
 ≡ B`. The notion of entailment is something we model using our chosen
