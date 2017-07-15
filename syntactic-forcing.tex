@@ -174,9 +174,34 @@ define {\tt rec} in Haskell, it would look something like
 If you're curious, this is exactly what {\tt foldr} looks like if we
 restrict ourselves to {\tt [()]} which is exactly the terrible
 representation of natural numbers we've picked for our language!
+
 \section{An Intuition for Forcing}
 
-What we'd like to do is to show that our language
+What we'd like to do is to show that our language satisfies this
+continuity property. In order to do this, we're going to instrument
+our semantics so that this property is implicit by the fact that terms
+in our language compute at all. The way this is done is by the
+addition of what's called a \emph{generic point}. This is going to be
+a term of type {\tt nat -> bool}, called $f$. The key idea is that we
+parameterize our operational semantics with an explanation of how $f$
+ought to behave. Programs will not merely run to a result, they'll run
+to a result \emph{assuming that $f$ behaves in some way}. This
+information lets us track what assumptions a program using $f$ makes.
+
+Now how will we use this extra information? Well we'll actually use
+this instrumentation to show that any computable function {\tt (nat ->
+  bool) -> bool}makes at most a finite number of queries to its input
+function (which could be $f$)! This will give us the toe-hold we need
+to argue that such functions are uniformly continuous.
+
+The underlying mathematics for this approach is quite solid, it's
+borrowing from a technique called \emph{forcing}. The central idea is
+that we take an existing model and force something new into it. In
+this case, a function from {\tt nat -> bool}. We control the
+introduction of this new construct using \emph{forcing conditions} and
+state the truth value of a proposition relative to these forcing
+conditions. For instance, we might say that $e \Downarrow v$ holds if
+and only if we have forced {\tt f(0) = true}.
 
 \section{Sketching the Proof}
 \section{Uniform Continuity for Computable Functionals}
